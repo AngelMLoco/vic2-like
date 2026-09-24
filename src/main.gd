@@ -354,7 +354,7 @@ func _create_world() -> void:
 
         for b in countries:
             if a != b:
-                relations[a] = rng.randi_range(-10, 25)
+                relations[a][b] = rng.randi_range(-10, 25)
 
     relations["Ardel"]["Varka"] = -58
     relations["Varka"]["Ardel"] = -58
@@ -1032,7 +1032,7 @@ func _diplomacy() -> void:
             continue
 
         for b in names:
-            if a == b or not bool(countries["alive"]):
+            if a == b or not bool(countries[b]["alive"]):
                 continue
 
             var drift: int = rng.randi_range(-2, 2)
@@ -1040,7 +1040,7 @@ func _diplomacy() -> void:
             if countries[a]["rivals"].has(b):
                 drift -= 1
 
-            relations[a] = clampi(int(relations[a]) + drift, -100, 100)
+            relations[a][b] = clampi(int(relations[a][b]) + drift, -100, 100)
 
 
 func _war_logic() -> void:
@@ -1236,7 +1236,6 @@ func _peace(winner: String, loser: String, w: Dictionary) -> void:
         var target: int = -1
         var attacker_won: bool = winner == String(w.get("attacker", ""))
 
-        # El objetivo de guerra solo se impone si vence quien lo declaró.
         if attacker_won and cause == "reclamación territorial":
             for i in candidates:
                 if winner_country["claims"].has(provinces[i]["name"]):
@@ -1251,8 +1250,6 @@ func _peace(winner: String, loser: String, w: Dictionary) -> void:
                     target = i
                     break
 
-        # Una victoria muy decisiva en una rivalidad puede producir una cesión,
-        # preferentemente donde exista población culturalmente afín.
         if (
             attacker_won
             and target < 0
@@ -1309,8 +1306,9 @@ func _peace(winner: String, loser: String, w: Dictionary) -> void:
     if taken != "":
         _log("La guerra termina con victoria de %s. %s cede %s." % [winner, loser, taken])
     else:
-        var reparations: float = minf(18.0, maxf(4.0, float(countries[loser]["treasury"]) * 0.08))
-        countries[loser]["treasury"] = float(countries[loser]["treasury"]) - reparations
+        var loser_treasury: float = float(countries[loser]["treasury"])
+        var reparations: float = minf(18.0, maxf(4.0, loser_treasury * 0.08))
+        countries[loser]["treasury"] = loser_treasury - reparations
         countries[winner]["treasury"] = float(countries[winner]["treasury"]) + reparations
         _log("La guerra termina con victoria de %s. No cambian las fronteras, pero %s paga reparaciones." % [winner, loser])
 
@@ -1494,7 +1492,7 @@ func _show_province(index: int) -> void:
     var avg_needs: float = _weighted_pop_value(p["pops"], "needs")
     var avg_literacy: float = _weighted_pop_value(p["pops"], "literacy")
 
-    detail_text.text = "%s\n[color=#aaaaaa]%s[/color]\n\nProvincia\nCultura dominante: %s\nRecurso principal: %s\nPoblación: %s\nRiqueza local: %.2f\nNecesidades satisfechas: %.1f%%\nAlfabetización: %.1f%%\nMilitancia: %.1f / 100\n\n%s\nGobierno: %s\nCultura estatal: %s\nTesoro: %.1f\nProducción anual: %.1f\nEstabilidad: %.1f\nPoder militar: %.1f\nAgotamiento de guerra: %.1f / 100\nPrestigio: %.1f\n\nSituación\n%s" % [
+    detail_text.text = "[font_size=24][b]%s[/b][/font_size]\n[color=#aaaaaa]%s[/color]\n\n[b]Provincia[/b]\nCultura dominante: %s\nRecurso principal: %s\nPoblación: %s\nRiqueza local: %.2f\nNecesidades satisfechas: %.1f%%\nAlfabetización: %.1f%%\nMilitancia: %.1f / 100\n\n[b]%s[/b]\nGobierno: %s\nCultura estatal: %s\nTesoro: %.1f\nProducción anual: %.1f\nEstabilidad: %.1f\nPoder militar: %.1f\nAgotamiento de guerra: %.1f / 100\nPrestigio: %.1f\n\n[b]Situación[/b]\n%s" % [
         String(p["name"]),
         owner,
         String(p["culture"]),
@@ -1528,7 +1526,7 @@ func _show_province(index: int) -> void:
 func _refresh_pops(p: Dictionary) -> void:
     var lines: Array[String] = []
 
-    lines.append("POPs de %s" % String(p["name"]))
+    lines.append("[font_size=22][b]POPs de %s[/b][/font_size]" % String(p["name"]))
     lines.append("[color=#aaaaaa]Sus necesidades ahora dependen de precios, oferta y poder adquisitivo.[/color]\n")
 
     var pops: Array = p["pops"]
@@ -1544,7 +1542,7 @@ func _refresh_pops(p: Dictionary) -> void:
             goods_list.append(String(good_name))
 
         lines.append(
-            "%s — %s\nCultura: %s | Religión: %s\nNecesidades: %.0f%% | Alfabetización: %.0f%%\nRiqueza: %.1f | Militancia: %.1f | Ideología: %s\nCesta: %s\n" % [
+            "[b]%s[/b] — %s\nCultura: %s | Religión: %s\nNecesidades: %.0f%% | Alfabetización: %.0f%%\nRiqueza: %.1f | Militancia: %.1f | Ideología: %s\nCesta: %s\n" % [
                 pop_class,
                 _fmt_pop(int(pop["size"])),
                 String(pop["culture"]),
@@ -1583,7 +1581,7 @@ func _refresh_market() -> void:
             condition = "exceso de oferta"
 
         lines.append(
-            "%s — %.2f (%+.0f%%)\nOferta %.1f | Demanda %.1f | Cobertura %.0f%% | %s\n" % [
+            "[b]%s[/b] — %.2f (%+.0f%%)\nOferta %.1f | Demanda %.1f | Cobertura %.0f%% | %s\n" % [
                 String(good_name).capitalize(),
                 price,
                 price_change,
