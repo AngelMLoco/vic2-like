@@ -125,7 +125,7 @@ func _build_ui() -> void:
     root.add_child(top)
 
     var title := Label.new()
-    title.text = "CHRONICLES OF AETHER  —  v0.3 ECON LAB"
+    title.text = "CHRONICLES OF AETHER  —  v0.3.2 SOCIAL ECON LAB"
     title.add_theme_font_size_override("font_size", 24)
     top.add_child(title)
     top.add_spacer(false)
@@ -354,7 +354,7 @@ func _create_world() -> void:
 
         for b in countries:
             if a != b:
-                relations[a][b] = rng.randi_range(-10, 25)
+                relations[a] = rng.randi_range(-10, 25)
 
     relations["Ardel"]["Varka"] = -58
     relations["Varka"]["Ardel"] = -58
@@ -788,13 +788,63 @@ func _market_crisis_events() -> void:
         ):
             market_event_cooldowns[good_name] = year + 10
             stats["shortage_crises"] = int(stats["shortage_crises"]) + 1
+            _apply_shortage_pressure(String(good_name), availability, price / base_price)
 
             if good_name == "grano":
-                _major_event("La escasez de grano dispara el precio de los alimentos. Las clases populares comienzan a sentir la crisis.")
+                _major_event("La escasez de grano dispara el precio de los alimentos. Campesinos, obreros y soldados sienten primero la crisis.")
             elif good_name == "cristal arcano":
-                _major_event("El precio del cristal arcano se dispara. Talleres mágicos y gobiernos compiten por reservas cada vez más escasas.")
+                _major_event("El precio del cristal arcano se dispara. Magos, aristócratas y talleres arcanos compiten por reservas cada vez más escasas.")
+            elif good_name == "herramientas":
+                _log("La escasez de herramientas golpea especialmente a mineros, obreros y artesanos.")
             else:
-                _log("Una escasez de %s eleva los precios y presiona los presupuestos familiares." % good_name)
+                _log("Una escasez de %s eleva los precios y presiona a los grupos que más dependen de ese bien." % good_name)
+
+
+func _apply_shortage_pressure(good_name: String, availability: float, price_ratio: float) -> void:
+    var severity: float = clampf((0.72 - availability) * 5.0 + (price_ratio - 1.55) * 0.7, 0.35, 2.4)
+
+    for province_index in range(provinces.size()):
+        var p: Dictionary = provinces[province_index]
+        var pops: Array = p["pops"]
+
+        for pop_index in range(pops.size()):
+            var pop: Dictionary = pops[pop_index]
+            var pop_class: String = String(pop["class"])
+            var basket: Dictionary = CLASS_NEEDS.get(pop_class, {})
+
+            if not basket.has(good_name):
+                continue
+
+            var dependence: float = float(basket[good_name])
+            var class_multiplier: float = 1.0
+
+            if good_name == "grano" and (
+                pop_class == "Campesinos"
+                or pop_class == "Obreros"
+                or pop_class == "Mineros"
+                or pop_class == "Soldados"
+            ):
+                class_multiplier = 1.35
+
+            if good_name == "cristal arcano" and pop_class == "Magos":
+                class_multiplier = 1.80
+
+            if good_name == "herramientas" and (
+                pop_class == "Mineros"
+                or pop_class == "Obreros"
+                or pop_class == "Artesanos"
+            ):
+                class_multiplier = 1.50
+
+            var shock: float = clampf(severity * (0.8 + dependence * 2.4) * class_multiplier, 0.25, 5.0)
+
+            pop["militancy"] = clampf(float(pop["militancy"]) + shock, 0.0, 100.0)
+            pop["wealth"] = maxf(1.0, float(pop["wealth"]) - shock * 0.35)
+            pops[pop_index] = pop
+
+        p["pops"] = pops
+        p["unrest"] = _weighted_pop_value(pops, "militancy")
+        provinces[province_index] = p
 
 
 # -------------------------------------------------------------------
@@ -835,15 +885,15 @@ func _population_and_unrest() -> void:
             growth_rate = clampf(growth_rate, -0.008, 0.006)
             pop["size"] = maxi(1, int(round(float(pop["size"]) * (1.0 + growth_rate))))
 
-            var militancy_delta: float = -0.16
+            var militancy_delta: float = -0.08
 
-            if needs < 0.62:
-                militancy_delta += (0.62 - needs) * 6.5
-            elif needs > 0.74:
-                militancy_delta -= (needs - 0.74) * 2.8
+            if needs < 0.64:
+                militancy_delta += (0.64 - needs) * 7.2
+            elif needs > 0.78:
+                militancy_delta -= (needs - 0.78) * 2.4
 
-            if needs < 0.46:
-                militancy_delta += 0.48
+            if needs < 0.48:
+                militancy_delta += 0.58
 
             if String(pop["culture"]) != state_culture:
                 militancy_delta += 0.12
@@ -884,7 +934,7 @@ func _population_and_unrest() -> void:
         if cooldown <= 0:
             var unrest: float = float(p["unrest"])
 
-            if unrest >= 72.0 and rng.randf() < 0.045:
+            if unrest >= 68.0 and rng.randf() < 0.035:
                 stats["revolts"] = int(stats["revolts"]) + 1
                 c["stability"] = float(c["stability"]) - 5.5
                 p["social_cooldown"] = 10
@@ -892,7 +942,7 @@ func _population_and_unrest() -> void:
                 _log("Una rebelión estalla en %s contra el gobierno de %s." % [String(p["name"]), owner])
                 _calm_after_social_event(pops, 10.0)
 
-            elif unrest >= 52.0 and rng.randf() < 0.085:
+            elif unrest >= 43.0 and rng.randf() < 0.070:
                 stats["strikes"] = int(stats["strikes"]) + 1
                 c["stability"] = float(c["stability"]) - 1.6
                 c["treasury"] = float(c["treasury"]) - 3.5
@@ -901,7 +951,7 @@ func _population_and_unrest() -> void:
                 _log("Huelgas y disturbios paralizan parte de %s." % String(p["name"]))
                 _calm_after_social_event(pops, 4.5)
 
-            elif unrest >= 34.0 and rng.randf() < 0.065:
+            elif unrest >= 25.0 and rng.randf() < 0.085:
                 stats["protests"] = int(stats["protests"]) + 1
                 c["stability"] = float(c["stability"]) - 0.5
                 p["social_cooldown"] = 3
@@ -982,7 +1032,7 @@ func _diplomacy() -> void:
             continue
 
         for b in names:
-            if a == b or not bool(countries[b]["alive"]):
+            if a == b or not bool(countries["alive"]):
                 continue
 
             var drift: int = rng.randi_range(-2, 2)
@@ -990,7 +1040,7 @@ func _diplomacy() -> void:
             if countries[a]["rivals"].has(b):
                 drift -= 1
 
-            relations[a][b] = clampi(int(relations[a][b]) + drift, -100, 100)
+            relations[a] = clampi(int(relations[a]) + drift, -100, 100)
 
 
 func _war_logic() -> void:
@@ -1184,19 +1234,47 @@ func _peace(winner: String, loser: String, w: Dictionary) -> void:
 
     if candidates.size() > 1:
         var target: int = -1
+        var attacker_won: bool = winner == String(w.get("attacker", ""))
 
-        for i in candidates:
-            if winner_country["claims"].has(provinces[i]["name"]):
-                target = i
-                break
+        # El objetivo de guerra solo se impone si vence quien lo declaró.
+        if attacker_won and cause == "reclamación territorial":
+            for i in candidates:
+                if winner_country["claims"].has(provinces[i]["name"]):
+                    target = i
+                    break
 
-        if target < 0 and cause.begins_with("acceso a "):
+        if attacker_won and target < 0 and cause.begins_with("acceso a "):
             var desired_resource: String = cause.trim_prefix("acceso a ")
 
             for i in candidates:
                 if String(provinces[i]["resource"]) == desired_resource:
                     target = i
                     break
+
+        # Una victoria muy decisiva en una rivalidad puede producir una cesión,
+        # preferentemente donde exista población culturalmente afín.
+        if (
+            attacker_won
+            and target < 0
+            and cause == "rivalidad histórica"
+            and float(w.get("score", 0.0)) >= 6.0
+            and rng.randf() < 0.38
+        ):
+            var winner_culture: String = String(winner_country["culture"])
+
+            for i in candidates:
+                if String(provinces[i]["culture"]) == winner_culture:
+                    target = i
+                    break
+
+            if target < 0 and rng.randf() < 0.30:
+                var smallest_population: int = 2147483647
+
+                for i in candidates:
+                    var candidate_population: int = int(provinces[i]["population"])
+                    if candidate_population < smallest_population:
+                        smallest_population = candidate_population
+                        target = i
 
         if target >= 0:
             taken = String(provinces[target]["name"])
@@ -1231,7 +1309,10 @@ func _peace(winner: String, loser: String, w: Dictionary) -> void:
     if taken != "":
         _log("La guerra termina con victoria de %s. %s cede %s." % [winner, loser, taken])
     else:
-        _log("La guerra termina con victoria de %s, pero el tratado no altera las fronteras." % winner)
+        var reparations: float = minf(18.0, maxf(4.0, float(countries[loser]["treasury"]) * 0.08))
+        countries[loser]["treasury"] = float(countries[loser]["treasury"]) - reparations
+        countries[winner]["treasury"] = float(countries[winner]["treasury"]) + reparations
+        _log("La guerra termina con victoria de %s. No cambian las fronteras, pero %s paga reparaciones." % [winner, loser])
 
 
 func _decay_war_exhaustion() -> void:
@@ -1413,7 +1494,7 @@ func _show_province(index: int) -> void:
     var avg_needs: float = _weighted_pop_value(p["pops"], "needs")
     var avg_literacy: float = _weighted_pop_value(p["pops"], "literacy")
 
-    detail_text.text = "[font_size=24][b]%s[/b][/font_size]\n[color=#aaaaaa]%s[/color]\n\n[b]Provincia[/b]\nCultura dominante: %s\nRecurso principal: %s\nPoblación: %s\nRiqueza local: %.2f\nNecesidades satisfechas: %.1f%%\nAlfabetización: %.1f%%\nMilitancia: %.1f / 100\n\n[b]%s[/b]\nGobierno: %s\nCultura estatal: %s\nTesoro: %.1f\nProducción anual: %.1f\nEstabilidad: %.1f\nPoder militar: %.1f\nAgotamiento de guerra: %.1f / 100\nPrestigio: %.1f\n\n[b]Situación[/b]\n%s" % [
+    detail_text.text = "%s\n[color=#aaaaaa]%s[/color]\n\nProvincia\nCultura dominante: %s\nRecurso principal: %s\nPoblación: %s\nRiqueza local: %.2f\nNecesidades satisfechas: %.1f%%\nAlfabetización: %.1f%%\nMilitancia: %.1f / 100\n\n%s\nGobierno: %s\nCultura estatal: %s\nTesoro: %.1f\nProducción anual: %.1f\nEstabilidad: %.1f\nPoder militar: %.1f\nAgotamiento de guerra: %.1f / 100\nPrestigio: %.1f\n\nSituación\n%s" % [
         String(p["name"]),
         owner,
         String(p["culture"]),
@@ -1447,7 +1528,7 @@ func _show_province(index: int) -> void:
 func _refresh_pops(p: Dictionary) -> void:
     var lines: Array[String] = []
 
-    lines.append("[font_size=22][b]POPs de %s[/b][/font_size]" % String(p["name"]))
+    lines.append("POPs de %s" % String(p["name"]))
     lines.append("[color=#aaaaaa]Sus necesidades ahora dependen de precios, oferta y poder adquisitivo.[/color]\n")
 
     var pops: Array = p["pops"]
@@ -1463,7 +1544,7 @@ func _refresh_pops(p: Dictionary) -> void:
             goods_list.append(String(good_name))
 
         lines.append(
-            "[b]%s[/b] — %s\nCultura: %s | Religión: %s\nNecesidades: %.0f%% | Alfabetización: %.0f%%\nRiqueza: %.1f | Militancia: %.1f | Ideología: %s\nCesta: %s\n" % [
+            "%s — %s\nCultura: %s | Religión: %s\nNecesidades: %.0f%% | Alfabetización: %.0f%%\nRiqueza: %.1f | Militancia: %.1f | Ideología: %s\nCesta: %s\n" % [
                 pop_class,
                 _fmt_pop(int(pop["size"])),
                 String(pop["culture"]),
@@ -1483,7 +1564,7 @@ func _refresh_pops(p: Dictionary) -> void:
 func _refresh_market() -> void:
     var lines: Array[String] = []
 
-    lines.append("[font_size=24][b]Mercado mundial[/b][/font_size]")
+    lines.append("=== MERCADO MUNDIAL ===")
     lines.append("[color=#aaaaaa]Los precios reaccionan a la oferta y demanda de cada año.[/color]\n")
 
     for good_name in GOODS:
@@ -1502,7 +1583,7 @@ func _refresh_market() -> void:
             condition = "exceso de oferta"
 
         lines.append(
-            "[b]%s[/b] — %.2f (%+.0f%%)\nOferta %.1f | Demanda %.1f | Cobertura %.0f%% | %s\n" % [
+            "%s — %.2f (%+.0f%%)\nOferta %.1f | Demanda %.1f | Cobertura %.0f%% | %s\n" % [
                 String(good_name).capitalize(),
                 price,
                 price_change,
@@ -1517,7 +1598,7 @@ func _refresh_market() -> void:
 
 
 func _refresh_history() -> void:
-    var lines: Array[String] = ["[font_size=22][b]Crónica del mundo[/b][/font_size]\n"]
+    var lines: Array[String] = ["=== CRÓNICA DEL MUNDO ===\n"]
     var start: int = maxi(0, history.size() - 50)
 
     for i in range(start, history.size()):
@@ -1549,10 +1630,10 @@ func _refresh_summary() -> void:
 
     var lines: Array[String] = []
 
-    lines.append("[b]RESUMEN DE LA SIMULACIÓN[/b]")
+    lines.append("=== RESUMEN DE LA SIMULACIÓN ===")
     lines.append("[color=#aaaaaa]Seed %d — %d años simulados[/color]" % [current_seed, year - START_YEAR])
     lines.append("")
-    lines.append("[b]Demografía y sociedad[/b]")
+    lines.append("— Demografía y sociedad —")
     lines.append("Población inicial: %s" % _fmt_pop(initial_population))
     lines.append("Población actual: %s (%+.1f%%)" % [_fmt_pop(world_population), growth_percent])
     lines.append("Necesidades medias satisfechas: %.1f%%" % (global_needs * 100.0))
@@ -1560,7 +1641,7 @@ func _refresh_summary() -> void:
     lines.append("Militancia media: %.1f / 100\n" % global_militancy)
 
     lines.append("")
-    lines.append("[b]Historia generada[/b]")
+    lines.append("— Historia generada —")
     lines.append("Guerras iniciadas: %d" % int(stats["wars"]))
     lines.append("Cambios territoriales: %d" % int(stats["territorial_changes"]))
     lines.append("Protestas: %d" % int(stats["protests"]))
@@ -1571,7 +1652,7 @@ func _refresh_summary() -> void:
     lines.append("Grandes eventos: %d\n" % int(stats["major_events"]))
 
     lines.append("")
-    lines.append("[b]Estados destacados por dato actual[/b]")
+    lines.append("— Estados destacados —")
     lines.append("Mayor población: %s (%s)" % [biggest_country, _fmt_pop(_country_population(biggest_country))])
     lines.append("Mayor tesoro: %s (%.1f)" % [richest_country, float(countries[richest_country]["treasury"])])
     lines.append("Mayor producción: %s (%.1f)" % [productive_country, float(countries[productive_country]["last_output"])])
