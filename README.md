@@ -281,3 +281,35 @@ These are not final balance goals, only a useful test range:
 - wars: several per century, with recognizable causes
 
 If different seeds land in different parts of this range and produce different histories, the simulation is behaving more like a world and less like a scripted demo.
+
+
+## v0.3.2 — Social Transmission & War Outcomes
+
+This patch keeps the v0.3.1 economy mostly intact and focuses on two missing links:
+
+### 1. Social shocks now target the classes that depend on the scarce good
+
+Examples:
+- grain shortages hit peasants, workers, miners and soldiers harder
+- tool shortages hit miners, workers and artisans harder
+- arcane crystal shortages hit mages especially hard
+
+Shortage crises can now directly reduce wealth and raise militancy in the affected POPs.
+
+### 2. Wars now produce outcomes that match their cause
+
+- territorial-claim wars try to transfer the claimed province if the attacker wins
+- strategic-resource wars try to transfer a province with that resource
+- decisive historical-rivalry wars can sometimes force a territorial concession
+- wars without border changes now transfer reparations instead of ending with no consequence
+
+### Social tuning
+
+The simulation now aims for visible but not constant conflict:
+- protests should be common enough to appear in a century
+- strikes should be less common
+- rebellions should remain rare
+
+### UI cleanup
+
+Large BBCode bold/font-size tags were removed from dynamic RichText labels because they were rendering as visually duplicated headings on some Godot configurations.
