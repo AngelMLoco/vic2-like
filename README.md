@@ -219,3 +219,65 @@ Also compare:
 - whether strategic-resource shortages affect wars.
 
 The values are not considered balanced yet. This phase is specifically about testing whether economic and social systems can create believable historical consequences.
+
+
+## v0.3.1 — Social Balance
+
+This patch focuses on making the simulation less extreme and more historically readable.
+
+### Social conflict now has stages
+
+Instead of every angry province jumping directly into revolt:
+
+```
+discontent
+→ protest
+→ strike / disturbances
+→ rebellion
+```
+
+Each province now has social memory and a cooldown after a major social event, preventing the same province from firing unrest every year.
+
+### Rebalanced economy and militancy
+
+- primary production increased moderately
+- clothes/tools production increased
+- POP purchasing power increased
+- militancy rises more slowly
+- satisfied POPs calm down more noticeably
+- cultural minorities still add pressure, but less explosively
+- war exhaustion still affects social tension
+
+### Reform pacing
+
+Labor reform now:
+- requires higher militancy,
+- requires literacy,
+- requires poor needs satisfaction,
+- has a probability gate,
+- has a long reform cooldown.
+
+This should prevent every country from reforming immediately.
+
+### War pacing
+
+Wars still require an actual cause, but:
+- historical rivalry can trigger sooner,
+- declaration probability is higher,
+- postwar cooldown is slightly shorter.
+
+Goal: avoid both extremes — neither constant battle royale nor a century of peace.
+
+### 100-year target zone
+
+These are not final balance goals, only a useful test range:
+
+- average needs satisfaction: roughly 65–85%
+- average militancy: roughly 10–35
+- protests: visible but not constant
+- strikes/disturbances: occasional
+- rebellions: rare
+- reforms: a handful
+- wars: several per century, with recognizable causes
+
+If different seeds land in different parts of this range and produce different histories, the simulation is behaving more like a world and less like a scripted demo.
