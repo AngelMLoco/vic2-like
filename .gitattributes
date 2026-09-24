@@ -1,0 +1,6 @@
+# Keep Godot/text sources on LF across Windows/Linux/macOS
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.godot text eol=lf
+*.md text eol=lf
