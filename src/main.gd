@@ -212,7 +212,7 @@ func _economy() -> void:
             c.stability -= 3.0
             c.military *= 0.98
         else:
-            c.stability = min(100.0, c.stability + 0.35)
+            c.stability = minf(100.0, float(c.stability) + 0.35)
         countries[name] = c
 
 func _population_and_unrest() -> void:
@@ -222,7 +222,7 @@ func _population_and_unrest() -> void:
         var growth := 1.0 + rng.randf_range(0.004,0.016)
         if _at_war(p.owner):
             growth -= rng.randf_range(0.002,0.010)
-        p.population = max(1000, int(p.population * growth))
+        p.population = maxi(1000, int(p.population * growth))
         var pressure := 0.0
         if p.culture != c.culture:
             pressure += 1.8
@@ -230,7 +230,7 @@ func _population_and_unrest() -> void:
             pressure += (50.0-c.stability)/18.0
         if c.treasury < 20:
             pressure += 1.0
-        p.unrest = clamp(p.unrest + pressure - rng.randf_range(0.4,1.6), 0.0, 100.0)
+        p.unrest = clampf(float(p.unrest) + pressure - rng.randf_range(0.4,1.6), 0.0, 100.0)
         if p.unrest > 72 and rng.randf() < 0.18:
             c.stability -= 4.0
             _log("Disturbios en %s sacuden a %s; la población %s exige cambios." % [p.name,p.owner,p.culture])
@@ -249,7 +249,7 @@ func _diplomacy() -> void:
             var drift := rng.randi_range(-3,3)
             if countries[a].rivals.has(b):
                 drift -= 2
-            relations[a][b] = clamp(relations[a][b] + drift, -100, 100)
+            relations[a][b] = clampi(int(relations[a][b]) + drift, -100, 100)
 
 func _historical_events() -> void:
     if year >= 184 and not fired_events.has("arcane_engine"):
@@ -288,13 +288,13 @@ func _war_logic() -> void:
         for defender in countries:
             if attacker == defender or not countries[defender].alive or _at_war(defender):
                 continue
-            var hostility: float = -relations[attacker][defender]
-            var power_ratio: float = countries[attacker].military / max(1.0,countries[defender].military)
-            var claim_bonus := 0.0
+            var hostility: float = -float(relations[attacker][defender])
+            var power_ratio: float = float(countries[attacker].military) / maxf(1.0, float(countries[defender].military))
+            var claim_bonus: float = 0.0
             for p in provinces:
                 if p.owner == defender and countries[attacker].claims.has(p.name):
                     claim_bonus = 35.0
-            var desire := hostility + claim_bonus + max(0.0,(power_ratio-1.0)*35.0)
+            var desire: float = hostility + claim_bonus + maxf(0.0, (power_ratio - 1.0) * 35.0)
             if desire > 86 and rng.randf() < 0.11:
                 wars.append({"attacker":attacker,"defender":defender,"years":0,"score":0.0})
                 _log("%s declara la guerra a %s." % [attacker,defender])
@@ -306,15 +306,15 @@ func _resolve_wars() -> void:
         var a: Dictionary = countries[w.attacker]
         var d: Dictionary = countries[w.defender]
         w.years += 1
-        var a_roll := a.military * rng.randf_range(0.70,1.30) + a.stability*0.25
-        var d_roll := d.military * rng.randf_range(0.70,1.30) + d.stability*0.25
+        var a_roll: float = float(a.military) * rng.randf_range(0.70, 1.30) + float(a.stability) * 0.25
+        var d_roll: float = float(d.military) * rng.randf_range(0.70, 1.30) + float(d.stability) * 0.25
         w.score += (a_roll-d_roll)/18.0
         a.treasury -= 9
         d.treasury -= 9
         a.stability -= rng.randf_range(0.4,1.4)
         d.stability -= rng.randf_range(0.4,1.4)
-        a.military = max(8.0,a.military-rng.randf_range(0.5,2.0))
-        d.military = max(8.0,d.military-rng.randf_range(0.5,2.0))
+        a.military = maxf(8.0, float(a.military) - rng.randf_range(0.5, 2.0))
+        d.military = maxf(8.0, float(d.military) - rng.randf_range(0.5, 2.0))
         countries[w.attacker]=a
         countries[w.defender]=d
         wars[idx]=w
@@ -337,7 +337,7 @@ func _peace(winner:String, loser:String, _w:Dictionary) -> void:
             if countries[winner].claims.has(provinces[i].name):
                 preferred = i
                 break
-        var target: int = preferred if preferred >= 0 else candidates[rng.randi_range(0,candidates.size()-1)]
+        var target: int = preferred if preferred >= 0 else int(candidates[rng.randi_range(0, candidates.size() - 1)])
         taken = provinces[target].name
         provinces[target].owner = winner
         provinces[target].unrest += 25
@@ -399,7 +399,7 @@ func _show_province(p:Dictionary) -> void:
 
 func _refresh_history() -> void:
     var lines := ["[font_size=22][b]Crónica del mundo[/b][/font_size]\n"]
-    var start := max(0, history.size()-35)
+    var start: int = maxi(0, history.size() - 35)
     for i in range(start,history.size()):
         lines.append(history[i])
     history_text.text = "\n".join(lines)
