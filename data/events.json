@@ -1,0 +1,35 @@
+[
+  {
+    "id": "industrial_exhibition",
+    "title": "Gran Exposición Industrial",
+    "once": true,
+    "trigger": {"year_gte": 205, "has_tech": "steam_workshops", "country_prestige_gte": 45},
+    "effects": {"prestige": 8, "treasury": -6},
+    "text": "{country} organiza una gran exposición industrial y exhibe sus nuevas máquinas ante el continente."
+  },
+  {
+    "id": "bread_petitions",
+    "title": "Peticiones por el pan",
+    "once": false,
+    "cooldown": 18,
+    "trigger": {"year_gte": 190, "market_good": "grano", "market_availability_lte": 0.62, "avg_pressure_gte": 42},
+    "effects": {"stability": -2, "pressure_change": 5},
+    "text": "El encarecimiento del grano provoca peticiones, marchas y exigencias de intervención en {country}."
+  },
+  {
+    "id": "educated_middle_class",
+    "title": "Ascenso de las clases educadas",
+    "once": true,
+    "trigger": {"year_gte": 210, "avg_literacy_gte": 0.48},
+    "effects": {"prestige": 4, "pressure_change": 3},
+    "text": "Una nueva clase de funcionarios, comerciantes y profesionales alfabetizados gana influencia en {country}."
+  },
+  {
+    "id": "arcane_safety_movement",
+    "title": "Movimiento por la seguridad arcana",
+    "once": true,
+    "trigger": {"year_gte": 215, "has_tech": "arcane_engines", "avg_pressure_gte": 38},
+    "effects": {"stability": -1, "pressure_change": -4},
+    "text": "Ingenieros y magos de {country} impulsan normas comunes de seguridad para la nueva industria arcana."
+  }
+]
