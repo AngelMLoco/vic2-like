@@ -95,6 +95,7 @@ var event_last_fired := {}
 var armies: Array[Dictionary] = []
 var fleets: Array[Dictionary] = []
 var casus_bellis: Array[Dictionary] = []
+var justifications: Array[Dictionary] = []
 var next_army_id: int = 1
 var next_fleet_id: int = 1
 var selected_army_id: int = -1
@@ -596,6 +597,7 @@ func _create_world() -> void:
     armies.clear()
     fleets.clear()
     casus_bellis.clear()
+    justifications.clear()
     next_army_id = 1
     next_fleet_id = 1
     selected_army_id = -1
@@ -773,7 +775,8 @@ func _country(
             "citizenship": "cultura estatal",
             "magic_regulation": "sin regulación"
         },
-        "movement_cooldown": START_YEAR
+        "movement_cooldown": START_YEAR,
+        "infamy": 0.0
     }
 
 
@@ -978,6 +981,7 @@ func _advance_years(amount: int) -> void:
         _diplomatic_crises()
         _historical_events()
         _data_driven_events()
+        _tick_justifications()
         _war_logic()
         _resolve_wars()
         _decay_war_exhaustion()
@@ -1010,7 +1014,8 @@ func _simulate_market_and_economy(apply_state_finances: bool) -> void:
         var war_factor: float = 0.72 if _at_war(owner) else 1.0
         var exhaustion_factor: float = clampf(1.0 - float(c["war_exhaustion"]) * 0.004, 0.62, 1.0)
         var industry_bonus: float = float(c["industrial_bonus"])
-        var local_factor: float = float(p["wealth"]) * war_factor * exhaustion_factor * industry_bonus
+        var occupation_factor: float = 0.35 if String(p.get("occupied_by", "")) != "" else 1.0
+        var local_factor: float = float(p["wealth"]) * war_factor * exhaustion_factor * industry_bonus * occupation_factor
 
         var resource: String = String(p["resource"])
         var resource_workers: int = _resource_worker_population(p["pops"], resource)
@@ -1613,8 +1618,8 @@ func _province_landmass(index: int) -> int:
     return 4
 
 
-func _province_adjacency(index: int) -> Array[int]:
-    const ADJ := {
+func _province_adjacency(index: int) -> Array:
+    var ADJ := {
         0:[1,3], 1:[0,2,3,4], 2:[1,4,7], 3:[0,1,4,5,6], 4:[1,2,3,6,7],
         5:[3,6], 6:[3,4,5,7], 7:[2,4,6],
         8:[9,10], 9:[8,10], 10:[8,9],
@@ -1905,9 +1910,12 @@ func _army_arrived(army_id: int) -> void:
 
     var owner := String(provinces[province_index]["owner"])
     if owner == String(army["country"]):
-        if String(provinces[province_index].get("occupied_by", "")) != "":
+        var old_occupier := String(provinces[province_index].get("occupied_by", ""))
+        if old_occupier != "":
+            _adjust_warscore(owner, old_occupier, _province_value(province_index))
             provinces[province_index]["occupied_by"] = ""
             provinces[province_index]["occupation"] = 0.0
+            _log("%s libera %s de la ocupación de %s." % [owner, String(provinces[province_index]["name"]), old_occupier])
 
 
 func _enemy_army_index_in_province(country_name: String, province_index: int) -> int:
@@ -2496,7 +2504,8 @@ func _show_country_select() -> void:
         var color: Color = COUNTRY_COLORS.get(name, Color.GRAY)
         button.add_theme_stylebox_override("normal", _panel_style(color.darkened(0.48), color.lightened(0.10), 2))
         button.add_theme_stylebox_override("hover", _panel_style(color.darkened(0.30), Color("ead39a"), 2))
-        button.pressed.connect(func(): _start_as_country(name))
+        var chosen_country := name
+        button.pressed.connect(func(): _start_as_country(chosen_country))
         grid.add_child(button)
 
 
@@ -2644,6 +2653,95 @@ func _open_diplomacy_panel() -> void:
 
     if not found:
         content.add_child(_action_label("No tienes un Casus Belli disponible en este momento."))
+
+    content.add_child(_action_label("JUSTIFICAR GUERRA", 20))
+    for target_name in countries:
+        var target := String(target_name)
+        if target == player_country or _at_war(target):
+            continue
+
+        var already := false
+        for justification in justifications:
+            if String(justification["owner"]) == player_country and String(justification["target"]) == target:
+                already = true
+                break
+
+        var justify := Button.new()
+        justify.text = "Justificar adquisición territorial contra %s%s" % [target, " (en progreso)" if already else ""]
+        _style_menu_button(justify)
+        justify.disabled = already
+        var chosen_target := target
+        justify.pressed.connect(func(): _start_war_justification(chosen_target))
+        content.add_child(justify)
+
+
+func _start_war_justification(target: String) -> void:
+    if target == player_country or not countries.has(target):
+        return
+
+    for j in justifications:
+        if String(j["owner"]) == player_country and String(j["target"]) == target:
+            return
+
+    var province_name := _best_justification_target(player_country, target)
+    if province_name == "":
+        return
+
+    justifications.append({
+        "owner": player_country,
+        "target": target,
+        "type": "acquire_province",
+        "province": province_name,
+        "years_remaining": 3,
+        "infamy": 3.0
+    })
+    status_label.text = "Justificando guerra contra %s por %s. Faltan 3 años." % [target, province_name]
+    _log("%s comienza a justificar una guerra contra %s." % [player_country, target])
+    _open_diplomacy_panel()
+
+
+func _best_justification_target(owner: String, target: String) -> String:
+    for i in range(provinces.size()):
+        if String(provinces[i]["owner"]) != owner:
+            continue
+        for neighbor in _province_adjacency(i):
+            if String(provinces[neighbor]["owner"]) == target:
+                return String(provinces[neighbor]["name"])
+
+    for p in provinces:
+        if String(p["owner"]) == target:
+            return String(p["name"])
+    return ""
+
+
+func _tick_justifications() -> void:
+    for i in range(justifications.size() - 1, -1, -1):
+        var j: Dictionary = justifications[i]
+        j["years_remaining"] = int(j["years_remaining"]) - 1
+
+        if int(j["years_remaining"]) <= 0:
+            var owner := String(j["owner"])
+            var target := String(j["target"])
+            var province_name := String(j["province"])
+            var definition := _cb_def(String(j["type"]))
+
+            casus_bellis.append({
+                "owner": owner,
+                "target": target,
+                "type": String(j["type"]),
+                "province": province_name,
+                "cost": int(definition.get("warscore_cost", 20)),
+                "infamy": int(definition.get("infamy", 3)),
+                "expires": year + 10
+            })
+
+            countries[owner]["infamy"] = float(countries[owner].get("infamy", 0.0)) + float(j.get("infamy", 3.0))
+            relations[owner][target] = clampi(int(relations[owner][target]) - 15, -100, 100)
+            relations[target][owner] = clampi(int(relations[target][owner]) - 15, -100, 100)
+            _log("%s obtiene un Casus Belli contra %s por %s." % [owner, target, province_name])
+            justifications.remove_at(i)
+        else:
+            justifications[i] = j
 
 
 func _player_declare_cb(cb: Dictionary) -> void:
@@ -2977,6 +3075,7 @@ func _refresh_outliner() -> void:
     lines.append("Población: %s" % _fmt_pop(_country_population(owner)))
     lines.append("Estabilidad: %.1f" % float(c["stability"]))
     lines.append("Prestigio: %.1f" % float(c["prestige"]))
+    lines.append("Infamia: %.1f" % float(c.get("infamy", 0.0)))
     lines.append("Producción: %.1f" % float(c["last_output"]))
     lines.append("Militancia: %.1f" % _country_avg_pop_value(owner, "militancy"))
 
@@ -3822,6 +3921,7 @@ func _save_game() -> void:
         "armies": armies,
         "fleets": fleets,
         "casus_bellis": casus_bellis,
+        "justifications": justifications,
         "next_army_id": next_army_id,
         "next_fleet_id": next_fleet_id,
         "player_country": player_country,
@@ -3899,6 +3999,14 @@ func _load_game() -> void:
     for cb in data.get("casus_bellis", []):
         if cb is Dictionary:
             casus_bellis.append(cb)
+
+    justifications.clear()
+    for justification in data.get("justifications", []):
+        if justification is Dictionary:
+            justifications.append(justification)
+
+    if armies.is_empty() and game_started:
+        _initialize_military_layer()
 
     history.clear()
     for entry in data.get("history", []):
