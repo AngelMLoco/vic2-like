@@ -20,7 +20,8 @@ const GOODS := {
     "carbón": {"base_price": 1.15},
     "ropa": {"base_price": 1.60},
     "herramientas": {"base_price": 2.20},
-    "cristal arcano": {"base_price": 3.20}
+    "cristal arcano": {"base_price": 3.20},
+    "componentes arcanos": {"base_price": 4.80}
 }
 
 const CLASS_INCOME := {
@@ -64,10 +65,12 @@ const CLASS_NEEDS := {
         "grano": 0.88, "madera": 0.18, "ropa": 0.25, "herramientas": 0.07
     },
     "Aristócratas": {
-        "grano": 0.82, "madera": 0.25, "ropa": 0.55, "herramientas": 0.14, "cristal arcano": 0.06
+        "grano": 0.82, "madera": 0.25, "ropa": 0.55, "herramientas": 0.14,
+        "cristal arcano": 0.06, "componentes arcanos": 0.025
     },
     "Magos": {
-        "grano": 0.88, "madera": 0.17, "ropa": 0.30, "herramientas": 0.16, "cristal arcano": 0.22
+        "grano": 0.88, "madera": 0.17, "ropa": 0.30, "herramientas": 0.16,
+        "cristal arcano": 0.22, "componentes arcanos": 0.085
     }
 }
 
@@ -83,6 +86,10 @@ var history: Array[String] = []
 var fired_events := {}
 var market := {}
 var market_event_cooldowns := {}
+var tech_defs: Array = []
+var industry_defs: Array = []
+var event_defs: Array = []
+var event_last_fired := {}
 
 var stats := {}
 var initial_population: int = 0
@@ -95,12 +102,14 @@ var map_grid: GridContainer
 var detail_text: RichTextLabel
 var pops_text: RichTextLabel
 var market_text: RichTextLabel
+var development_text: RichTextLabel
 var history_text: RichTextLabel
 var summary_text: RichTextLabel
 
 
 func _ready() -> void:
     rng.seed = current_seed
+    _load_external_data()
     _build_ui()
     _create_world()
     _refresh_all()
@@ -125,7 +134,7 @@ func _build_ui() -> void:
     root.add_child(top)
 
     var title := Label.new()
-    title.text = "CHRONICLES OF AETHER  —  v0.3.3 POLITICAL PRESSURE LAB"
+    title.text = "CHRONICLES OF AETHER  —  v0.4 GRAND STRATEGY CORE"
     title.add_theme_font_size_override("font_size", 24)
     top.add_child(title)
     top.add_spacer(false)
@@ -170,6 +179,16 @@ func _build_ui() -> void:
     random_seed.text = "Nueva aleatoria"
     random_seed.pressed.connect(_random_world)
     controls.add_child(random_seed)
+
+    var save_button := Button.new()
+    save_button.text = "Guardar"
+    save_button.pressed.connect(_save_game)
+    controls.add_child(save_button)
+
+    var load_button := Button.new()
+    load_button.text = "Cargar"
+    load_button.pressed.connect(_load_game)
+    controls.add_child(load_button)
 
     status_label = Label.new()
     status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -216,6 +235,11 @@ func _build_ui() -> void:
     market_text.bbcode_enabled = true
     tabs.add_child(market_text)
 
+    development_text = RichTextLabel.new()
+    development_text.name = "Desarrollo"
+    development_text.bbcode_enabled = true
+    tabs.add_child(development_text)
+
     history_text = RichTextLabel.new()
     history_text.name = "Crónica"
     history_text.bbcode_enabled = true
@@ -258,7 +282,11 @@ func _create_world() -> void:
         "revolts": 0,
         "reforms": 0,
         "major_events": 0,
-        "shortage_crises": 0
+        "shortage_crises": 0,
+        "migrations": 0,
+        "industries_built": 0,
+        "technologies_researched": 0,
+        "alliances_formed": 0
     }
 
     _init_market()
@@ -326,6 +354,7 @@ func _create_world() -> void:
                 "pressure": _weighted_pop_value(pops, "political_pressure"),
                 "social_cooldown": 0,
                 "last_social_event": "",
+                "industries": {},
                 "pops": pops
             })
 
@@ -349,6 +378,8 @@ func _create_world() -> void:
         province["culture"] = _dominant_culture(province["pops"])
         province["population"] = _sum_pop_sizes(province["pops"])
         provinces[i] = province
+
+    _seed_initial_industries()
 
     for a in countries:
         relations[a] = {}
@@ -398,7 +429,12 @@ func _country(
         "peace_until": START_YEAR,
         "industrial_bonus": 1.0,
         "reforms": [],
-        "last_reform_year": START_YEAR - 25
+        "last_reform_year": START_YEAR - 25,
+        "technologies": [],
+        "research_points": 0.0,
+        "active_research": "",
+        "allies": [],
+        "logistics": 1.0
     }
 
 
@@ -507,6 +543,7 @@ func _generate_pops(
             "wealth": clampf(wealth, 2.0, 100.0),
             "political_pressure": clampf(political_pressure, 0.0, 100.0),
             "militancy": clampf(militancy, 0.0, 100.0),
+            "employment": 0.92,
             "needs": initial_needs,
             "ideology": _initial_ideology(pop_class)
         })
@@ -586,11 +623,16 @@ func _religion_for_culture(culture: String) -> String:
 func _advance_years(amount: int) -> void:
     for _i in range(amount):
         year += 1
+        _research_and_technology()
+        _employment_mobility_and_industry()
         _simulate_market_and_economy(true)
+        _migration()
         _population_and_unrest()
         _generic_reforms()
         _diplomacy()
+        _diplomatic_actions()
         _historical_events()
+        _data_driven_events()
         _war_logic()
         _resolve_wars()
         _decay_war_exhaustion()
@@ -627,7 +669,8 @@ func _simulate_market_and_economy(apply_state_finances: bool) -> void:
 
         var resource: String = String(p["resource"])
         var resource_workers: int = _resource_worker_population(p["pops"], resource)
-        var primary_output: float = (float(resource_workers) / 1000.0) * 3.20 * local_factor
+        var sector_bonus: float = _tech_modifier(owner, "agriculture_productivity") if (resource == "grano" or resource == "madera") else _tech_modifier(owner, "mining_productivity")
+        var primary_output: float = (float(resource_workers) / 1000.0) * 3.20 * local_factor * (1.0 + sector_bonus)
 
         supply[resource] = float(supply[resource]) + primary_output
         output_value_by_country[owner] = float(output_value_by_country[owner]) + primary_output * float(GOODS[resource]["base_price"])
@@ -653,6 +696,29 @@ func _simulate_market_and_economy(apply_state_finances: bool) -> void:
             + clothing_output * float(GOODS["ropa"]["base_price"])
             + tools_output * float(GOODS["herramientas"]["base_price"])
         )
+
+        var industries: Dictionary = p.get("industries", {})
+        for industry_id in industries:
+            var level: int = int(industries[industry_id])
+            if level <= 0:
+                continue
+            var industry: Dictionary = _industry_def(String(industry_id))
+            if industry.is_empty():
+                continue
+            var input_factor: float = 1.0
+            var inputs: Dictionary = industry.get("inputs", {})
+            for input_good in inputs:
+                if market.has(input_good):
+                    input_factor = minf(input_factor, float(market[input_good]["availability"]))
+            var employed_workers: int = int(float(_pop_class_size(p["pops"], "Obreros")) * _pop_class_employment(p["pops"], "Obreros"))
+            var capacity: float = float(industry.get("worker_capacity", 10000)) * float(level)
+            var labor_factor: float = clampf(float(employed_workers) / maxf(1.0, capacity), 0.15, 1.0)
+            var tech_factor: float = 1.0 + _tech_modifier(owner, "industry_productivity")
+            var industry_output: float = float(industry.get("output_per_level", 0.0)) * float(level) * labor_factor * input_factor * tech_factor * war_factor
+            var output_good: String = String(industry.get("output_good", ""))
+            if market.has(output_good):
+                supply[output_good] = float(supply[output_good]) + industry_output
+                output_value_by_country[owner] = float(output_value_by_country[owner]) + industry_output * float(GOODS[output_good]["base_price"])
 
     # 2) Demanda agregada de los POPs.
     for p in provinces:
@@ -717,7 +783,8 @@ func _simulate_market_and_economy(apply_state_finances: bool) -> void:
             var wage_income: float = scale * income_factor * (1.05 + float(p["wealth"]) * 0.55)
             var reserve_income: float = scale * float(pop["wealth"]) * 0.022
             var war_income_penalty: float = 0.82 if _at_war(owner) else 1.0
-            var income: float = (wage_income + reserve_income) * war_income_penalty
+            var employment: float = float(pop.get("employment", 1.0))
+            var income: float = (wage_income * employment + reserve_income) * war_income_penalty
             var affordability: float = clampf(income / maxf(0.01, basket_cost), 0.0, 1.0)
             var satisfaction: float = sqrt(maxf(0.0, availability_score * affordability))
 
@@ -919,6 +986,10 @@ func _population_and_unrest() -> void:
             if needs < 0.50:
                 pressure_delta += 0.45
 
+            var employment: float = float(pop.get("employment", 1.0))
+            if employment < 0.82:
+                pressure_delta += (0.82 - employment) * 4.2
+
             if String(pop["culture"]) != state_culture:
                 pressure_delta += 0.14
 
@@ -956,7 +1027,7 @@ func _population_and_unrest() -> void:
 
             pop["militancy"] = clampf(militancy + militancy_delta, 0.0, 100.0)
 
-            var education_rate: float = 0.00125
+            var education_rate: float = 0.00125 + _tech_modifier(owner, "education_rate")
 
             if pop_class == "Clérigos" or pop_class == "Burócratas" or pop_class == "Magos":
                 education_rate += 0.0016
@@ -1588,6 +1659,7 @@ func _refresh_all() -> void:
 
     _rebuild_map()
     _refresh_market()
+    _refresh_development()
     _refresh_history()
     _refresh_summary()
 
@@ -1698,11 +1770,12 @@ func _refresh_pops(p: Dictionary) -> void:
             goods_list.append(String(good_name))
 
         lines.append(
-            "[b]%s[/b] — %s\nCultura: %s | Religión: %s\nNecesidades: %.0f%% | Alfabetización: %.0f%%\nRiqueza: %.1f | Presión: %.1f | Militancia: %.1f\nIdeología: %s\nCesta: %s\n" % [
+            "[b]%s[/b] — %s\nCultura: %s | Religión: %s\nEmpleo: %.0f%% | Necesidades: %.0f%% | Alfabetización: %.0f%%\nRiqueza: %.1f | Presión: %.1f | Militancia: %.1f\nIdeología: %s\nCesta: %s\n" % [
                 pop_class,
                 _fmt_pop(int(pop["size"])),
                 String(pop["culture"]),
                 String(pop["religion"]),
+                float(pop.get("employment", 1.0)) * 100.0,
                 float(pop["needs"]) * 100.0,
                 float(pop["literacy"]) * 100.0,
                 float(pop["wealth"]),
@@ -1807,6 +1880,10 @@ func _refresh_summary() -> void:
     lines.append("Rebeliones: %d" % int(stats["revolts"]))
     lines.append("Reformas: %d" % int(stats["reforms"]))
     lines.append("Crisis de escasez: %d" % int(stats["shortage_crises"]))
+    lines.append("Migraciones internas: %d" % int(stats["migrations"]))
+    lines.append("Industrias construidas: %d" % int(stats["industries_built"]))
+    lines.append("Tecnologías investigadas: %d" % int(stats["technologies_researched"]))
+    lines.append("Alianzas formadas: %d" % int(stats["alliances_formed"]))
     lines.append("Grandes eventos: %d\n" % int(stats["major_events"]))
 
     lines.append("")
