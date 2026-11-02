@@ -89,7 +89,17 @@ var market_event_cooldowns := {}
 var tech_defs: Array = []
 var industry_defs: Array = []
 var event_defs: Array = []
+var cb_defs: Array = []
 var event_last_fired := {}
+
+var armies: Array[Dictionary] = []
+var fleets: Array[Dictionary] = []
+var casus_bellis: Array[Dictionary] = []
+var next_army_id: int = 1
+var next_fleet_id: int = 1
+var selected_army_id: int = -1
+var player_country: String = ""
+var game_started: bool = false
 
 var stats := {}
 var initial_population: int = 0
@@ -114,6 +124,9 @@ var market_text: RichTextLabel
 var development_text: RichTextLabel
 var history_text: RichTextLabel
 var summary_text: RichTextLabel
+var country_select_overlay: PanelContainer
+var action_modal: PanelContainer
+var action_modal_content: VBoxContainer
 
 
 func _ready() -> void:
@@ -121,6 +134,8 @@ func _ready() -> void:
     _load_external_data()
     _build_ui()
     _create_world()
+    _initialize_military_layer()
+    _show_country_select()
     _refresh_all()
 
 
@@ -213,25 +228,77 @@ func _build_ui() -> void:
     menu_title.add_theme_color_override("font_color", Color("d9b97d"))
     left.add_child(menu_title)
 
-    for item in [
-        ["🤝  Diplomacia", 4],
-        ["¤  Economía", 2],
-        ["⚗  Tecnología", 3],
-        ["⚔  Militar", 5],
-        ["🏛  Política", 3],
-        ["♟  Población", 1],
-        ["⚓  Comercio", 2],
-        ["📜  Crónica", 4],
-        ["▦  Resumen", 5]
-    ]:
-        var b := Button.new()
-        b.text = String(item[0])
-        b.custom_minimum_size = Vector2(0,48)
-        b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-        _style_menu_button(b)
-        var tab_index: int = int(item[1])
-        b.pressed.connect(func(): _open_info_tab(tab_index))
-        left.add_child(b)
+    var diplomacy_button := Button.new()
+    diplomacy_button.text = "🤝  Diplomacia"
+    diplomacy_button.custom_minimum_size = Vector2(0,48)
+    diplomacy_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(diplomacy_button)
+    diplomacy_button.pressed.connect(_open_diplomacy_panel)
+    left.add_child(diplomacy_button)
+
+    var economy_button := Button.new()
+    economy_button.text = "¤  Economía"
+    economy_button.custom_minimum_size = Vector2(0,48)
+    economy_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(economy_button)
+    economy_button.pressed.connect(func(): _open_info_tab(2))
+    left.add_child(economy_button)
+
+    var technology_button := Button.new()
+    technology_button.text = "⚗  Tecnología"
+    technology_button.custom_minimum_size = Vector2(0,48)
+    technology_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(technology_button)
+    technology_button.pressed.connect(func(): _open_info_tab(3))
+    left.add_child(technology_button)
+
+    var military_button := Button.new()
+    military_button.text = "⚔  Militar"
+    military_button.custom_minimum_size = Vector2(0,48)
+    military_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(military_button)
+    military_button.pressed.connect(_open_military_panel)
+    left.add_child(military_button)
+
+    var politics_button := Button.new()
+    politics_button.text = "🏛  Política"
+    politics_button.custom_minimum_size = Vector2(0,48)
+    politics_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(politics_button)
+    politics_button.pressed.connect(func(): _open_info_tab(3))
+    left.add_child(politics_button)
+
+    var population_button := Button.new()
+    population_button.text = "♟  Población"
+    population_button.custom_minimum_size = Vector2(0,48)
+    population_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(population_button)
+    population_button.pressed.connect(func(): _open_info_tab(1))
+    left.add_child(population_button)
+
+    var trade_button := Button.new()
+    trade_button.text = "⚓  Comercio"
+    trade_button.custom_minimum_size = Vector2(0,48)
+    trade_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(trade_button)
+    trade_button.pressed.connect(func(): _open_info_tab(2))
+    left.add_child(trade_button)
+
+    var chronicle_button := Button.new()
+    chronicle_button.text = "📜  Crónica"
+    chronicle_button.custom_minimum_size = Vector2(0,48)
+    chronicle_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(chronicle_button)
+    chronicle_button.pressed.connect(func(): _open_info_tab(4))
+    left.add_child(chronicle_button)
+
+    var summary_button := Button.new()
+    summary_button.text = "▦  Resumen"
+    summary_button.custom_minimum_size = Vector2(0,48)
+    summary_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _style_menu_button(summary_button)
+    summary_button.pressed.connect(func(): _open_info_tab(5))
+    left.add_child(summary_button)
 
     var left_spacer := Control.new()
     left_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -316,7 +383,8 @@ func _build_ui() -> void:
     political_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     political_map.size_flags_vertical = Control.SIZE_EXPAND_FILL
     political_map.custom_minimum_size = Vector2(760,460)
-    political_map.connect("province_selected", Callable(self, "_show_province"))
+    political_map.connect("province_selected", Callable(self, "_on_map_province_clicked"))
+    political_map.connect("army_selected", Callable(self, "_on_map_army_selected"))
     map_frame.add_child(political_map)
 
     var bottom_panel := PanelContainer.new()
@@ -525,6 +593,12 @@ func _create_world() -> void:
     fired_events.clear()
     market_event_cooldowns.clear()
     event_last_fired.clear()
+    armies.clear()
+    fleets.clear()
+    casus_bellis.clear()
+    next_army_id = 1
+    next_fleet_id = 1
+    selected_army_id = -1
 
     stats = {
         "wars": 0,
@@ -609,6 +683,9 @@ func _create_world() -> void:
                 "social_cooldown": 0,
                 "last_social_event": "",
                 "industries": {},
+                "landmass": _province_landmass(idx),
+                "occupation": 0.0,
+                "occupied_by": "",
                 "pops": pops
             })
 
