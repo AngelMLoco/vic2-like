@@ -98,7 +98,16 @@ var selected_province_index: int = 0
 var year_label: Label
 var status_label: Label
 var seed_input: LineEdit
-var map_grid: GridContainer
+var treasury_label: Label
+var literacy_label: Label
+var military_label: Label
+var research_label: Label
+var political_map
+var minimap
+var province_panel_text: RichTextLabel
+var outliner_text: RichTextLabel
+var info_modal: PanelContainer
+var info_tabs: TabContainer
 var detail_text: RichTextLabel
 var pops_text: RichTextLabel
 var market_text: RichTextLabel
@@ -117,139 +126,381 @@ func _ready() -> void:
 
 func _build_ui() -> void:
     var bg := ColorRect.new()
-    bg.color = Color("101319")
+    bg.color = Color("111519")
     bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(bg)
 
     var root := VBoxContainer.new()
     root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-    root.add_theme_constant_override("separation", 8)
-    root.offset_left = 12
-    root.offset_top = 12
-    root.offset_right = -12
-    root.offset_bottom = -12
+    root.add_theme_constant_override("separation", 0)
     add_child(root)
 
-    var top := HBoxContainer.new()
-    root.add_child(top)
+    # ---------- Barra superior ----------
+    var top_panel := PanelContainer.new()
+    top_panel.custom_minimum_size.y = 78
+    top_panel.add_theme_stylebox_override("panel", _panel_style(Color("241f1a"), Color("8b6a38"), 2))
+    root.add_child(top_panel)
 
-    var title := Label.new()
-    title.text = "CHRONICLES OF AETHER  —  v0.4 GRAND STRATEGY CORE"
-    title.add_theme_font_size_override("font_size", 24)
-    top.add_child(title)
-    top.add_spacer(false)
+    var top := HBoxContainer.new()
+    top.add_theme_constant_override("separation", 0)
+    top_panel.add_child(top)
+
+    var brand := Label.new()
+    brand.text = "  CHRONICLES OF AETHER  "
+    brand.custom_minimum_size.x = 330
+    brand.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    brand.add_theme_font_size_override("font_size", 26)
+    brand.add_theme_color_override("font_color", Color("f0d39a"))
+    top.add_child(brand)
+
+    treasury_label = _top_stat("Tesoro", "¤ 0")
+    literacy_label = _top_stat("Alfabetización", "0%")
+    military_label = _top_stat("Poder militar", "0")
+    research_label = _top_stat("Investigación", "—")
+    top.add_child(treasury_label)
+    top.add_child(literacy_label)
+    top.add_child(military_label)
+    top.add_child(research_label)
+
+    var spacer := Control.new()
+    spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    top.add_child(spacer)
+
+    var date_box := VBoxContainer.new()
+    date_box.custom_minimum_size.x = 270
+    date_box.alignment = BoxContainer.ALIGNMENT_CENTER
+    top.add_child(date_box)
 
     year_label = Label.new()
-    year_label.add_theme_font_size_override("font_size", 22)
-    top.add_child(year_label)
+    year_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    year_label.add_theme_font_size_override("font_size", 20)
+    year_label.add_theme_color_override("font_color", Color("f3dfb2"))
+    date_box.add_child(year_label)
 
-    var controls := HBoxContainer.new()
-    controls.add_theme_constant_override("separation", 6)
-    root.add_child(controls)
-
-    for item in [["+1 año", 1], ["+5 años", 5], ["+20 años", 20], ["+100 años", 100]]:
+    var speed := HBoxContainer.new()
+    speed.alignment = BoxContainer.ALIGNMENT_CENTER
+    date_box.add_child(speed)
+    for item in [["▶",1],["▶▶",5],["▶▶▶",20],["⏩",100]]:
         var b := Button.new()
         b.text = String(item[0])
+        b.custom_minimum_size = Vector2(48,30)
+        _style_small_button(b)
         var amount: int = int(item[1])
         b.pressed.connect(func(): _advance_years(amount))
-        controls.add_child(b)
+        speed.add_child(b)
 
-    var reset := Button.new()
-    reset.text = "Reiniciar misma seed"
-    reset.pressed.connect(_reset_world)
-    controls.add_child(reset)
+    # ---------- Cuerpo ----------
+    var body := HBoxContainer.new()
+    body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    body.add_theme_constant_override("separation", 0)
+    root.add_child(body)
 
-    var seed_label := Label.new()
-    seed_label.text = "  Seed:"
-    controls.add_child(seed_label)
+    # Menú izquierdo
+    var left_panel := PanelContainer.new()
+    left_panel.custom_minimum_size.x = 178
+    left_panel.add_theme_stylebox_override("panel", _panel_style(Color("201c18"), Color("795d34"), 2))
+    body.add_child(left_panel)
+
+    var left := VBoxContainer.new()
+    left.add_theme_constant_override("separation", 4)
+    left_panel.add_child(left)
+
+    var menu_title := Label.new()
+    menu_title.text = "  REINO"
+    menu_title.custom_minimum_size.y = 40
+    menu_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    menu_title.add_theme_font_size_override("font_size", 18)
+    menu_title.add_theme_color_override("font_color", Color("d9b97d"))
+    left.add_child(menu_title)
+
+    for item in [
+        ["🤝  Diplomacia", 4],
+        ["¤  Economía", 2],
+        ["⚗  Tecnología", 3],
+        ["⚔  Militar", 5],
+        ["🏛  Política", 3],
+        ["♟  Población", 1],
+        ["⚓  Comercio", 2],
+        ["📜  Crónica", 4],
+        ["▦  Resumen", 5]
+    ]:
+        var b := Button.new()
+        b.text = String(item[0])
+        b.custom_minimum_size = Vector2(0,48)
+        b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+        _style_menu_button(b)
+        var tab_index: int = int(item[1])
+        b.pressed.connect(func(): _open_info_tab(tab_index))
+        left.add_child(b)
+
+    var left_spacer := Control.new()
+    left_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    left.add_child(left_spacer)
+
+    var seed_box := VBoxContainer.new()
+    seed_box.add_theme_constant_override("separation", 4)
+    left.add_child(seed_box)
+
+    var seed_caption := Label.new()
+    seed_caption.text = "  Seed del mundo"
+    seed_caption.add_theme_color_override("font_color", Color("a99a7f"))
+    seed_box.add_child(seed_caption)
 
     seed_input = LineEdit.new()
-    seed_input.custom_minimum_size.x = 120
     seed_input.text = str(current_seed)
-    seed_input.placeholder_text = "Ej. 481920"
+    seed_input.placeholder_text = "Seed"
     seed_input.text_submitted.connect(func(_value: String): _use_seed())
-    controls.add_child(seed_input)
+    seed_box.add_child(seed_input)
 
+    var seed_actions := HBoxContainer.new()
+    seed_box.add_child(seed_actions)
     var use_seed := Button.new()
-    use_seed.text = "Usar seed"
+    use_seed.text = "Usar"
     use_seed.pressed.connect(_use_seed)
-    controls.add_child(use_seed)
-
+    _style_small_button(use_seed)
+    seed_actions.add_child(use_seed)
     var random_seed := Button.new()
-    random_seed.text = "Nueva aleatoria"
+    random_seed.text = "Nueva"
     random_seed.pressed.connect(_random_world)
-    controls.add_child(random_seed)
+    _style_small_button(random_seed)
+    seed_actions.add_child(random_seed)
 
+    var save_load := HBoxContainer.new()
+    seed_box.add_child(save_load)
     var save_button := Button.new()
     save_button.text = "Guardar"
     save_button.pressed.connect(_save_game)
-    controls.add_child(save_button)
-
+    _style_small_button(save_button)
+    save_load.add_child(save_button)
     var load_button := Button.new()
     load_button.text = "Cargar"
     load_button.pressed.connect(_load_game)
-    controls.add_child(load_button)
+    _style_small_button(load_button)
+    save_load.add_child(load_button)
 
     status_label = Label.new()
-    status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-    controls.add_child(status_label)
+    status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    status_label.add_theme_font_size_override("font_size", 11)
+    status_label.add_theme_color_override("font_color", Color("a99776"))
+    left.add_child(status_label)
 
-    var body := HSplitContainer.new()
-    body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    root.add_child(body)
+    # Centro: avisos + mapa + panel inferior
+    var center := VBoxContainer.new()
+    center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    center.add_theme_constant_override("separation", 0)
+    body.add_child(center)
 
-    var left := VBoxContainer.new()
-    left.custom_minimum_size.x = 850
-    body.add_child(left)
+    var alerts := HBoxContainer.new()
+    alerts.custom_minimum_size.y = 40
+    alerts.add_theme_constant_override("separation", 4)
+    center.add_child(alerts)
+    for text_value in ["⚠ Movimiento político", "🤝 Diplomacia activa", "✦ Mercado arcano"]:
+        var alert := Label.new()
+        alert.text = "  " + text_value + "  "
+        alert.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        alert.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+        alert.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+        alert.add_theme_color_override("font_color", Color("ead9b7"))
+        alert.add_theme_stylebox_override("normal", _panel_style(Color("3a2420"), Color("74513d"), 1))
+        alerts.add_child(alert)
 
-    var map_title := Label.new()
-    map_title.text = "Mapa abstracto — haz clic en una provincia"
-    left.add_child(map_title)
+    var map_frame := PanelContainer.new()
+    map_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    map_frame.add_theme_stylebox_override("panel", _panel_style(Color("405f69"), Color("94713e"), 2))
+    center.add_child(map_frame)
 
-    map_grid = GridContainer.new()
-    map_grid.columns = 6
-    map_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    left.add_child(map_grid)
+    var map_script = load("res://src/ui/PoliticalMap.gd")
+    political_map = map_script.new()
+    political_map.name = "PoliticalMap"
+    political_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    political_map.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    political_map.custom_minimum_size = Vector2(760,460)
+    political_map.connect("province_selected", Callable(self, "_show_province"))
+    map_frame.add_child(political_map)
+
+    var bottom_panel := PanelContainer.new()
+    bottom_panel.custom_minimum_size.y = 185
+    bottom_panel.add_theme_stylebox_override("panel", _panel_style(Color("211c18"), Color("9a743b"), 2))
+    center.add_child(bottom_panel)
+
+    var bottom := HBoxContainer.new()
+    bottom.add_theme_constant_override("separation", 12)
+    bottom_panel.add_child(bottom)
+
+    var province_badge := VBoxContainer.new()
+    province_badge.custom_minimum_size.x = 220
+    bottom.add_child(province_badge)
+
+    var selected_title := Label.new()
+    selected_title.name = "SelectedProvinceTitle"
+    selected_title.text = "VALem"
+    selected_title.add_theme_font_size_override("font_size", 26)
+    selected_title.add_theme_color_override("font_color", Color("efd29a"))
+    province_badge.add_child(selected_title)
+
+    var selected_sub := Label.new()
+    selected_sub.name = "SelectedProvinceOwner"
+    selected_sub.text = "Provincia"
+    selected_sub.add_theme_color_override("font_color", Color("af9e80"))
+    province_badge.add_child(selected_sub)
+
+    var vignette := ColorRect.new()
+    vignette.custom_minimum_size = Vector2(200,105)
+    vignette.color = Color("4b4130")
+    province_badge.add_child(vignette)
+
+    province_panel_text = RichTextLabel.new()
+    province_panel_text.bbcode_enabled = true
+    province_panel_text.fit_content = false
+    province_panel_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    province_panel_text.add_theme_font_size_override("normal_font_size", 15)
+    bottom.add_child(province_panel_text)
+
+    # Outliner derecho
+    var right_panel := PanelContainer.new()
+    right_panel.custom_minimum_size.x = 330
+    right_panel.add_theme_stylebox_override("panel", _panel_style(Color("1d1a17"), Color("806238"), 2))
+    body.add_child(right_panel)
 
     var right := VBoxContainer.new()
-    right.custom_minimum_size.x = 530
-    body.add_child(right)
+    right.add_theme_constant_override("separation", 8)
+    right_panel.add_child(right)
 
-    var tabs := TabContainer.new()
-    tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    right.add_child(tabs)
+    var outliner_title := Label.new()
+    outliner_title.text = "  OUTLINER"
+    outliner_title.custom_minimum_size.y = 42
+    outliner_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    outliner_title.add_theme_font_size_override("font_size", 20)
+    outliner_title.add_theme_color_override("font_color", Color("ead4a5"))
+    right.add_child(outliner_title)
 
-    detail_text = RichTextLabel.new()
-    detail_text.name = "Inspector"
-    detail_text.bbcode_enabled = true
-    tabs.add_child(detail_text)
+    outliner_text = RichTextLabel.new()
+    outliner_text.bbcode_enabled = true
+    outliner_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    right.add_child(outliner_text)
 
-    pops_text = RichTextLabel.new()
-    pops_text.name = "POPs"
-    pops_text.bbcode_enabled = true
-    tabs.add_child(pops_text)
+    var mini_label := Label.new()
+    mini_label.text = "  MAPA GENERAL"
+    mini_label.add_theme_color_override("font_color", Color("c8ae7b"))
+    right.add_child(mini_label)
 
-    market_text = RichTextLabel.new()
-    market_text.name = "Mercado"
-    market_text.bbcode_enabled = true
-    tabs.add_child(market_text)
+    var mini_frame := PanelContainer.new()
+    mini_frame.custom_minimum_size.y = 185
+    mini_frame.add_theme_stylebox_override("panel", _panel_style(Color("3d5153"), Color("725b37"), 1))
+    right.add_child(mini_frame)
 
-    development_text = RichTextLabel.new()
-    development_text.name = "Desarrollo"
-    development_text.bbcode_enabled = true
-    tabs.add_child(development_text)
+    minimap = map_script.new()
+    minimap.compact_mode = true
+    minimap.interactive = false
+    minimap.show_country_labels = false
+    minimap.show_province_names = false
+    minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    minimap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    minimap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    mini_frame.add_child(minimap)
 
-    history_text = RichTextLabel.new()
-    history_text.name = "Crónica"
-    history_text.bbcode_enabled = true
-    tabs.add_child(history_text)
+    # ---------- Ventana de información ----------
+    info_modal = PanelContainer.new()
+    info_modal.visible = false
+    info_modal.set_anchors_preset(Control.PRESET_CENTER)
+    info_modal.position = Vector2(230,120)
+    info_modal.size = Vector2(1040,650)
+    info_modal.add_theme_stylebox_override("panel", _panel_style(Color("171819"), Color("a17a42"), 3))
+    add_child(info_modal)
 
-    summary_text = RichTextLabel.new()
-    summary_text.name = "Resumen"
-    summary_text.bbcode_enabled = true
-    tabs.add_child(summary_text)
+    var modal_root := VBoxContainer.new()
+    info_modal.add_child(modal_root)
 
+    var modal_header := HBoxContainer.new()
+    modal_root.add_child(modal_header)
+    var modal_title := Label.new()
+    modal_title.text = "  ARCHIVOS DEL ESTADO"
+    modal_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    modal_title.add_theme_font_size_override("font_size", 20)
+    modal_title.add_theme_color_override("font_color", Color("e6cd98"))
+    modal_header.add_child(modal_title)
+    var close := Button.new()
+    close.text = "✕"
+    close.custom_minimum_size = Vector2(44,36)
+    close.pressed.connect(func(): info_modal.visible = false)
+    _style_small_button(close)
+    modal_header.add_child(close)
+
+    info_tabs = TabContainer.new()
+    info_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    modal_root.add_child(info_tabs)
+
+    detail_text = _new_info_page("Inspector")
+    pops_text = _new_info_page("POPs")
+    market_text = _new_info_page("Mercado")
+    development_text = _new_info_page("Desarrollo")
+    history_text = _new_info_page("Crónica")
+    summary_text = _new_info_page("Resumen")
+
+    info_tabs.add_child(detail_text)
+    info_tabs.add_child(pops_text)
+    info_tabs.add_child(market_text)
+    info_tabs.add_child(development_text)
+    info_tabs.add_child(history_text)
+    info_tabs.add_child(summary_text)
+
+
+func _new_info_page(page_name: String) -> RichTextLabel:
+    var page := RichTextLabel.new()
+    page.name = page_name
+    page.bbcode_enabled = true
+    page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    page.add_theme_font_size_override("normal_font_size", 15)
+    return page
+
+
+func _top_stat(title_text: String, value_text: String) -> Label:
+    var label := Label.new()
+    label.text = title_text + "\n" + value_text
+    label.custom_minimum_size = Vector2(205,72)
+    label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    label.add_theme_font_size_override("font_size", 15)
+    label.add_theme_color_override("font_color", Color("e8d9ba"))
+    label.add_theme_stylebox_override("normal", _panel_style(Color("1b1a18"), Color("5e4a31"), 1))
+    return label
+
+
+func _panel_style(bg_color: Color, border_color: Color, border_width: int = 1) -> StyleBoxFlat:
+    var style := StyleBoxFlat.new()
+    style.bg_color = bg_color
+    style.border_color = border_color
+    style.set_border_width_all(border_width)
+    style.corner_radius_top_left = 2
+    style.corner_radius_top_right = 2
+    style.corner_radius_bottom_left = 2
+    style.corner_radius_bottom_right = 2
+    style.content_margin_left = 8
+    style.content_margin_right = 8
+    style.content_margin_top = 6
+    style.content_margin_bottom = 6
+    return style
+
+
+func _style_menu_button(button: Button) -> void:
+    button.add_theme_font_size_override("font_size", 16)
+    button.add_theme_color_override("font_color", Color("e6d6b4"))
+    button.add_theme_stylebox_override("normal", _panel_style(Color("29231d"), Color("5c4931"), 1))
+    button.add_theme_stylebox_override("hover", _panel_style(Color("3c3023"), Color("a47b3f"), 1))
+    button.add_theme_stylebox_override("pressed", _panel_style(Color("4a3524"), Color("c5964e"), 1))
+
+
+func _style_small_button(button: Button) -> void:
+    button.add_theme_font_size_override("font_size", 13)
+    button.add_theme_color_override("font_color", Color("e8d7b0"))
+    button.add_theme_stylebox_override("normal", _panel_style(Color("29241f"), Color("675238"), 1))
+    button.add_theme_stylebox_override("hover", _panel_style(Color("403328"), Color("a07942"), 1))
+
+
+func _open_info_tab(tab_index: int) -> void:
+    info_modal.visible = true
+    info_tabs.current_tab = clampi(tab_index, 0, info_tabs.get_tab_count() - 1)
 
 func _create_world() -> void:
     rng.seed = current_seed
@@ -1672,12 +1923,8 @@ func _random_world() -> void:
 
 func _refresh_all() -> void:
     seed_input.text = str(current_seed)
-    year_label.text = "Año %d" % year
-    status_label.text = "Seed %d  |  %d guerras activas  |  %s" % [
-        current_seed,
-        wars.size(),
-        "mundo estable" if wars.is_empty() else "conflicto en curso"
-    ]
+    year_label.text = "1 Enero  %d" % year
+    status_label.text = "Seed %d\n%d guerras activas" % [current_seed, wars.size()]
 
     _rebuild_map()
     _refresh_market()
@@ -1688,6 +1935,78 @@ func _refresh_all() -> void:
     if not provinces.is_empty():
         selected_province_index = clampi(selected_province_index, 0, provinces.size() - 1)
         _show_province(selected_province_index)
+
+    _refresh_topbar()
+    _refresh_outliner()
+
+
+func _refresh_topbar() -> void:
+    if provinces.is_empty():
+        return
+
+    var owner := String(provinces[selected_province_index]["owner"])
+    var c: Dictionary = countries[owner]
+    var literacy := _country_avg_pop_value(owner, "literacy") * 100.0
+    var active := String(c.get("active_research", ""))
+    var active_name := "Sin proyecto"
+    if active != "":
+        active_name = String(_tech_def(active).get("name", active))
+
+    treasury_label.text = "TESORO\n¤ %.1f" % float(c["treasury"])
+    literacy_label.text = "ALFABETIZACIÓN\n%.1f%%" % literacy
+    military_label.text = "PODER MILITAR\n%.1f" % float(c["military"])
+    research_label.text = "INVESTIGACIÓN\n%s" % active_name
+
+
+func _refresh_outliner() -> void:
+    if provinces.is_empty():
+        return
+
+    var owner := String(provinces[selected_province_index]["owner"])
+    var c: Dictionary = countries[owner]
+    var lines: Array[String] = []
+
+    lines.append("[font_size=20][b]%s[/b][/font_size]" % owner)
+    lines.append("[color=#b4a587]%s[/color]\n" % String(c["government"]))
+
+    lines.append("[color=#d9b96d][b]ALERTAS[/b][/color]")
+    var pressure := _country_avg_pop_value(owner, "political_pressure")
+    if pressure > 45.0:
+        lines.append("⚠ Presión política elevada: %.1f" % pressure)
+    if float(market["grano"]["availability"]) < 0.75:
+        lines.append("⚠ Tensión en el mercado de grano")
+    if c.get("allies", []).is_empty():
+        lines.append("• Sin alianzas defensivas")
+    else:
+        lines.append("🤝 Aliados: %s" % ", ".join(c.get("allies", [])))
+
+    lines.append("\n[color=#d9b96d][b]GUERRAS[/b][/color]")
+    var has_war := false
+    for w in wars:
+        if String(w["attacker"]) == owner or String(w["defender"]) == owner:
+            has_war = true
+            lines.append("⚔ %s — %s" % [String(w["attacker"]), String(w["defender"])])
+            lines.append("   Objetivo: %s" % String(w.get("goal_province", "sin objetivo territorial")))
+    if not has_war:
+        lines.append("En paz")
+
+    lines.append("\n[color=#d9b96d][b]INVESTIGACIÓN[/b][/color]")
+    var active := String(c.get("active_research", ""))
+    if active == "":
+        lines.append("Sin investigación activa")
+    else:
+        var tech := _tech_def(active)
+        lines.append(String(tech.get("name", active)))
+        lines.append("Puntos: %.1f / %.1f" % [float(c.get("research_points", 0.0)), float(tech.get("cost", 0.0))])
+
+    lines.append("\n[color=#d9b96d][b]ESTADO[/b][/color]")
+    lines.append("Población: %s" % _fmt_pop(_country_population(owner)))
+    lines.append("Estabilidad: %.1f" % float(c["stability"]))
+    lines.append("Prestigio: %.1f" % float(c["prestige"]))
+    lines.append("Producción: %.1f" % float(c["last_output"]))
+    lines.append("Militancia: %.1f" % _country_avg_pop_value(owner, "militancy"))
+
+    outliner_text.text = "\n".join(lines)
 
 
 func _refresh_province_aggregates() -> void:
@@ -1704,34 +2023,18 @@ func _refresh_province_aggregates() -> void:
 
 
 func _rebuild_map() -> void:
-    for child in map_grid.get_children():
-        child.queue_free()
+    if political_map != null:
+        political_map.set_world(provinces, COUNTRY_COLORS)
+        political_map.set_selected(selected_province_index)
 
-    for i in range(provinces.size()):
-        var p: Dictionary = provinces[i]
-        var b := Button.new()
-        b.custom_minimum_size = Vector2(125, 105)
-        b.text = "%s\n%s\n%s\n%.0fK hab." % [
-            String(p["name"]),
-            String(p["owner"]),
-            String(p["resource"]),
-            float(p["population"]) / 1000.0
-        ]
-
-        var style := StyleBoxFlat.new()
-        style.bg_color = COUNTRY_COLORS.get(String(p["owner"]), Color.GRAY)
-        style.corner_radius_top_left = 5
-        style.corner_radius_top_right = 5
-        style.corner_radius_bottom_left = 5
-        style.corner_radius_bottom_right = 5
-        b.add_theme_stylebox_override("normal", style)
-
-        var province_index: int = i
-        b.pressed.connect(func(): _show_province(province_index))
-        map_grid.add_child(b)
-
+    if minimap != null:
+        minimap.set_world(provinces, COUNTRY_COLORS)
+        minimap.set_selected(selected_province_index)
 
 func _show_province(index: int) -> void:
+    if index < 0 or index >= provinces.size():
+        return
+
     selected_province_index = index
 
     var p: Dictionary = provinces[index]
@@ -1740,38 +2043,56 @@ func _show_province(index: int) -> void:
     var avg_needs: float = _weighted_pop_value(p["pops"], "needs")
     var avg_literacy: float = _weighted_pop_value(p["pops"], "literacy")
     var avg_pressure: float = _weighted_pop_value(p["pops"], "political_pressure")
+    var avg_employment: float = _weighted_pop_value(p["pops"], "employment")
 
-    detail_text.text = "[font_size=24][b]%s[/b][/font_size]\n[color=#aaaaaa]%s[/color]\n\n[b]Provincia[/b]\nCultura dominante: %s\nRecurso principal: %s\nPoblación: %s\nRiqueza local: %.2f\nNecesidades satisfechas: %.1f%%\nAlfabetización: %.1f%%\nPresión política: %.1f / 100\nMilitancia: %.1f / 100\n\n[b]%s[/b]\nGobierno: %s\nCultura estatal: %s\nTesoro: %.1f\nProducción anual: %.1f\nEstabilidad: %.1f\nPoder militar: %.1f\nAgotamiento de guerra: %.1f / 100\nPrestigio: %.1f\n\n[b]Situación[/b]\n%s" % [
+    if political_map != null:
+        political_map.set_selected(index)
+    if minimap != null:
+        minimap.set_selected(index)
+
+    var industries: Dictionary = p.get("industries", {})
+    var industry_names: Array[String] = []
+    for industry_id in industries:
+        var def: Dictionary = _industry_def(String(industry_id))
+        industry_names.append("%s x%d" % [String(def.get("name", industry_id)), int(industries[industry_id])])
+
+    var industry_text := "Sin industria"
+    if not industry_names.is_empty():
+        industry_text = ", ".join(industry_names)
+
+    province_panel_text.text = "[font_size=22][b]%s[/b][/font_size]   [color=#b9aa8c]Propietario: %s[/color]\n\n[b]Población[/b]  %s     [b]Cultura[/b]  %s     [b]Recurso[/b]  %s\n[b]Presión[/b]  %.1f     [b]Militancia[/b]  %.1f     [b]Empleo[/b]  %.0f%%\n[b]Necesidades[/b]  %.0f%%     [b]Alfabetización[/b]  %.0f%%\n\n[b]Industria local[/b]\n%s" % [
         String(p["name"]),
         owner,
-        String(p["culture"]),
-        String(p["resource"]),
         _fmt_pop(int(p["population"])),
-        float(p["wealth"]),
-        avg_needs * 100.0,
-        avg_literacy * 100.0,
+        String(p["culture"]),
+        String(p["resource"]).capitalize(),
         avg_pressure,
         float(p["unrest"]),
-        owner,
-        String(c["government"]),
-        String(c["culture"]),
-        float(c["treasury"]),
-        float(c["last_output"]),
-        float(c["stability"]),
-        float(c["military"]),
-        float(c["war_exhaustion"]),
-        float(c["prestige"]),
+        avg_employment * 100.0,
+        avg_needs * 100.0,
+        avg_literacy * 100.0,
+        industry_text
+    ]
+
+    var title_node := find_child("SelectedProvinceTitle", true, false)
+    if title_node is Label:
+        title_node.text = String(p["name"]).to_upper()
+    var owner_node := find_child("SelectedProvinceOwner", true, false)
+    if owner_node is Label:
+        owner_node.text = "%s · %s" % [owner, String(c["government"])]
+
+    detail_text.text = "[font_size=24][b]%s[/b][/font_size]\n[color=#aaaaaa]%s[/color]\n\n[b]Provincia[/b]\nCultura dominante: %s\nRecurso principal: %s\nPoblación: %s\nRiqueza local: %.2f\nNecesidades satisfechas: %.1f%%\nAlfabetización: %.1f%%\nPresión política: %.1f / 100\nMilitancia: %.1f / 100\nEmpleo: %.1f%%\n\n[b]%s[/b]\nGobierno: %s\nTesoro: %.1f\nProducción anual: %.1f\nEstabilidad: %.1f\nPoder militar: %.1f\nPrestigio: %.1f\n\n[b]Situación[/b]\n%s" % [
+        String(p["name"]), owner, String(p["culture"]), String(p["resource"]),
+        _fmt_pop(int(p["population"])), float(p["wealth"]), avg_needs * 100.0,
+        avg_literacy * 100.0, avg_pressure, float(p["unrest"]), avg_employment * 100.0,
+        owner, String(c["government"]), float(c["treasury"]), float(c["last_output"]),
+        float(c["stability"]), float(c["military"]), float(c["prestige"]),
         "EN GUERRA" if _at_war(owner) else "En paz"
     ]
 
-    if int(p.get("social_cooldown", 0)) > 0:
-        detail_text.text += "\n\n[color=#aaaaaa]Memoria social: %s (%d años de enfriamiento)[/color]" % [
-            String(p.get("last_social_event", "conflicto")),
-            int(p.get("social_cooldown", 0))
-        ]
-
     _refresh_pops(p)
-
+    _refresh_topbar()
+    _refresh_outliner()
 
 func _refresh_pops(p: Dictionary) -> void:
     var lines: Array[String] = []
