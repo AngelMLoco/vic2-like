@@ -1971,15 +1971,22 @@ func _resolve_army_battle(a_index: int, d_index: int) -> void:
     var loser_index := d_index if winner == attacker else a_index
     var warscore_gain := clampf(1.0 + float(a_losses + d_losses) / 2200.0, 1.0, 8.0)
 
-    _adjust_warscore(attacker, defender, warscore_gain if winner == attacker else -warscore_gain)
-    _log("Batalla de %s: %s derrota a %s (%d vs %d bajas)." % [
+    var destroyed_bonus := 0.0
+    if int(armies[loser_index]["soldiers"]) < 300:
+        armies[loser_index]["soldiers"] = 0
+        destroyed_bonus = 2.5
+
+    _adjust_warscore(attacker, defender, (warscore_gain + destroyed_bonus) if winner == attacker else -(warscore_gain + destroyed_bonus))
+    _log("Batalla de %s: %s derrota a %s (%d vs %d bajas)%s." % [
         String(provinces[int(armies[winner_index]["province"])]["name"]),
         winner, loser,
         d_losses if winner == attacker else a_losses,
-        a_losses if winner == attacker else d_losses
+        a_losses if winner == attacker else d_losses,
+        " y destruye su ejército" if destroyed_bonus > 0.0 else ""
     ])
 
-    _retreat_army(loser_index)
+    if int(armies[loser_index]["soldiers"]) > 0:
+        _retreat_army(loser_index)
 
 
 func _retreat_army(army_index: int) -> void:
@@ -2123,6 +2130,19 @@ func _ensure_cb(owner: String, target: String, cb_type: String, province_name: S
     })
 
 
+func _consume_cb(cb: Dictionary) -> void:
+    for i in range(casus_bellis.size() - 1, -1, -1):
+        var existing: Dictionary = casus_bellis[i]
+        if (
+            String(existing.get("owner","")) == String(cb.get("owner",""))
+            and String(existing.get("target","")) == String(cb.get("target",""))
+            and String(existing.get("type","")) == String(cb.get("type",""))
+            and String(existing.get("province","")) == String(cb.get("province",""))
+        ):
+            casus_bellis.remove_at(i)
+            return
+
+
 func _declare_war_with_cb(cb: Dictionary) -> bool:
     var attacker := String(cb["owner"])
     var defender := String(cb["target"])
@@ -2150,6 +2170,7 @@ func _declare_war_with_cb(cb: Dictionary) -> bool:
     relations[attacker][defender] = -100
     relations[defender][attacker] = -100
     stats["wars"] = int(stats["wars"]) + 1
+    _consume_cb(cb)
     _log("%s declara la guerra a %s. Objetivo: %s." % [attacker, defender, _goal_description(goal)])
     return true
 
@@ -2210,6 +2231,7 @@ func _add_wargoal_from_cb(war_index: int, cb: Dictionary) -> bool:
     })
     w["war_goals"] = goals
     wars[war_index] = w
+    _consume_cb(cb)
     _log("%s añade un nuevo objetivo de guerra: %s." % [owner, _goal_description(goals[goals.size()-1])])
     return true
 
@@ -3136,7 +3158,19 @@ func _show_province(index: int) -> void:
     if not industry_names.is_empty():
         industry_text = ", ".join(industry_names)
 
-    province_panel_text.text = "[font_size=22][b]%s[/b][/font_size]   [color=#b9aa8c]Propietario: %s[/color]\n\n[b]Población[/b]  %s     [b]Cultura[/b]  %s     [b]Recurso[/b]  %s\n[b]Presión[/b]  %.1f     [b]Militancia[/b]  %.1f     [b]Empleo[/b]  %.0f%%\n[b]Necesidades[/b]  %.0f%%     [b]Alfabetización[/b]  %.0f%%\n\n[b]Industria local[/b]\n%s" % [
+    var military_here: Array[String] = []
+    for army_data in armies:
+        var army: Dictionary = army_data
+        if int(army["province"]) == index and int(army["soldiers"]) > 0:
+            military_here.append("%s #%d (%d)" % [String(army["country"]), int(army["id"]), int(army["soldiers"])])
+    var military_text := "Ninguno" if military_here.is_empty() else ", ".join(military_here)
+    var occupation_text := "Libre"
+    if String(p.get("occupied_by","")) != "":
+        occupation_text = "Ocupada por %s" % String(p["occupied_by"])
+    elif float(p.get("occupation",0.0)) > 0.0:
+        occupation_text = "Sitio %.0f%%" % (float(p["occupation"]) * 100.0)
+
+    province_panel_text.text = "[font_size=22][b]%s[/b][/font_size]   [color=#b9aa8c]Propietario: %s[/color]\n\n[b]Población[/b]  %s     [b]Cultura[/b]  %s     [b]Recurso[/b]  %s\n[b]Presión[/b]  %.1f     [b]Militancia[/b]  %.1f     [b]Empleo[/b]  %.0f%%\n[b]Necesidades[/b]  %.0f%%     [b]Alfabetización[/b]  %.0f%%\n[b]Control militar[/b]  %s\n[b]Ejércitos[/b]  %s\n\n[b]Industria local[/b]\n%s" % [
         String(p["name"]),
         owner,
         _fmt_pop(int(p["population"])),
@@ -3147,6 +3181,8 @@ func _show_province(index: int) -> void:
         avg_employment * 100.0,
         avg_needs * 100.0,
         avg_literacy * 100.0,
+        occupation_text,
+        military_text,
         industry_text
     ]
 
@@ -4006,7 +4042,9 @@ func _load_game() -> void:
             justifications.append(justification)
 
     if armies.is_empty() and game_started:
-        _initialize_military_layer()
+        for country_name in countries:
+            _spawn_country_armies(String(country_name))
+            _spawn_country_fleet(String(country_name))
 
     history.clear()
     for entry in data.get("history", []):
