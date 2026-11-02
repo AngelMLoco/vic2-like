@@ -443,3 +443,38 @@ Still intentionally placeholder/prototype:
 - balance is experimental.
 
 Those are production/content tasks built on top of the now-connected simulation core rather than missing foundational systems.
+
+
+## v0.5 — Victoria-style visual layer
+
+The laboratory grid UI has been replaced by a playable grand-strategy presentation.
+
+### Main screen
+
+- ornate dark/brass top resource bar
+- treasury, literacy, military power and current research
+- date and time-advance controls
+- left-side state menu
+- central political map
+- right-side outliner
+- selected-province panel along the bottom
+- strategic minimap
+- floating information window for population, market, development, chronicle and summary
+
+### Political map
+
+The map is generated in Godot and remains tied to simulation state rather than being a static image.
+
+It currently contains:
+- 30 clickable provinces
+- fantasy-continent layout
+- country political colors
+- province borders
+- country labels
+- province names
+- simple terrain/resource symbols
+- hover and selected-province states
+- automatic recoloring after territorial changes
+- compact minimap using the same live ownership data
+
+The final geographic map can later replace this schematic map without changing the underlying simulation model.
