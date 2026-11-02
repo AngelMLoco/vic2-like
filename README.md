@@ -313,3 +313,133 @@ The simulation now aims for visible but not constant conflict:
 ### UI cleanup
 
 Large BBCode bold/font-size tags were removed from dynamic RichText labels because they were rendering as visually duplicated headings on some Godot configurations.
+
+
+## v0.4 — Grand Strategy Core
+
+This milestone connects the major prototype systems that were still missing from the roadmap.
+
+### Employment, unemployment and social mobility
+
+POPs now have an employment rate. Employment depends on province resource, class and industrial capacity.
+
+The simulation can now move population between classes:
+- underemployed peasants/miners can become industrial workers,
+- educated and wealthier workers can promote into bureaucracy,
+- unemployment lowers income and raises political pressure.
+
+### Industry
+
+Provinces can own industry levels. AI countries can construct industry when they have:
+- enough treasury,
+- the required technology,
+- a market incentive.
+
+Current data-driven industries:
+- textile mills,
+- toolworks,
+- arcane workshops.
+
+Factories now consume strategic inputs and add to market demand.
+
+### Migration
+
+POPs can migrate internally from weak provinces toward provinces with better:
+- employment,
+- needs satisfaction,
+- political conditions.
+
+### Technology
+
+Technology definitions live in `data/techs.json`.
+
+Countries generate research points from literacy, mages and bureaucrats, automatically choose available technologies and unlock bonuses for:
+- agriculture,
+- mining,
+- education,
+- industry,
+- logistics,
+- political-pressure decay.
+
+### Politics and laws
+
+Countries now track basic laws:
+- labor regulation,
+- suffrage,
+- citizenship,
+- magic regulation.
+
+Political pressure can create organized movements. Labor and suffrage movements can produce reforms, while reforms can calm some classes and anger others.
+
+### Diplomacy and crises
+
+Countries can form defensive alliances when relations are high.
+
+Allies provide limited military support in war calculations.
+
+International crises can emerge between highly hostile countries, with alliance networks making those crises more consequential.
+
+### War goals and logistics
+
+Wars now store their precise objective at declaration time:
+- claimed province,
+- strategic-resource province,
+- historical rivalry.
+
+If the attacker wins a claim/resource war, the peace system resolves the stored objective instead of trying to rediscover it later.
+
+Technology can also improve logistics and therefore combat effectiveness.
+
+### Data-driven events
+
+Generic events now live in `data/events.json`.
+
+The event engine currently supports triggers such as:
+- year,
+- technology,
+- prestige,
+- average literacy,
+- average political pressure,
+- market availability.
+
+Effects can modify:
+- prestige,
+- treasury,
+- stability,
+- political pressure.
+
+This is the foundation for future GFM-style content without hard-coding every event into the engine.
+
+### Save / load
+
+The prototype now has **Guardar** and **Cargar** buttons.
+
+The save is written to Godot's `user://chronicles_save.json` and stores the simulation state.
+
+### Development tab
+
+A new **Desarrollo** tab shows each country's:
+- researched technologies,
+- active research,
+- research points,
+- industry count,
+- allies,
+- laws.
+
+### Repository stability
+
+`.gitattributes` normalizes Godot text files to LF and `.gitignore` excludes generated `.uid` files to avoid recurring Windows line-ending conflicts.
+
+## Prototype boundary
+
+v0.4 is intended to complete the **simulation-core prototype**, not final production content.
+
+Still intentionally placeholder/prototype:
+- abstract tile map instead of final geographic map,
+- minimal UI/art,
+- abstract war resolution rather than final battle presentation,
+- small content catalogs,
+- AI heuristics are simple,
+- balance is experimental.
+
+Those are production/content tasks built on top of the now-connected simulation core rather than missing foundational systems.
