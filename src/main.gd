@@ -960,6 +960,10 @@ func _religion_for_culture(culture: String) -> String:
 
 
 func _advance_years(amount: int) -> void:
+    if not game_started:
+        status_label.text = "Elige primero el país con el que vas a jugar."
+        return
+
     for _i in range(amount):
         year += 1
         _research_and_technology()
@@ -1559,321 +1563,701 @@ func _diplomacy() -> void:
 
 
 func _war_logic() -> void:
-    if wars.size() >= 2:
-        return
-
-    for attacker in countries:
-        var attacker_name: String = String(attacker)
-        var a: Dictionary = countries[attacker_name]
-
-        if not bool(a["alive"]) or _at_war(attacker_name):
-            continue
-
-        if year < int(a["peace_until"]):
-            continue
-
-        if float(a["treasury"]) < 35.0 or float(a["stability"]) < 42.0:
-            continue
-
-        if float(a["war_exhaustion"]) > 28.0:
-            continue
-
-        for defender in countries:
-            var defender_name: String = String(defender)
-
-            if attacker_name == defender_name:
-                continue
-
-            var d: Dictionary = countries[defender_name]
-
-            if not bool(d["alive"]) or _at_war(defender_name):
-                continue
-
-            if year < int(d["peace_until"]):
-                continue
-
-            var goal: Dictionary = _build_war_goal(attacker_name, defender_name)
-
-            if goal.is_empty():
-                continue
-
-            var cause: String = String(goal["cause"])
-            var hostility: float = -float(relations[attacker_name][defender_name])
-            var power_ratio: float = float(a["military"]) / maxf(1.0, float(d["military"]))
-            var confidence: float = maxf(0.0, (power_ratio - 1.0) * 22.0)
-            var cause_strength: float = 15.0
-
-            if cause == "reclamación territorial":
-                cause_strength = 28.0
-            elif cause == "acceso estratégico":
-                cause_strength = 22.0
-
-            var desire: float = hostility + confidence + cause_strength
-
-            if desire > 74.0 and rng.randf() < 0.075:
-                wars.append({
-                    "attacker": attacker_name,
-                    "defender": defender_name,
-                    "years": 0,
-                    "score": 0.0,
-                    "cause": cause,
-                    "goal_province": String(goal.get("goal_province", "")),
-                    "goal_resource": String(goal.get("goal_resource", ""))
-                })
-
-                stats["wars"] = int(stats["wars"]) + 1
-
-                var goal_province: String = String(goal.get("goal_province", ""))
-                var goal_resource: String = String(goal.get("goal_resource", ""))
-
-                if cause == "reclamación territorial":
-                    _log("%s declara la guerra a %s por su reclamación sobre %s." % [attacker_name, defender_name, goal_province])
-                elif cause == "acceso estratégico":
-                    _log("%s declara la guerra a %s para asegurar %s en %s." % [attacker_name, defender_name, goal_resource, goal_province])
-                else:
-                    _log("%s declara la guerra a %s por rivalidad histórica." % [attacker_name, defender_name])
-
-                return
-
-
-func _build_war_goal(attacker: String, defender: String) -> Dictionary:
-    for p in provinces:
-        if (
-            String(p["owner"]) == defender
-            and countries[attacker]["claims"].has(p["name"])
-        ):
-            return {
-                "cause": "reclamación territorial",
-                "goal_province": String(p["name"]),
-                "goal_resource": String(p["resource"])
-            }
-
-    var relation: int = int(relations[attacker][defender])
-    var strategic_good: String = _country_strategic_shortage(attacker)
-
-    if strategic_good != "" and relation <= -58:
-        for p in provinces:
-            if (
-                String(p["owner"]) == defender
-                and String(p["resource"]) == strategic_good
-            ):
-                return {
-                    "cause": "acceso estratégico",
-                    "goal_province": String(p["name"]),
-                    "goal_resource": strategic_good
-                }
-
-    if countries[attacker]["rivals"].has(defender) and relation <= -60:
-        return {
-            "cause": "rivalidad histórica",
-            "goal_province": "",
-            "goal_resource": ""
-        }
-
-    return {}
-
-
-func _country_strategic_shortage(country_name: String) -> String:
-    var important_goods: Array[String] = ["hierro", "carbón", "cristal arcano"]
-
-    for good_name in important_goods:
-        if (
-            float(market[good_name]["availability"]) < 0.66
-            and not _country_has_resource(country_name, good_name)
-        ):
-            return good_name
-
-    return ""
-
-
-func _country_has_resource(country_name: String, resource: String) -> bool:
-    for p in provinces:
-        if String(p["owner"]) == country_name and String(p["resource"]) == resource:
-            return true
-
-    return false
+    _refresh_casus_bellis()
+    _ai_declare_wars()
+    _ai_military_orders()
 
 
 func _resolve_wars() -> void:
-    for idx in range(wars.size() - 1, -1, -1):
-        var w: Dictionary = wars[idx]
-        var attacker_name: String = String(w["attacker"])
-        var defender_name: String = String(w["defender"])
-        var a: Dictionary = countries[attacker_name]
-        var d: Dictionary = countries[defender_name]
+    _tick_army_movement()
+    _tick_occupations()
 
-        w["years"] = int(w["years"]) + 1
+    for war_index in range(wars.size() - 1, -1, -1):
+        var w: Dictionary = wars[war_index]
+        w["years"] = int(w.get("years", 0)) + 1
+        wars[war_index] = w
 
-        var a_logistics: float = 1.0 + _tech_modifier(attacker_name, "logistics")
-        var d_logistics: float = 1.0 + _tech_modifier(defender_name, "logistics")
-        var a_support: float = _allied_support(attacker_name, defender_name)
-        var d_support: float = _allied_support(defender_name, attacker_name)
+        var attacker := String(w["attacker"])
+        var defender := String(w["defender"])
+        var score := float(w.get("score", 0.0))
 
-        var a_roll: float = (
-            float(a["military"]) * a_logistics * rng.randf_range(0.72, 1.28)
-            + float(a["stability"]) * 0.22
-            + a_support
-            - float(a["war_exhaustion"]) * 0.18
-        )
+        # La IA puede aceptar una paz razonable cuando el warscore cubre sus objetivos.
+        if attacker != player_country and score >= _war_goal_total_cost(w, attacker) and int(w["years"]) >= 2:
+            if rng.randf() < 0.18:
+                _enforce_peace(war_index, attacker)
+                continue
 
-        var d_roll: float = (
-            float(d["military"]) * d_logistics * rng.randf_range(0.72, 1.28)
-            + float(d["stability"]) * 0.22
-            + d_support
-            - float(d["war_exhaustion"]) * 0.18
-        )
+        if defender != player_country and -score >= _war_goal_total_cost(w, defender) and int(w["years"]) >= 2:
+            if rng.randf() < 0.18:
+                _enforce_peace(war_index, defender)
+                continue
 
-        w["score"] = float(w["score"]) + (a_roll - d_roll) / 20.0
-
-        a["treasury"] = float(a["treasury"]) - 8.0
-        d["treasury"] = float(d["treasury"]) - 8.0
-        a["stability"] = float(a["stability"]) - rng.randf_range(0.35, 1.0)
-        d["stability"] = float(d["stability"]) - rng.randf_range(0.35, 1.0)
-        a["military"] = maxf(10.0, float(a["military"]) - rng.randf_range(0.45, 1.6))
-        d["military"] = maxf(10.0, float(d["military"]) - rng.randf_range(0.45, 1.6))
-        a["war_exhaustion"] = clampf(float(a["war_exhaustion"]) + 7.0, 0.0, 100.0)
-        d["war_exhaustion"] = clampf(float(d["war_exhaustion"]) + 7.0, 0.0, 100.0)
-
-        countries[attacker_name] = a
-        countries[defender_name] = d
-
-        _apply_war_casualties(attacker_name, rng.randf_range(0.0011, 0.0034))
-        _apply_war_casualties(defender_name, rng.randf_range(0.0011, 0.0034))
-
-        wars[idx] = w
-
-        if absf(float(w["score"])) > 8.0 or int(w["years"]) >= 5:
-            var winner: String = attacker_name if float(w["score"]) >= 0.0 else defender_name
-            var loser: String = defender_name if winner == attacker_name else attacker_name
-            _peace(winner, loser, w)
-            wars.remove_at(idx)
+        # Guerra demasiado larga: paz blanca o concesión al bando claramente ganador.
+        if int(w["years"]) >= 12:
+            if absf(score) >= 12.0:
+                _enforce_peace(war_index, attacker if score > 0.0 else defender)
+            else:
+                _white_peace(war_index)
 
 
-func _apply_war_casualties(country_name: String, rate: float) -> void:
-    for province_index in range(provinces.size()):
-        var p: Dictionary = provinces[province_index]
-
-        if String(p["owner"]) != country_name:
-            continue
-
-        var pops: Array = p["pops"]
-
-        for pop_index in range(pops.size()):
-            var pop: Dictionary = pops[pop_index]
-            var casualty_rate: float = rate
-
-            if String(pop["class"]) == "Soldados":
-                casualty_rate *= 4.0
-
-            pop["size"] = maxi(
-                1,
-                int(round(float(pop["size"]) * (1.0 - casualty_rate)))
-            )
-
-            pops[pop_index] = pop
-
-        p["pops"] = pops
-        p["population"] = _sum_pop_sizes(pops)
-        provinces[province_index] = p
+func _province_landmass(index: int) -> int:
+    if index <= 7:
+        return 0
+    if index <= 10:
+        return 1
+    if index <= 18:
+        return 2
+    if index <= 21:
+        return 3
+    return 4
 
 
-func _peace(winner: String, loser: String, w: Dictionary) -> void:
-    var winner_country: Dictionary = countries[winner]
-    var loser_country: Dictionary = countries[loser]
-    var candidates: Array[int] = []
+func _province_adjacency(index: int) -> Array[int]:
+    const ADJ := {
+        0:[1,3], 1:[0,2,3,4], 2:[1,4,7], 3:[0,1,4,5,6], 4:[1,2,3,6,7],
+        5:[3,6], 6:[3,4,5,7], 7:[2,4,6],
+        8:[9,10], 9:[8,10], 10:[8,9],
+        11:[12,14], 12:[11,13,14,15], 13:[12,15,16], 14:[11,12,15,17],
+        15:[12,13,14,16,17,18], 16:[13,15,18], 17:[14,15,18], 18:[15,16,17],
+        19:[20], 20:[19,21], 21:[20],
+        22:[23,25], 23:[22,24,25,26], 24:[23,26,27], 25:[22,23,26,28],
+        26:[23,24,25,27,28,29], 27:[24,26,29], 28:[25,26,29], 29:[26,27,28]
+    }
+    return ADJ.get(index, [])
+
+
+func _province_value(index: int) -> float:
+    if index < 0 or index >= provinces.size():
+        return 1.0
+    var p: Dictionary = provinces[index]
+    return clampf(2.0 + float(p["population"]) / 45000.0 + float(p.get("industries", {}).size()) * 1.5, 2.0, 12.0)
+
+
+func _initialize_military_layer() -> void:
+    armies.clear()
+    fleets.clear()
+    casus_bellis.clear()
+    next_army_id = 1
+    next_fleet_id = 1
+
+    for country_name in countries:
+        var name := String(country_name)
+        _spawn_country_armies(name)
+        _spawn_country_fleet(name)
+
+    _refresh_casus_bellis()
+
+
+func _spawn_country_armies(country_name: String) -> void:
+    var owned: Array[int] = []
+    var soldier_population := 0
 
     for i in range(provinces.size()):
-        if String(provinces[i]["owner"]) == loser:
-            candidates.append(i)
+        if String(provinces[i]["owner"]) == country_name:
+            owned.append(i)
+            soldier_population += _pop_class_size(provinces[i]["pops"], "Soldados")
 
-    var taken := ""
-    var cause: String = String(w.get("cause", ""))
-    var goal_province: String = String(w.get("goal_province", ""))
-    var attacker_won: bool = winner == String(w.get("attacker", ""))
+    if owned.is_empty():
+        return
 
-    if candidates.size() > 1 and attacker_won:
-        var target: int = -1
+    var total_soldiers := clampi(int(float(soldier_population) * 0.55), 6000, 24000)
+    var army_count := clampi(int(ceil(float(total_soldiers) / 9000.0)), 1, 3)
+    var per_army := maxi(3000, int(total_soldiers / army_count))
 
-        if (
-            (cause == "reclamación territorial" or cause == "acceso estratégico")
-            and goal_province != ""
-        ):
-            for i in candidates:
-                if String(provinces[i]["name"]) == goal_province:
-                    target = i
-                    break
+    for i in range(army_count):
+        armies.append({
+            "id": next_army_id,
+            "country": country_name,
+            "province": owned[i % owned.size()],
+            "soldiers": per_army,
+            "morale": 1.0,
+            "organization": 1.0,
+            "target_province": -1,
+            "move_years_remaining": 0,
+            "naval_move": false
+        })
+        next_army_id += 1
 
-        if (
-            target < 0
-            and cause == "rivalidad histórica"
-            and float(w.get("score", 0.0)) >= 6.0
-            and rng.randf() < 0.38
-        ):
-            var winner_culture: String = String(winner_country["culture"])
 
-            for i in candidates:
-                if String(provinces[i]["culture"]) == winner_culture:
-                    target = i
-                    break
+func _spawn_country_fleet(country_name: String) -> void:
+    var first_province := _first_owned_province(country_name)
+    if first_province < 0:
+        return
 
-            if target < 0 and rng.randf() < 0.30:
-                var smallest_population: int = 2147483647
+    fleets.append({
+        "id": next_fleet_id,
+        "country": country_name,
+        "landmass": int(provinces[first_province]["landmass"]),
+        "transports": 4,
+        "strength": 100.0
+    })
+    next_fleet_id += 1
 
-                for i in candidates:
-                    var candidate_population: int = int(provinces[i]["population"])
 
-                    if candidate_population < smallest_population:
-                        smallest_population = candidate_population
-                        target = i
+func _first_owned_province(country_name: String) -> int:
+    for i in range(provinces.size()):
+        if String(provinces[i]["owner"]) == country_name:
+            return i
+    return -1
 
-        if target >= 0:
-            taken = String(provinces[target]["name"])
-            provinces[target]["owner"] = winner
 
-            var conquered_pops: Array = provinces[target]["pops"]
+func _army_by_id(army_id: int) -> Dictionary:
+    for army in armies:
+        if int(army["id"]) == army_id:
+            return army
+    return {}
 
-            for pop_index in range(conquered_pops.size()):
-                var pop: Dictionary = conquered_pops[pop_index]
-                pop["political_pressure"] = clampf(
-                    float(pop["political_pressure"]) + 18.0,
-                    0.0,
-                    100.0
-                )
-                pop["militancy"] = clampf(
-                    float(pop["militancy"]) + 4.0,
-                    0.0,
-                    100.0
-                )
-                conquered_pops[pop_index] = pop
 
-            provinces[target]["pops"] = conquered_pops
-            provinces[target]["pressure"] = _weighted_pop_value(conquered_pops, "political_pressure")
-            provinces[target]["unrest"] = _weighted_pop_value(conquered_pops, "militancy")
-            stats["territorial_changes"] = int(stats["territorial_changes"]) + 1
+func _army_index_by_id(army_id: int) -> int:
+    for i in range(armies.size()):
+        if int(armies[i]["id"]) == army_id:
+            return i
+    return -1
 
-    winner_country["prestige"] = float(winner_country["prestige"]) + 7.0
-    loser_country["prestige"] = float(loser_country["prestige"]) - 5.0
-    loser_country["stability"] = float(loser_country["stability"]) - 5.5
 
-    winner_country["peace_until"] = year + 7
-    loser_country["peace_until"] = year + 7
-    winner_country["war_exhaustion"] = clampf(float(winner_country["war_exhaustion"]) + 7.0, 0.0, 100.0)
-    loser_country["war_exhaustion"] = clampf(float(loser_country["war_exhaustion"]) + 10.0, 0.0, 100.0)
+func _on_map_army_selected(army_id: int) -> void:
+    var army := _army_by_id(army_id)
+    if army.is_empty():
+        return
 
-    countries[winner] = winner_country
-    countries[loser] = loser_country
+    if String(army["country"]) != player_country:
+        selected_army_id = -1
+        status_label.text = "Ese ejército pertenece a %s." % String(army["country"])
+        return
 
-    relations[winner][loser] = -78
-    relations[loser][winner] = -78
+    selected_army_id = army_id
+    selected_province_index = int(army["province"])
+    political_map.set_selected_army(army_id)
+    political_map.set_selected(selected_province_index)
+    status_label.text = "Ejército #%d seleccionado. Haz clic en una provincia para moverlo." % army_id
+    _show_province(selected_province_index)
 
-    if taken != "":
-        _log("La guerra termina con victoria de %s. %s cede %s, el objetivo de guerra." % [winner, loser, taken])
+
+func _on_map_province_clicked(index: int) -> void:
+    if selected_army_id >= 0:
+        var army := _army_by_id(selected_army_id)
+        if not army.is_empty() and String(army["country"]) == player_country:
+            if index != int(army["province"]):
+                _issue_army_move(selected_army_id, index)
+                return
+
+    _show_province(index)
+
+
+func _issue_army_move(army_id: int, target_province: int) -> void:
+    var army_index := _army_index_by_id(army_id)
+    if army_index < 0 or target_province < 0 or target_province >= provinces.size():
+        return
+
+    var army: Dictionary = armies[army_index]
+    var source := int(army["province"])
+    var source_landmass := int(provinces[source]["landmass"])
+    var target_landmass := int(provinces[target_province]["landmass"])
+    var naval := source_landmass != target_landmass
+
+    if not naval and not _province_adjacency(source).has(target_province):
+        status_label.text = "Movimiento inválido: el ejército solo puede marchar a una provincia adyacente."
+        return
+
+    if naval:
+        var needed_transports := maxi(1, int(ceil(float(army["soldiers"]) / 3000.0)))
+        var fleet_index := _available_transport_fleet(String(army["country"]), source_landmass, needed_transports)
+        if fleet_index < 0:
+            status_label.text = "Necesitas una flota de transportes en esta masa terrestre para cruzar el mar."
+            return
+
+        fleets[fleet_index]["landmass"] = target_landmass
+        army["move_years_remaining"] = 2
+        army["naval_move"] = true
     else:
-        var loser_treasury: float = float(countries[loser]["treasury"])
-        var reparations: float = minf(18.0, maxf(4.0, loser_treasury * 0.08))
-        countries[loser]["treasury"] = loser_treasury - reparations
-        countries[winner]["treasury"] = float(countries[winner]["treasury"]) + reparations
-        _log("La guerra termina con victoria de %s. No cambian las fronteras, pero %s paga reparaciones." % [winner, loser])
+        army["move_years_remaining"] = 1
+        army["naval_move"] = false
+
+    army["target_province"] = target_province
+    armies[army_index] = army
+    status_label.text = "Orden de movimiento: %s → %s%s." % [
+        String(provinces[source]["name"]),
+        String(provinces[target_province]["name"]),
+        " por transporte naval" if naval else ""
+    ]
+
+
+func _available_transport_fleet(country_name: String, landmass: int, needed: int) -> int:
+    for i in range(fleets.size()):
+        var fleet: Dictionary = fleets[i]
+        if (
+            String(fleet["country"]) == country_name
+            and int(fleet["landmass"]) == landmass
+            and int(fleet["transports"]) >= needed
+            and float(fleet["strength"]) > 20.0
+        ):
+            return i
+    return -1
+
+
+func _tick_army_movement() -> void:
+    for i in range(armies.size()):
+        var army: Dictionary = armies[i]
+        if int(army.get("move_years_remaining", 0)) <= 0:
+            continue
+
+        army["move_years_remaining"] = int(army["move_years_remaining"]) - 1
+        if int(army["move_years_remaining"]) <= 0:
+            var target := int(army.get("target_province", -1))
+            army["target_province"] = -1
+            army["naval_move"] = false
+            if target >= 0:
+                army["province"] = target
+                armies[i] = army
+                _army_arrived(int(army["id"]))
+                continue
+
+        armies[i] = army
+
+
+func _army_arrived(army_id: int) -> void:
+    var army_index := _army_index_by_id(army_id)
+    if army_index < 0:
+        return
+
+    var army: Dictionary = armies[army_index]
+    var province_index := int(army["province"])
+    var enemy_index := _enemy_army_index_in_province(String(army["country"]), province_index)
+
+    if enemy_index >= 0:
+        _resolve_army_battle(army_index, enemy_index)
+        return
+
+    var owner := String(provinces[province_index]["owner"])
+    if owner == String(army["country"]):
+        if String(provinces[province_index].get("occupied_by", "")) != "":
+            provinces[province_index]["occupied_by"] = ""
+            provinces[province_index]["occupation"] = 0.0
+
+
+func _enemy_army_index_in_province(country_name: String, province_index: int) -> int:
+    for i in range(armies.size()):
+        if int(armies[i]["province"]) != province_index or int(armies[i]["soldiers"]) <= 0:
+            continue
+        var other := String(armies[i]["country"])
+        if other == country_name:
+            continue
+        if _countries_at_war(country_name, other):
+            return i
+    return -1
+
+
+func _resolve_army_battle(a_index: int, d_index: int) -> void:
+    # PLACEHOLDER: esta función será sustituida por el combate con cartas.
+    var a: Dictionary = armies[a_index]
+    var d: Dictionary = armies[d_index]
+    var attacker := String(a["country"])
+    var defender := String(d["country"])
+
+    var a_power := float(a["soldiers"]) * float(a["morale"]) * float(a["organization"]) * rng.randf_range(0.82, 1.18)
+    var d_power := float(d["soldiers"]) * float(d["morale"]) * float(d["organization"]) * rng.randf_range(0.82, 1.18)
+
+    var a_loss_rate := rng.randf_range(0.06, 0.15)
+    var d_loss_rate := rng.randf_range(0.06, 0.15)
+
+    if a_power > d_power:
+        d_loss_rate += 0.08
+    else:
+        a_loss_rate += 0.08
+
+    var a_losses := mini(int(a["soldiers"]) - 1, int(float(a["soldiers"]) * a_loss_rate))
+    var d_losses := mini(int(d["soldiers"]) - 1, int(float(d["soldiers"]) * d_loss_rate))
+    a["soldiers"] = maxi(1, int(a["soldiers"]) - a_losses)
+    d["soldiers"] = maxi(1, int(d["soldiers"]) - d_losses)
+    a["organization"] = maxf(0.25, float(a["organization"]) - 0.15)
+    d["organization"] = maxf(0.25, float(d["organization"]) - 0.15)
+
+    armies[a_index] = a
+    armies[d_index] = d
+
+    var winner := attacker if a_power > d_power else defender
+    var loser := defender if winner == attacker else attacker
+    var winner_index := a_index if winner == attacker else d_index
+    var loser_index := d_index if winner == attacker else a_index
+    var warscore_gain := clampf(1.0 + float(a_losses + d_losses) / 2200.0, 1.0, 8.0)
+
+    _adjust_warscore(attacker, defender, warscore_gain if winner == attacker else -warscore_gain)
+    _log("Batalla de %s: %s derrota a %s (%d vs %d bajas)." % [
+        String(provinces[int(armies[winner_index]["province"])]["name"]),
+        winner, loser,
+        d_losses if winner == attacker else a_losses,
+        a_losses if winner == attacker else d_losses
+    ])
+
+    _retreat_army(loser_index)
+
+
+func _retreat_army(army_index: int) -> void:
+    if army_index < 0 or army_index >= armies.size():
+        return
+
+    var army: Dictionary = armies[army_index]
+    var current := int(army["province"])
+    var country := String(army["country"])
+
+    for neighbor in _province_adjacency(current):
+        if String(provinces[neighbor]["owner"]) == country:
+            army["province"] = neighbor
+            army["organization"] = maxf(0.35, float(army["organization"]))
+            armies[army_index] = army
+            return
+
+
+func _tick_occupations() -> void:
+    for army_data in armies:
+        var army: Dictionary = army_data
+        if int(army["soldiers"]) <= 0 or int(army.get("move_years_remaining", 0)) > 0:
+            continue
+
+        var province_index := int(army["province"])
+        var army_country := String(army["country"])
+        var province_owner := String(provinces[province_index]["owner"])
+
+        if army_country == province_owner:
+            continue
+        if not _countries_at_war(army_country, province_owner):
+            continue
+        if _enemy_army_index_in_province(army_country, province_index) >= 0:
+            continue
+
+        var previous_occupier := String(provinces[province_index].get("occupied_by", ""))
+        if previous_occupier == army_country:
+            continue
+
+        var rate := clampf(float(army["soldiers"]) / 30000.0, 0.10, 0.38)
+        provinces[province_index]["occupation"] = clampf(float(provinces[province_index].get("occupation", 0.0)) + rate, 0.0, 1.0)
+
+        if float(provinces[province_index]["occupation"]) >= 1.0:
+            provinces[province_index]["occupied_by"] = army_country
+            var value := _province_value(province_index)
+            _adjust_warscore(army_country, province_owner, value)
+            _log("%s ocupa completamente %s (+%.1f warscore)." % [army_country, String(provinces[province_index]["name"]), value])
+
+
+func _countries_at_war(a: String, b: String) -> bool:
+    return _war_index_between(a, b) >= 0
+
+
+func _war_index_between(a: String, b: String) -> int:
+    for i in range(wars.size()):
+        var w: Dictionary = wars[i]
+        if (
+            (String(w["attacker"]) == a and String(w["defender"]) == b)
+            or (String(w["attacker"]) == b and String(w["defender"]) == a)
+        ):
+            return i
+    return -1
+
+
+func _adjust_warscore(country_a: String, country_b: String, delta_for_a: float) -> void:
+    var index := _war_index_between(country_a, country_b)
+    if index < 0:
+        return
+
+    var w: Dictionary = wars[index]
+    if String(w["attacker"]) == country_a:
+        w["score"] = clampf(float(w.get("score", 0.0)) + delta_for_a, -100.0, 100.0)
+    else:
+        w["score"] = clampf(float(w.get("score", 0.0)) - delta_for_a, -100.0, 100.0)
+    wars[index] = w
+
+
+func _warscore_for(w: Dictionary, country_name: String) -> float:
+    var score := float(w.get("score", 0.0))
+    return score if String(w["attacker"]) == country_name else -score
+
+
+func _cb_def(cb_type: String) -> Dictionary:
+    for item in cb_defs:
+        var d: Dictionary = item
+        if String(d.get("id", "")) == cb_type:
+            return d
+    return {}
+
+
+func _refresh_casus_bellis() -> void:
+    var kept: Array[Dictionary] = []
+    for cb in casus_bellis:
+        if int(cb.get("expires", year + 1)) >= year:
+            kept.append(cb)
+    casus_bellis = kept
+
+    for country_name in countries:
+        var owner := String(country_name)
+
+        for p in provinces:
+            var target := String(p["owner"])
+            if target == owner:
+                continue
+
+            if countries[owner]["claims"].has(p["name"]):
+                _ensure_cb(owner, target, "acquire_province", String(p["name"]))
+
+        for rival_value in countries[owner]["rivals"]:
+            var rival := String(rival_value)
+            if countries.has(rival):
+                _ensure_cb(owner, rival, "humiliate", "")
+
+        var strategic := _country_strategic_shortage(owner)
+        if strategic != "":
+            for p in provinces:
+                if String(p["owner"]) != owner and String(p["resource"]) == strategic:
+                    _ensure_cb(owner, String(p["owner"]), "strategic_resource", String(p["name"]))
+                    break
+
+
+func _ensure_cb(owner: String, target: String, cb_type: String, province_name: String) -> void:
+    for cb in casus_bellis:
+        if (
+            String(cb["owner"]) == owner
+            and String(cb["target"]) == target
+            and String(cb["type"]) == cb_type
+            and String(cb.get("province", "")) == province_name
+        ):
+            return
+
+    var definition := _cb_def(cb_type)
+    casus_bellis.append({
+        "owner": owner,
+        "target": target,
+        "type": cb_type,
+        "province": province_name,
+        "cost": int(definition.get("warscore_cost", 15)),
+        "infamy": int(definition.get("infamy", 0)),
+        "expires": year + 20
+    })
+
+
+func _declare_war_with_cb(cb: Dictionary) -> bool:
+    var attacker := String(cb["owner"])
+    var defender := String(cb["target"])
+
+    if attacker == defender or _at_war(attacker) or _at_war(defender):
+        return false
+
+    var goal := {
+        "type": String(cb["type"]),
+        "province": String(cb.get("province", "")),
+        "cost": int(cb.get("cost", 15)),
+        "added_by": attacker
+    }
+
+    wars.append({
+        "attacker": attacker,
+        "defender": defender,
+        "years": 0,
+        "score": 0.0,
+        "war_goals": [goal],
+        "battles": 0
+    })
+
+    countries[attacker]["war_exhaustion"] = float(countries[attacker]["war_exhaustion"]) + 2.0
+    relations[attacker][defender] = -100
+    relations[defender][attacker] = -100
+    stats["wars"] = int(stats["wars"]) + 1
+    _log("%s declara la guerra a %s. Objetivo: %s." % [attacker, defender, _goal_description(goal)])
+    return true
+
+
+func _goal_description(goal: Dictionary) -> String:
+    var goal_type := String(goal.get("type", ""))
+    if goal_type == "acquire_province":
+        return "conquistar %s" % String(goal.get("province", "provincia"))
+    if goal_type == "strategic_resource":
+        return "asegurar %s" % String(goal.get("province", "provincia estratégica"))
+    if goal_type == "humiliate":
+        return "humillar al enemigo"
+    if goal_type == "reparations":
+        return "imponer reparaciones"
+    return goal_type
+
+
+func _war_goal_total_cost(w: Dictionary, country_name: String) -> float:
+    var total := 0.0
+    for goal_data in w.get("war_goals", []):
+        var goal: Dictionary = goal_data
+        if String(goal.get("added_by", "")) == country_name:
+            total += float(goal.get("cost", 0))
+    return total
+
+
+func _add_wargoal_from_cb(war_index: int, cb: Dictionary) -> bool:
+    if war_index < 0 or war_index >= wars.size():
+        return false
+
+    var w: Dictionary = wars[war_index]
+    var owner := String(cb["owner"])
+    var target := String(cb["target"])
+    var enemy := String(w["defender"]) if String(w["attacker"]) == owner else String(w["attacker"])
+
+    if enemy != target:
+        return false
+
+    var current_score := _warscore_for(w, owner)
+    var new_cost := float(cb.get("cost", 15))
+    if current_score < _war_goal_total_cost(w, owner) + new_cost:
+        return false
+
+    var goals: Array = w.get("war_goals", [])
+    goals.append({
+        "type": String(cb["type"]),
+        "province": String(cb.get("province", "")),
+        "cost": int(cb.get("cost", 15)),
+        "added_by": owner
+    })
+    w["war_goals"] = goals
+    wars[war_index] = w
+    _log("%s añade un nuevo objetivo de guerra: %s." % [owner, _goal_description(goals[goals.size()-1])])
+    return true
+
+
+func _enforce_peace(war_index: int, proposer: String) -> void:
+    if war_index < 0 or war_index >= wars.size():
+        return
+
+    var w: Dictionary = wars[war_index]
+    var available_score := _warscore_for(w, proposer)
+    var required := _war_goal_total_cost(w, proposer)
+
+    if required <= 0.0 or available_score < required:
+        return
+
+    var opponent := String(w["defender"]) if String(w["attacker"]) == proposer else String(w["attacker"])
+
+    for goal_data in w.get("war_goals", []):
+        var goal: Dictionary = goal_data
+        if String(goal.get("added_by", "")) == proposer:
+            _apply_wargoal(proposer, opponent, goal)
+
+    countries[proposer]["prestige"] = float(countries[proposer]["prestige"]) + 6.0
+    countries[opponent]["prestige"] = float(countries[opponent]["prestige"]) - 5.0
+    countries[proposer]["peace_until"] = year + 5
+    countries[opponent]["peace_until"] = year + 5
+
+    _log("%s impone la paz a %s con %.1f warscore." % [proposer, opponent, available_score])
+    _clear_war_occupations(proposer, opponent)
+    wars.remove_at(war_index)
+
+
+func _apply_wargoal(winner: String, loser: String, goal: Dictionary) -> void:
+    var goal_type := String(goal.get("type", ""))
+
+    if goal_type == "acquire_province" or goal_type == "strategic_resource":
+        var province_name := String(goal.get("province", ""))
+        for i in range(provinces.size()):
+            if String(provinces[i]["name"]) == province_name and String(provinces[i]["owner"]) == loser:
+                provinces[i]["owner"] = winner
+                provinces[i]["occupied_by"] = ""
+                provinces[i]["occupation"] = 0.0
+                stats["territorial_changes"] = int(stats["territorial_changes"]) + 1
+                _log("%s cede %s a %s." % [loser, province_name, winner])
+                break
+
+    elif goal_type == "humiliate":
+        countries[loser]["prestige"] = float(countries[loser]["prestige"]) - 15.0
+        countries[winner]["prestige"] = float(countries[winner]["prestige"]) + 8.0
+
+    elif goal_type == "reparations":
+        var payment := minf(50.0, maxf(8.0, float(countries[loser]["treasury"]) * 0.20))
+        countries[loser]["treasury"] = float(countries[loser]["treasury"]) - payment
+        countries[winner]["treasury"] = float(countries[winner]["treasury"]) + payment
+
+
+func _white_peace(war_index: int) -> void:
+    if war_index < 0 or war_index >= wars.size():
+        return
+    var w: Dictionary = wars[war_index]
+    var attacker := String(w["attacker"])
+    var defender := String(w["defender"])
+    _clear_war_occupations(attacker, defender)
+    countries[attacker]["peace_until"] = year + 3
+    countries[defender]["peace_until"] = year + 3
+    _log("%s y %s firman una paz blanca." % [attacker, defender])
+    wars.remove_at(war_index)
+
+
+func _clear_war_occupations(a: String, b: String) -> void:
+    for i in range(provinces.size()):
+        var occupier := String(provinces[i].get("occupied_by", ""))
+        if occupier == a or occupier == b:
+            provinces[i]["occupied_by"] = ""
+            provinces[i]["occupation"] = 0.0
+
+
+func _ai_declare_wars() -> void:
+    if wars.size() >= 3:
+        return
+
+    for cb in casus_bellis:
+        var attacker := String(cb["owner"])
+        var defender := String(cb["target"])
+
+        if attacker == player_country:
+            continue
+        if _at_war(attacker) or _at_war(defender):
+            continue
+        if year < int(countries[attacker]["peace_until"]):
+            continue
+        if float(countries[attacker]["stability"]) < 45.0 or float(countries[attacker]["treasury"]) < 30.0:
+            continue
+
+        var ratio := float(countries[attacker]["military"]) / maxf(1.0, float(countries[defender]["military"]))
+        if ratio >= 0.85 and int(relations[attacker][defender]) < -55 and rng.randf() < 0.025:
+            _declare_war_with_cb(cb)
+            return
+
+
+func _ai_military_orders() -> void:
+    for i in range(armies.size()):
+        var army: Dictionary = armies[i]
+        var country := String(army["country"])
+
+        if country == player_country or int(army.get("move_years_remaining", 0)) > 0:
+            continue
+        if not _at_war(country):
+            continue
+
+        var current := int(army["province"])
+        var enemy_country := _war_enemy(country)
+        if enemy_country == "":
+            continue
+
+        # Si ya está en territorio enemigo, se queda ocupando.
+        if String(provinces[current]["owner"]) == enemy_country:
+            continue
+
+        var best_target := -1
+        var best_value := -1.0
+
+        for neighbor in _province_adjacency(current):
+            if String(provinces[neighbor]["owner"]) == enemy_country:
+                var value := _province_value(neighbor)
+                if value > best_value:
+                    best_value = value
+                    best_target = neighbor
+
+        if best_target >= 0:
+            _issue_army_move(int(army["id"]), best_target)
+            continue
+
+        # Si el enemigo está en otra masa terrestre, intenta un desembarco naval.
+        var enemy_province := _first_owned_province(enemy_country)
+        if enemy_province >= 0 and int(provinces[enemy_province]["landmass"]) != int(provinces[current]["landmass"]):
+            _issue_army_move(int(army["id"]), enemy_province)
+
+
+func _war_enemy(country_name: String) -> String:
+    for w in wars:
+        if String(w["attacker"]) == country_name:
+            return String(w["defender"])
+        if String(w["defender"]) == country_name:
+            return String(w["attacker"])
+    return ""
 
 
 func _decay_war_exhaustion() -> void:
@@ -2329,6 +2713,7 @@ func _load_external_data() -> void:
     tech_defs = _load_json_array("res://data/techs.json")
     industry_defs = _load_json_array("res://data/industries.json")
     event_defs = _load_json_array("res://data/events.json")
+    cb_defs = _load_json_array("res://data/casus_belli.json")
 
 
 func _load_json_array(path: String) -> Array:
@@ -2918,6 +3303,13 @@ func _save_game() -> void:
         "provinces": provinces,
         "relations": relations,
         "wars": wars,
+        "armies": armies,
+        "fleets": fleets,
+        "casus_bellis": casus_bellis,
+        "next_army_id": next_army_id,
+        "next_fleet_id": next_fleet_id,
+        "player_country": player_country,
+        "game_started": game_started,
         "history": history,
         "fired_events": fired_events,
         "event_last_fired": event_last_fired,
@@ -2956,6 +3348,10 @@ func _load_game() -> void:
     current_seed = int(data.get("seed", 7))
     countries = data.get("countries", {})
     relations = data.get("relations", {})
+    player_country = String(data.get("player_country", ""))
+    game_started = bool(data.get("game_started", player_country != ""))
+    next_army_id = int(data.get("next_army_id", 1))
+    next_fleet_id = int(data.get("next_fleet_id", 1))
     fired_events = data.get("fired_events", {})
     event_last_fired = data.get("event_last_fired", {})
     market = data.get("market", {})
@@ -2972,6 +3368,21 @@ func _load_game() -> void:
     for w in data.get("wars", []):
         if w is Dictionary:
             wars.append(w)
+
+    armies.clear()
+    for army in data.get("armies", []):
+        if army is Dictionary:
+            armies.append(army)
+
+    fleets.clear()
+    for fleet in data.get("fleets", []):
+        if fleet is Dictionary:
+            fleets.append(fleet)
+
+    casus_bellis.clear()
+    for cb in data.get("casus_bellis", []):
+        if cb is Dictionary:
+            casus_bellis.append(cb)
 
     history.clear()
     for entry in data.get("history", []):
