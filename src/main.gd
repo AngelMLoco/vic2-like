@@ -434,7 +434,8 @@ func _country(
         "research_points": 0.0,
         "active_research": "",
         "allies": [],
-        "logistics": 1.0
+        "logistics": 1.0,
+        "last_industry_year": START_YEAR - 10
     }
 
 
@@ -1361,15 +1362,22 @@ func _resolve_wars() -> void:
 
         w["years"] = int(w["years"]) + 1
 
+        var a_logistics: float = 1.0 + _tech_modifier(attacker_name, "logistics")
+        var d_logistics: float = 1.0 + _tech_modifier(defender_name, "logistics")
+        var a_support: float = _allied_support(attacker_name, defender_name)
+        var d_support: float = _allied_support(defender_name, attacker_name)
+
         var a_roll: float = (
-            float(a["military"]) * rng.randf_range(0.72, 1.28)
+            float(a["military"]) * a_logistics * rng.randf_range(0.72, 1.28)
             + float(a["stability"]) * 0.22
+            + a_support
             - float(a["war_exhaustion"]) * 0.18
         )
 
         var d_roll: float = (
-            float(d["military"]) * rng.randf_range(0.72, 1.28)
+            float(d["military"]) * d_logistics * rng.randf_range(0.72, 1.28)
             + float(d["stability"]) * 0.22
+            + d_support
             - float(d["war_exhaustion"]) * 0.18
         )
 
@@ -1896,6 +1904,583 @@ func _refresh_summary() -> void:
     lines.append("Mayor militancia: %s (%.1f)" % [unstable_country, _country_avg_pop_value(unstable_country, "militancy")])
 
     summary_text.text = "\n".join(lines)
+
+
+
+# -------------------------------------------------------------------
+# DESARROLLO, EMPLEO, MIGRACIÓN, DIPLOMACIA Y DATOS
+# -------------------------------------------------------------------
+
+func _load_external_data() -> void:
+    tech_defs = _load_json_array("res://data/techs.json")
+    industry_defs = _load_json_array("res://data/industries.json")
+    event_defs = _load_json_array("res://data/events.json")
+
+
+func _load_json_array(path: String) -> Array:
+    if not FileAccess.file_exists(path):
+        push_warning("No se encontró " + path)
+        return []
+
+    var file := FileAccess.open(path, FileAccess.READ)
+    if file == null:
+        push_warning("No se pudo abrir " + path)
+        return []
+
+    var parsed = JSON.parse_string(file.get_as_text())
+    if parsed is Array:
+        return parsed
+
+    push_warning("Formato JSON inválido en " + path)
+    return []
+
+
+func _seed_initial_industries() -> void:
+    for i in range(provinces.size()):
+        var p: Dictionary = provinces[i]
+        var industries: Dictionary = p.get("industries", {})
+
+        if rng.randf() < 0.22:
+            industries["textile_mill"] = 1
+
+        p["industries"] = industries
+        provinces[i] = p
+
+
+func _tech_def(tech_id: String) -> Dictionary:
+    for item in tech_defs:
+        var d: Dictionary = item
+        if String(d.get("id", "")) == tech_id:
+            return d
+    return {}
+
+
+func _industry_def(industry_id: String) -> Dictionary:
+    for item in industry_defs:
+        var d: Dictionary = item
+        if String(d.get("id", "")) == industry_id:
+            return d
+    return {}
+
+
+func _has_tech(country_name: String, tech_id: String) -> bool:
+    if tech_id == "":
+        return true
+    return countries[country_name]["technologies"].has(tech_id)
+
+
+func _tech_modifier(country_name: String, effect_key: String) -> float:
+    var total := 0.0
+    var techs: Array = countries[country_name].get("technologies", [])
+
+    for tech_id in techs:
+        var d: Dictionary = _tech_def(String(tech_id))
+        var effects: Dictionary = d.get("effects", {})
+        if effects.has(effect_key):
+            total += float(effects[effect_key])
+
+    return total
+
+
+func _available_techs(country_name: String) -> Array[String]:
+    var result: Array[String] = []
+    var known: Array = countries[country_name].get("technologies", [])
+
+    for item in tech_defs:
+        var tech: Dictionary = item
+        var tech_id: String = String(tech.get("id", ""))
+
+        if known.has(tech_id) or year < int(tech.get("year", START_YEAR)):
+            continue
+
+        var prereqs: Array = tech.get("prerequisites", [])
+        var ready := true
+        for prereq in prereqs:
+            if not known.has(String(prereq)):
+                ready = false
+                break
+
+        if ready:
+            result.append(tech_id)
+
+    return result
+
+
+func _research_and_technology() -> void:
+    for country_name in countries:
+        var name := String(country_name)
+        var c: Dictionary = countries[name]
+
+        if not bool(c["alive"]):
+            continue
+
+        var literacy: float = _country_avg_pop_value(name, "literacy")
+        var magi: int = _country_class_population(name, "Magos")
+        var bureaucrats: int = _country_class_population(name, "Burócratas")
+        var yearly_points: float = 2.0 + literacy * 7.0 + float(magi + bureaucrats) / 30000.0
+
+        c["research_points"] = float(c.get("research_points", 0.0)) + yearly_points
+
+        var active: String = String(c.get("active_research", ""))
+        if active == "" or _has_tech(name, active):
+            var available := _available_techs(name)
+            if not available.is_empty():
+                active = available[0]
+                c["active_research"] = active
+
+        if active != "":
+            var tech: Dictionary = _tech_def(active)
+            var cost: float = float(tech.get("cost", 99999.0))
+
+            if float(c["research_points"]) >= cost:
+                c["research_points"] = float(c["research_points"]) - cost
+                var known: Array = c["technologies"]
+                known.append(active)
+                c["technologies"] = known
+                c["active_research"] = ""
+                c["prestige"] = float(c["prestige"]) + 2.0
+                stats["technologies_researched"] = int(stats["technologies_researched"]) + 1
+                _log("%s completa la investigación: %s." % [name, String(tech.get("name", active))])
+
+        countries[name] = c
+
+
+func _employment_mobility_and_industry() -> void:
+    for province_index in range(provinces.size()):
+        var p: Dictionary = provinces[province_index]
+        var owner: String = String(p["owner"])
+        var pops: Array = p["pops"]
+        var industries: Dictionary = p.get("industries", {})
+
+        var industrial_capacity := 0
+        for industry_id in industries:
+            var industry: Dictionary = _industry_def(String(industry_id))
+            industrial_capacity += int(industry.get("worker_capacity", 0)) * int(industries[industry_id])
+
+        var worker_size := _pop_class_size(pops, "Obreros")
+        var industrial_employment: float = 0.65
+        if worker_size > 0:
+            industrial_employment = clampf(float(industrial_capacity) / float(worker_size), 0.35, 1.0)
+
+        for pop_index in range(pops.size()):
+            var pop: Dictionary = pops[pop_index]
+            var pop_class: String = String(pop["class"])
+            var employment := 0.94
+
+            if pop_class == "Obreros":
+                employment = industrial_employment
+            elif pop_class == "Mineros":
+                employment = 0.96 if ["hierro", "carbón", "cristal arcano"].has(String(p["resource"])) else 0.68
+            elif pop_class == "Campesinos":
+                employment = 0.96 if ["grano", "madera"].has(String(p["resource"])) else 0.76
+            elif pop_class == "Artesanos":
+                employment = clampf(0.72 + float(market["ropa"]["price"]) / 10.0 + float(market["herramientas"]["price"]) / 16.0, 0.62, 0.98)
+
+            pop["employment"] = employment
+            pops[pop_index] = pop
+
+        p["pops"] = pops
+
+        # Movilidad: campesinos/mineros desempleados pasan a obreros cuando hay plazas.
+        var worker_index := _find_pop_index(pops, "Obreros")
+        if worker_index >= 0 and industrial_employment > 0.80:
+            var source_class := "Campesinos"
+            if ["hierro", "carbón", "cristal arcano"].has(String(p["resource"])):
+                source_class = "Mineros"
+
+            var source_index := _find_pop_index(pops, source_class)
+            if source_index >= 0:
+                var source: Dictionary = pops[source_index]
+                var target: Dictionary = pops[worker_index]
+                var move: int = mini(int(source["size"] * 0.009), 900)
+
+                if move > 0 and float(source.get("employment", 1.0)) < 0.90:
+                    source["size"] = maxi(1, int(source["size"]) - move)
+                    target["size"] = int(target["size"]) + move
+                    target["literacy"] = maxf(float(target["literacy"]), float(source["literacy"]) * 0.92)
+                    pops[source_index] = source
+                    pops[worker_index] = target
+
+        # Ascenso de obreros alfabetizados hacia clases medias.
+        worker_index = _find_pop_index(pops, "Obreros")
+        var bureaucrat_index := _find_pop_index(pops, "Burócratas")
+        if worker_index >= 0 and bureaucrat_index >= 0:
+            var worker: Dictionary = pops[worker_index]
+            if float(worker["literacy"]) > 0.48 and float(worker["wealth"]) > 34.0:
+                var promote: int = mini(int(worker["size"] * 0.0025), 250)
+                if promote > 0:
+                    var bureaucrat: Dictionary = pops[bureaucrat_index]
+                    worker["size"] = maxi(1, int(worker["size"]) - promote)
+                    bureaucrat["size"] = int(bureaucrat["size"]) + promote
+                    pops[worker_index] = worker
+                    pops[bureaucrat_index] = bureaucrat
+
+        p["pops"] = pops
+        provinces[province_index] = p
+
+    _ai_build_industries()
+
+
+func _ai_build_industries() -> void:
+    for country_name in countries:
+        var name := String(country_name)
+        var c: Dictionary = countries[name]
+
+        if year - int(c.get("last_industry_year", START_YEAR - 10)) < 5:
+            continue
+        if float(c["treasury"]) < 130.0:
+            continue
+
+        var best_industry := ""
+        var best_score := -1.0
+
+        for item in industry_defs:
+            var industry: Dictionary = item
+            var required: String = String(industry.get("required_tech", ""))
+            if not _has_tech(name, required):
+                continue
+
+            var output_good: String = String(industry.get("output_good", ""))
+            if not market.has(output_good):
+                continue
+
+            var score: float = float(market[output_good]["price"]) / float(market[output_good]["base_price"])
+            if score > best_score:
+                best_score = score
+                best_industry = String(industry["id"])
+
+        if best_industry == "":
+            continue
+
+        var definition := _industry_def(best_industry)
+        var cost: float = float(definition.get("construction_cost", 100.0))
+        if float(c["treasury"]) < cost + 45.0:
+            continue
+
+        var candidate := -1
+        var best_workers := -1
+        for i in range(provinces.size()):
+            if String(provinces[i]["owner"]) != name:
+                continue
+            var workers: int = _pop_class_size(provinces[i]["pops"], "Obreros")
+            if workers > best_workers:
+                best_workers = workers
+                candidate = i
+
+        if candidate >= 0:
+            var p: Dictionary = provinces[candidate]
+            var industries: Dictionary = p.get("industries", {})
+            industries[best_industry] = int(industries.get(best_industry, 0)) + 1
+            p["industries"] = industries
+            provinces[candidate] = p
+            c["treasury"] = float(c["treasury"]) - cost
+            c["last_industry_year"] = year
+            countries[name] = c
+            stats["industries_built"] = int(stats["industries_built"]) + 1
+            _log("%s amplía %s en %s." % [name, String(definition.get("name", best_industry)), String(p["name"])])
+
+
+func _migration() -> void:
+    for country_name in countries:
+        var name := String(country_name)
+        var worst := -1
+        var best := -1
+        var worst_score := 999.0
+        var best_score := -999.0
+
+        for i in range(provinces.size()):
+            var p: Dictionary = provinces[i]
+            if String(p["owner"]) != name:
+                continue
+
+            var needs: float = _weighted_pop_value(p["pops"], "needs")
+            var employment: float = _weighted_pop_value(p["pops"], "employment")
+            var pressure: float = _weighted_pop_value(p["pops"], "political_pressure") / 100.0
+            var score: float = needs * 0.55 + employment * 0.45 - pressure * 0.20
+
+            if score < worst_score:
+                worst_score = score
+                worst = i
+            if score > best_score:
+                best_score = score
+                best = i
+
+        if worst < 0 or best < 0 or worst == best or best_score - worst_score < 0.12:
+            continue
+
+        if rng.randf() > 0.22:
+            continue
+
+        var source: Dictionary = provinces[worst]
+        var destination: Dictionary = provinces[best]
+        var source_pops: Array = source["pops"]
+        var destination_pops: Array = destination["pops"]
+
+        var source_index := _find_pop_index(source_pops, "Obreros")
+        if source_index < 0:
+            source_index = _find_pop_index(source_pops, "Campesinos")
+        if source_index < 0:
+            continue
+
+        var pop_class: String = String(source_pops[source_index]["class"])
+        var destination_index := _find_pop_index(destination_pops, pop_class)
+        if destination_index < 0:
+            continue
+
+        var movers: int = mini(int(source_pops[source_index]["size"] * 0.006), 500)
+        if movers <= 0:
+            continue
+
+        source_pops[source_index]["size"] = maxi(1, int(source_pops[source_index]["size"]) - movers)
+        destination_pops[destination_index]["size"] = int(destination_pops[destination_index]["size"]) + movers
+        source["pops"] = source_pops
+        destination["pops"] = destination_pops
+        provinces[worst] = source
+        provinces[best] = destination
+        stats["migrations"] = int(stats["migrations"]) + 1
+
+
+func _diplomatic_actions() -> void:
+    var names: Array = countries.keys()
+    for i in range(names.size()):
+        var a := String(names[i])
+        for j in range(i + 1, names.size()):
+            var b := String(names[j])
+
+            if countries[a]["rivals"].has(b) or countries[b]["rivals"].has(a):
+                continue
+
+            var allies_a: Array = countries[a].get("allies", [])
+            var allies_b: Array = countries[b].get("allies", [])
+
+            if allies_a.has(b):
+                continue
+
+            if int(relations[a][b]) >= 72 and int(relations[b][a]) >= 72 and allies_a.size() < 2 and allies_b.size() < 2:
+                if rng.randf() < 0.035:
+                    allies_a.append(b)
+                    allies_b.append(a)
+                    countries[a]["allies"] = allies_a
+                    countries[b]["allies"] = allies_b
+                    stats["alliances_formed"] = int(stats["alliances_formed"]) + 1
+                    _log("%s y %s firman una alianza defensiva." % [a, b])
+
+
+func _allied_support(country_name: String, enemy: String) -> float:
+    var support := 0.0
+    var allies: Array = countries[country_name].get("allies", [])
+
+    for ally_value in allies:
+        var ally := String(ally_value)
+        if ally == enemy or not countries.has(ally):
+            continue
+        if countries[ally]["allies"].has(enemy):
+            continue
+        support += float(countries[ally]["military"]) * 0.08
+
+    return minf(support, 18.0)
+
+
+func _data_driven_events() -> void:
+    for item in event_defs:
+        var event: Dictionary = item
+        var event_id: String = String(event.get("id", ""))
+
+        for country_name in countries:
+            var name := String(country_name)
+            var key := event_id + "::" + name
+            var once: bool = bool(event.get("once", false))
+
+            if once and fired_events.has(key):
+                continue
+
+            var cooldown: int = int(event.get("cooldown", 0))
+            if year - int(event_last_fired.get(key, -9999)) < cooldown:
+                continue
+
+            if not _event_trigger_met(event.get("trigger", {}), name):
+                continue
+
+            fired_events[key] = true
+            event_last_fired[key] = year
+            _apply_event_effects(event.get("effects", {}), name)
+
+            var text_value: String = String(event.get("text", "Evento en {country}.")).replace("{country}", name)
+            _major_event(text_value)
+
+
+func _event_trigger_met(trigger: Dictionary, country_name: String) -> bool:
+    if year < int(trigger.get("year_gte", START_YEAR)):
+        return false
+    if trigger.has("has_tech") and not _has_tech(country_name, String(trigger["has_tech"])):
+        return false
+    if trigger.has("country_prestige_gte") and float(countries[country_name]["prestige"]) < float(trigger["country_prestige_gte"]):
+        return false
+    if trigger.has("avg_pressure_gte") and _country_avg_pop_value(country_name, "political_pressure") < float(trigger["avg_pressure_gte"]):
+        return false
+    if trigger.has("avg_literacy_gte") and _country_avg_pop_value(country_name, "literacy") < float(trigger["avg_literacy_gte"]):
+        return false
+
+    if trigger.has("market_good"):
+        var good_name := String(trigger["market_good"])
+        if not market.has(good_name):
+            return false
+        if trigger.has("market_availability_lte") and float(market[good_name]["availability"]) > float(trigger["market_availability_lte"]):
+            return false
+
+    return true
+
+
+func _apply_event_effects(effects: Dictionary, country_name: String) -> void:
+    var c: Dictionary = countries[country_name]
+
+    if effects.has("prestige"):
+        c["prestige"] = float(c["prestige"]) + float(effects["prestige"])
+    if effects.has("treasury"):
+        c["treasury"] = float(c["treasury"]) + float(effects["treasury"])
+    if effects.has("stability"):
+        c["stability"] = clampf(float(c["stability"]) + float(effects["stability"]), 0.0, 100.0)
+
+    countries[country_name] = c
+
+    if effects.has("pressure_change"):
+        var amount: float = float(effects["pressure_change"])
+        for province_index in range(provinces.size()):
+            if String(provinces[province_index]["owner"]) != country_name:
+                continue
+            var pops: Array = provinces[province_index]["pops"]
+            for pop_index in range(pops.size()):
+                pops[pop_index]["political_pressure"] = clampf(float(pops[pop_index]["political_pressure"]) + amount, 0.0, 100.0)
+            provinces[province_index]["pops"] = pops
+
+
+func _refresh_development() -> void:
+    var lines: Array[String] = ["=== DESARROLLO ===", ""]
+
+    for country_name in countries:
+        var name := String(country_name)
+        var c: Dictionary = countries[name]
+        var tech_names: Array[String] = []
+
+        for tech_id in c.get("technologies", []):
+            var d: Dictionary = _tech_def(String(tech_id))
+            tech_names.append(String(d.get("name", tech_id)))
+
+        var active: String = String(c.get("active_research", ""))
+        var active_name := "ninguna"
+        if active != "":
+            active_name = String(_tech_def(active).get("name", active))
+
+        var industry_count := 0
+        for p in provinces:
+            if String(p["owner"]) == name:
+                var industries: Dictionary = p.get("industries", {})
+                for industry_id in industries:
+                    industry_count += int(industries[industry_id])
+
+        lines.append("%s" % name)
+        lines.append("Tecnologías: %d | Investigación: %s (%.1f pts)" % [tech_names.size(), active_name, float(c.get("research_points", 0.0))])
+        lines.append("Industrias: %d | Aliados: %s" % [industry_count, ", ".join(c.get("allies", [])) if not c.get("allies", []).is_empty() else "ninguno"])
+        lines.append("")
+
+    development_text.text = "\n".join(lines)
+
+
+func _save_game() -> void:
+    var payload := {
+        "version": 1,
+        "year": year,
+        "seed": current_seed,
+        "countries": countries,
+        "provinces": provinces,
+        "relations": relations,
+        "wars": wars,
+        "history": history,
+        "fired_events": fired_events,
+        "event_last_fired": event_last_fired,
+        "market": market,
+        "market_event_cooldowns": market_event_cooldowns,
+        "stats": stats,
+        "initial_population": initial_population
+    }
+
+    var file := FileAccess.open("user://chronicles_save.json", FileAccess.WRITE)
+    if file == null:
+        status_label.text = "No se pudo guardar."
+        return
+
+    file.store_string(JSON.stringify(payload))
+    status_label.text = "Partida guardada."
+
+
+func _load_game() -> void:
+    if not FileAccess.file_exists("user://chronicles_save.json"):
+        status_label.text = "No hay partida guardada."
+        return
+
+    var file := FileAccess.open("user://chronicles_save.json", FileAccess.READ)
+    if file == null:
+        status_label.text = "No se pudo cargar."
+        return
+
+    var parsed = JSON.parse_string(file.get_as_text())
+    if not parsed is Dictionary:
+        status_label.text = "Guardado inválido."
+        return
+
+    var data: Dictionary = parsed
+    year = int(data.get("year", START_YEAR))
+    current_seed = int(data.get("seed", 7))
+    countries = data.get("countries", {})
+    relations = data.get("relations", {})
+    fired_events = data.get("fired_events", {})
+    event_last_fired = data.get("event_last_fired", {})
+    market = data.get("market", {})
+    market_event_cooldowns = data.get("market_event_cooldowns", {})
+    stats = data.get("stats", {})
+    initial_population = int(data.get("initial_population", 0))
+
+    provinces.clear()
+    for p in data.get("provinces", []):
+        if p is Dictionary:
+            provinces.append(p)
+
+    wars.clear()
+    for w in data.get("wars", []):
+        if w is Dictionary:
+            wars.append(w)
+
+    history.clear()
+    for entry in data.get("history", []):
+        history.append(String(entry))
+
+    rng.seed = current_seed
+    status_label.text = "Partida cargada."
+    _refresh_province_aggregates()
+    _refresh_all()
+
+
+func _find_pop_index(pops: Array, pop_class: String) -> int:
+    for i in range(pops.size()):
+        if String(pops[i]["class"]) == pop_class:
+            return i
+    return -1
+
+
+func _pop_class_employment(pops: Array, pop_class: String) -> float:
+    var index := _find_pop_index(pops, pop_class)
+    if index < 0:
+        return 0.0
+    return float(pops[index].get("employment", 1.0))
+
+
+func _country_class_population(country_name: String, pop_class: String) -> int:
+    var total := 0
+    for p in provinces:
+        if String(p["owner"]) != country_name:
+            continue
+        total += _pop_class_size(p["pops"], pop_class)
+    return total
 
 
 # -------------------------------------------------------------------
