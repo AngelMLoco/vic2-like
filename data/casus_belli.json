@@ -1,0 +1,6 @@
+[
+  {"id":"acquire_province","name":"Adquirir provincia","warscore_cost":20,"infamy":3,"requires_province":true},
+  {"id":"strategic_resource","name":"Asegurar recurso estratégico","warscore_cost":25,"infamy":4,"requires_province":true},
+  {"id":"humiliate","name":"Humillar","warscore_cost":15,"infamy":2,"requires_province":false},
+  {"id":"reparations","name":"Reparaciones de guerra","warscore_cost":10,"infamy":1,"requires_province":false}
+]
