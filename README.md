@@ -478,3 +478,134 @@ It currently contains:
 - compact minimap using the same live ownership data
 
 The final geographic map can later replace this schematic map without changing the underlying simulation model.
+
+
+## v0.6 — Victoria-style warfare layer
+
+The old abstract yearly war roll has been replaced with a province-and-army warfare layer inspired by Victoria II.
+
+### Country selection
+
+A new-game overlay now requires the player to choose one of the simulated countries before time can advance.
+
+The selected country becomes the player's permanent state for:
+- top-bar statistics,
+- diplomacy,
+- military control,
+- war goals,
+- recruitment,
+- naval transports.
+
+### Armies on the map
+
+Armies are now visible as counters on the political map.
+
+Player flow:
+1. click one of your army counters,
+2. click an adjacent province to issue a movement order,
+3. wait for the movement time,
+4. hostile armies trigger a battle,
+5. undefended enemy provinces begin occupation.
+
+Land movement requires adjacency and military access.
+
+### Soldier POP integration
+
+Armies are backed by Soldier POPs.
+
+- initial armies are derived from Soldier population,
+- new brigades require 3,000 available soldiers,
+- battle casualties reduce Soldier POPs,
+- destroyed armies generate additional warscore.
+
+### Occupation
+
+Enemy provinces are occupied progressively rather than instantly.
+
+Occupation:
+- generates warscore when completed,
+- appears visually on the map,
+- cuts local economic output heavily,
+- can be reversed by liberation.
+
+### Warscore
+
+Warscore is now earned primarily from:
+- winning battles,
+- enemy casualties,
+- destroying armies,
+- occupying provinces.
+
+Warscore is signed from the attacker's perspective and is displayed in the diplomacy / military interfaces.
+
+### Casus Belli and war goals
+
+CB definitions live in `data/casus_belli.json`.
+
+Current goals:
+- acquire province,
+- secure strategic resource,
+- humiliate,
+- war reparations.
+
+A declaration begins with a war goal.
+
+During a war, additional goals can be added only when current warscore is high enough to cover:
+- existing demanded goals,
+- plus the cost of the new goal.
+
+Peace can be imposed only when warscore covers the goals being demanded.
+
+Unused / failed war aims during white peace create prestige and domestic-pressure penalties.
+
+### War justification and infamy
+
+When the player lacks a CB, the diplomacy menu can start a territorial war justification.
+
+A justification:
+- takes 3 years,
+- selects a plausible target province,
+- generates a temporary CB,
+- increases infamy,
+- worsens bilateral relations.
+
+### Naval transport
+
+Crossing between the five landmasses requires transport capacity.
+
+Each country starts with a transport fleet.
+
+An army crossing the sea:
+- needs one transport slot per ~3,000 soldiers,
+- requires the fleet to be located on the source landmass,
+- takes longer than a land march,
+- moves the transport fleet with it.
+
+Additional transport capacity can be built from the Military menu.
+
+### Battle placeholder
+
+`_resolve_army_battle()` is intentionally a temporary automatic resolver.
+
+It currently handles:
+- soldier strength,
+- morale,
+- organization,
+- random combat variance,
+- casualties,
+- warscore,
+- retreat,
+- army destruction.
+
+This is the exact integration point reserved for the future card-based combat plot. The strategic war layer does not need to be rewritten when card combat is added.
+
+### Sketch-inspired geography
+
+The political map now uses five major landmasses inspired by the user's hand-drawn world sketch:
+- western continent,
+- small northern crown/island,
+- eastern continent,
+- elongated central island,
+- southern landmass.
+
+The map contains 30 provinces and uses those landmasses for naval transport rules.
