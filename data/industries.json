@@ -1,0 +1,32 @@
+[
+  {
+    "id": "textile_mill",
+    "name": "Fábrica textil",
+    "output_good": "ropa",
+    "output_per_level": 20.0,
+    "worker_capacity": 12000,
+    "construction_cost": 95.0,
+    "required_tech": "",
+    "inputs": {}
+  },
+  {
+    "id": "toolworks",
+    "name": "Fábrica de herramientas",
+    "output_good": "herramientas",
+    "output_per_level": 14.0,
+    "worker_capacity": 10000,
+    "construction_cost": 120.0,
+    "required_tech": "steam_workshops",
+    "inputs": {"hierro": 0.45, "carbón": 0.25}
+  },
+  {
+    "id": "arcane_workshop",
+    "name": "Taller arcano",
+    "output_good": "componentes arcanos",
+    "output_per_level": 9.0,
+    "worker_capacity": 7000,
+    "construction_cost": 165.0,
+    "required_tech": "arcane_engines",
+    "inputs": {"cristal arcano": 0.50, "carbón": 0.20}
+  }
+]
