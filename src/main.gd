@@ -2453,7 +2453,7 @@ func _show_country_select() -> void:
 
     country_select_overlay = PanelContainer.new()
     country_select_overlay.set_anchors_preset(Control.PRESET_CENTER)
-    country_select_overlay.position = Vector2(340,120)
+    country_select_overlay.position = Vector2(-460,-325)
     country_select_overlay.size = Vector2(920,650)
     country_select_overlay.add_theme_stylebox_override("panel", _panel_style(Color("181614"), Color("b28a4c"), 3))
     add_child(country_select_overlay)
@@ -2522,7 +2522,7 @@ func _create_action_modal(title_text: String) -> VBoxContainer:
 
     action_modal = PanelContainer.new()
     action_modal.set_anchors_preset(Control.PRESET_CENTER)
-    action_modal.position = Vector2(360,135)
+    action_modal.position = Vector2(-440,-310)
     action_modal.size = Vector2(880,620)
     action_modal.add_theme_stylebox_override("panel", _panel_style(Color("171615"), Color("a47b42"), 3))
     add_child(action_modal)
@@ -2714,6 +2714,18 @@ func _open_military_panel() -> void:
         button.pressed.connect(func(): _select_army_from_panel(army_id))
         content.add_child(button)
 
+    content.add_child(_action_label("RECLUTAMIENTO", 20))
+    var selected_owner := String(provinces[selected_province_index]["owner"]) if selected_province_index >= 0 else ""
+    var manpower := _available_soldier_manpower(player_country)
+    content.add_child(_action_label("Mano de obra militar disponible: %d · Cada brigada requiere 3,000 soldados y ¤10." % manpower))
+
+    var recruit := Button.new()
+    recruit.text = "Reclutar brigada en %s" % String(provinces[selected_province_index]["name"])
+    _style_menu_button(recruit)
+    recruit.disabled = selected_owner != player_country or manpower < 3000 or float(countries[player_country]["treasury"]) < 10.0
+    recruit.pressed.connect(_recruit_brigade_in_selected_province)
+    content.add_child(recruit)
+
     content.add_child(_action_label("FLOTAS DE TRANSPORTE", 20))
     for fleet_data in fleets:
         var fleet: Dictionary = fleet_data
@@ -2723,11 +2735,89 @@ func _open_military_panel() -> void:
             int(fleet["id"]), int(fleet["landmass"]) + 1, int(fleet["transports"]), float(fleet["strength"])
         ]))
 
+    var build_transport := Button.new()
+    build_transport.text = "Construir transporte naval (+1 brigada) · ¤15"
+    _style_menu_button(build_transport)
+    build_transport.disabled = float(countries[player_country]["treasury"]) < 15.0
+    build_transport.pressed.connect(_build_transport_ship)
+    content.add_child(build_transport)
+
 
 func _select_army_from_panel(army_id: int) -> void:
     if action_modal != null:
         action_modal.visible = false
     _on_map_army_selected(army_id)
+
+
+func _available_soldier_manpower(country_name: String) -> int:
+    var soldier_pop := _country_class_population(country_name, "Soldados")
+    var fielded := 0
+    for army_data in armies:
+        var army: Dictionary = army_data
+        if String(army["country"]) == country_name:
+            fielded += int(army["soldiers"])
+    return maxi(0, soldier_pop - fielded)
+
+
+func _recruit_brigade_in_selected_province() -> void:
+    if selected_province_index < 0 or String(provinces[selected_province_index]["owner"]) != player_country:
+        return
+    if _available_soldier_manpower(player_country) < 3000:
+        status_label.text = "No tienes suficientes POPs de Soldados libres para formar otra brigada."
+        return
+    if float(countries[player_country]["treasury"]) < 10.0:
+        status_label.text = "No hay dinero suficiente para equipar la brigada."
+        return
+
+    countries[player_country]["treasury"] = float(countries[player_country]["treasury"]) - 10.0
+    armies.append({
+        "id": next_army_id,
+        "country": player_country,
+        "province": selected_province_index,
+        "soldiers": 3000,
+        "morale": 0.85,
+        "organization": 0.70,
+        "target_province": -1,
+        "move_years_remaining": 0,
+        "naval_move": false
+    })
+    selected_army_id = next_army_id
+    next_army_id += 1
+    status_label.text = "Nueva brigada reclutada en %s." % String(provinces[selected_province_index]["name"])
+    if action_modal != null:
+        action_modal.visible = false
+    _refresh_all()
+
+
+func _build_transport_ship() -> void:
+    if float(countries[player_country]["treasury"]) < 15.0:
+        return
+
+    var first_fleet := -1
+    for i in range(fleets.size()):
+        if String(fleets[i]["country"]) == player_country:
+            first_fleet = i
+            break
+
+    if first_fleet < 0:
+        var province_index := _first_owned_province(player_country)
+        if province_index < 0:
+            return
+        fleets.append({
+            "id": next_fleet_id,
+            "country": player_country,
+            "landmass": int(provinces[province_index]["landmass"]),
+            "transports": 1,
+            "strength": 100.0
+        })
+        next_fleet_id += 1
+    else:
+        fleets[first_fleet]["transports"] = int(fleets[first_fleet]["transports"]) + 1
+
+    countries[player_country]["treasury"] = float(countries[player_country]["treasury"]) - 15.0
+    status_label.text = "Nuevo transporte naval incorporado."
+    _open_military_panel()
+    _refresh_all()
 
 
 func _major_event(text: String) -> void:
