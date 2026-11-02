@@ -273,6 +273,7 @@ func _create_world() -> void:
     history.clear()
     fired_events.clear()
     market_event_cooldowns.clear()
+    event_last_fired.clear()
 
     stats = {
         "wars": 0,
@@ -286,7 +287,9 @@ func _create_world() -> void:
         "migrations": 0,
         "industries_built": 0,
         "technologies_researched": 0,
-        "alliances_formed": 0
+        "alliances_formed": 0,
+        "political_movements": 0,
+        "diplomatic_crises": 0
     }
 
     _init_market()
@@ -435,7 +438,14 @@ func _country(
         "active_research": "",
         "allies": [],
         "logistics": 1.0,
-        "last_industry_year": START_YEAR - 10
+        "last_industry_year": START_YEAR - 10,
+        "laws": {
+            "labor": "sin regulación",
+            "suffrage": "censitario",
+            "citizenship": "cultura estatal",
+            "magic_regulation": "sin regulación"
+        },
+        "movement_cooldown": START_YEAR
     }
 
 
@@ -629,9 +639,11 @@ func _advance_years(amount: int) -> void:
         _simulate_market_and_economy(true)
         _migration()
         _population_and_unrest()
+        _political_movements()
         _generic_reforms()
         _diplomacy()
         _diplomatic_actions()
+        _diplomatic_crises()
         _historical_events()
         _data_driven_events()
         _war_logic()
@@ -711,6 +723,7 @@ func _simulate_market_and_economy(apply_state_finances: bool) -> void:
             for input_good in inputs:
                 if market.has(input_good):
                     input_factor = minf(input_factor, float(market[input_good]["availability"]))
+                    demand[input_good] = float(demand[input_good]) + float(inputs[input_good]) * float(level) * 12.0
             var employed_workers: int = int(float(_pop_class_size(p["pops"], "Obreros")) * _pop_class_employment(p["pops"], "Obreros"))
             var capacity: float = float(industry.get("worker_capacity", 10000)) * float(level)
             var labor_factor: float = clampf(float(employed_workers) / maxf(1.0, capacity), 0.15, 1.0)
@@ -977,7 +990,7 @@ func _population_and_unrest() -> void:
             pop["size"] = maxi(1, int(round(float(pop["size"]) * (1.0 + growth_rate))))
 
             # Presión política: responde rápido a problemas económicos y puede bajar rápido.
-            var pressure_delta: float = -0.62
+            var pressure_delta: float = -0.62 - _tech_modifier(owner, "pressure_decay")
 
             if needs < 0.72:
                 pressure_delta += (0.72 - needs) * 10.5
@@ -1120,6 +1133,7 @@ func _generic_reforms() -> void:
         ):
             reforms.append("derechos_laborales")
             c["reforms"] = reforms
+            c["laws"]["labor"] = "protección básica"
             c["last_reform_year"] = year
             c["stability"] = minf(100.0, float(c["stability"]) + 5.0)
             countries[country_name] = c
@@ -1892,6 +1906,8 @@ func _refresh_summary() -> void:
     lines.append("Industrias construidas: %d" % int(stats["industries_built"]))
     lines.append("Tecnologías investigadas: %d" % int(stats["technologies_researched"]))
     lines.append("Alianzas formadas: %d" % int(stats["alliances_formed"]))
+    lines.append("Movimientos políticos: %d" % int(stats["political_movements"]))
+    lines.append("Crisis diplomáticas: %d" % int(stats["diplomatic_crises"]))
     lines.append("Grandes eventos: %d\n" % int(stats["major_events"]))
 
     lines.append("")
@@ -2281,6 +2297,109 @@ func _allied_support(country_name: String, enemy: String) -> float:
     return minf(support, 18.0)
 
 
+
+func _political_movements() -> void:
+    for country_name in countries:
+        var name := String(country_name)
+        var c: Dictionary = countries[name]
+
+        if year < int(c.get("movement_cooldown", START_YEAR)):
+            continue
+
+        var pressure: float = _country_avg_pop_value(name, "political_pressure")
+        var literacy: float = _country_avg_pop_value(name, "literacy")
+        var militancy: float = _country_avg_pop_value(name, "militancy")
+        var laws: Dictionary = c.get("laws", {})
+
+        if pressure < 46.0 or literacy < 0.26:
+            continue
+
+        if String(laws.get("labor", "sin regulación")) == "sin regulación":
+            if rng.randf() < 0.055:
+                c["movement_cooldown"] = year + 10
+                countries[name] = c
+                stats["political_movements"] = int(stats["political_movements"]) + 1
+                _log("Un movimiento laboral organizado aparece en %s y exige protección para trabajadores." % name)
+                _change_country_pressure(name, 3.0, ["Obreros", "Mineros", "Artesanos"])
+                continue
+
+        if String(laws.get("suffrage", "censitario")) == "censitario" and literacy > 0.45:
+            if rng.randf() < 0.035:
+                c["movement_cooldown"] = year + 12
+                countries[name] = c
+                stats["political_movements"] = int(stats["political_movements"]) + 1
+                _log("Una campaña por ampliar el sufragio gana fuerza en %s." % name)
+                if pressure > 60.0 and militancy < 30.0 and rng.randf() < 0.30:
+                    c = countries[name]
+                    c["laws"]["suffrage"] = "ampliado"
+                    c["stability"] = minf(100.0, float(c["stability"]) + 3.0)
+                    countries[name] = c
+                    _change_country_pressure(name, -8.0, ["Burócratas", "Comerciantes", "Obreros"])
+                    stats["reforms"] = int(stats["reforms"]) + 1
+                    _major_event("%s amplía el derecho al voto ante la presión de una sociedad cada vez más alfabetizada." % name)
+
+
+func _change_country_pressure(country_name: String, amount: float, classes: Array = []) -> void:
+    for province_index in range(provinces.size()):
+        if String(provinces[province_index]["owner"]) != country_name:
+            continue
+
+        var pops: Array = provinces[province_index]["pops"]
+        for pop_index in range(pops.size()):
+            var pop: Dictionary = pops[pop_index]
+            if not classes.is_empty() and not classes.has(String(pop["class"])):
+                continue
+            pop["political_pressure"] = clampf(float(pop["political_pressure"]) + amount, 0.0, 100.0)
+            pops[pop_index] = pop
+        provinces[province_index]["pops"] = pops
+
+
+func _diplomatic_crises() -> void:
+    if _active_crisis_pressure() or rng.randf() > 0.035:
+        return
+
+    var names: Array = countries.keys()
+    var best_a := ""
+    var best_b := ""
+    var worst_relation := 0
+
+    for a_value in names:
+        var a := String(a_value)
+        for b_value in names:
+            var b := String(b_value)
+            if a == b:
+                continue
+            var relation := int(relations[a][b])
+            if relation < worst_relation and relation <= -72 and not _at_war(a) and not _at_war(b):
+                worst_relation = relation
+                best_a = a
+                best_b = b
+
+    if best_a == "" or best_b == "":
+        return
+
+    stats["diplomatic_crises"] = int(stats["diplomatic_crises"]) + 1
+    var backing_a: Array = countries[best_a].get("allies", [])
+    var backing_b: Array = countries[best_b].get("allies", [])
+
+    if not backing_a.is_empty() or not backing_b.is_empty():
+        _major_event("Una crisis internacional enfrenta a %s y %s; sus aliados movilizan diplomáticos y tropas." % [best_a, best_b])
+    else:
+        _log("Una crisis diplomática enfrenta a %s y %s, pero ninguna potencia decide intervenir." % [best_a, best_b])
+
+    relations[best_a][best_b] = clampi(int(relations[best_a][best_b]) - 4, -100, 100)
+    relations[best_b][best_a] = clampi(int(relations[best_b][best_a]) - 4, -100, 100)
+
+
+func _active_crisis_pressure() -> bool:
+    # Evita crisis internacionales todos los años; usa la fecha del último evento como memoria simple.
+    var last := int(event_last_fired.get("__diplomatic_crisis__", -9999))
+    if year - last < 8:
+        return true
+    event_last_fired["__diplomatic_crisis__"] = year
+    return false
+
+
 func _data_driven_events() -> void:
     for item in event_defs:
         var event: Dictionary = item
@@ -2381,6 +2500,12 @@ func _refresh_development() -> void:
         lines.append("%s" % name)
         lines.append("Tecnologías: %d | Investigación: %s (%.1f pts)" % [tech_names.size(), active_name, float(c.get("research_points", 0.0))])
         lines.append("Industrias: %d | Aliados: %s" % [industry_count, ", ".join(c.get("allies", [])) if not c.get("allies", []).is_empty() else "ninguno"])
+        var laws: Dictionary = c.get("laws", {})
+        lines.append("Leyes: trabajo %s | sufragio %s | ciudadanía %s" % [
+            String(laws.get("labor", "—")),
+            String(laws.get("suffrage", "—")),
+            String(laws.get("citizenship", "—"))
+        ])
         lines.append("")
 
     development_text.text = "\n".join(lines)
