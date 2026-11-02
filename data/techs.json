@@ -1,0 +1,66 @@
+[
+  {
+    "id": "crop_rotation",
+    "name": "Rotación de cultivos",
+    "year": 180,
+    "cost": 28,
+    "prerequisites": [],
+    "effects": {"agriculture_productivity": 0.10}
+  },
+  {
+    "id": "mechanized_mining",
+    "name": "Minería mecanizada",
+    "year": 190,
+    "cost": 36,
+    "prerequisites": [],
+    "effects": {"mining_productivity": 0.12}
+  },
+  {
+    "id": "public_schooling",
+    "name": "Educación pública",
+    "year": 195,
+    "cost": 42,
+    "prerequisites": [],
+    "effects": {"education_rate": 0.0012}
+  },
+  {
+    "id": "steam_workshops",
+    "name": "Talleres mecanizados",
+    "year": 200,
+    "cost": 48,
+    "prerequisites": ["mechanized_mining"],
+    "effects": {"industry_productivity": 0.14, "unlock_industry": "toolworks"}
+  },
+  {
+    "id": "arcane_engines",
+    "name": "Motores arcanos",
+    "year": 205,
+    "cost": 58,
+    "prerequisites": ["steam_workshops"],
+    "effects": {"industry_productivity": 0.10, "unlock_industry": "arcane_workshop"}
+  },
+  {
+    "id": "rail_logistics",
+    "name": "Logística ferroviaria",
+    "year": 215,
+    "cost": 62,
+    "prerequisites": ["steam_workshops"],
+    "effects": {"logistics": 0.18}
+  },
+  {
+    "id": "modern_agronomy",
+    "name": "Agronomía moderna",
+    "year": 230,
+    "cost": 72,
+    "prerequisites": ["crop_rotation"],
+    "effects": {"agriculture_productivity": 0.14}
+  },
+  {
+    "id": "mass_politics",
+    "name": "Política de masas",
+    "year": 240,
+    "cost": 78,
+    "prerequisites": ["public_schooling"],
+    "effects": {"pressure_decay": 0.18}
+  }
+]
