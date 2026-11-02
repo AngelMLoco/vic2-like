@@ -2349,6 +2349,289 @@ func _historical_events() -> void:
 # UI
 # -------------------------------------------------------------------
 
+func _show_country_select() -> void:
+    if country_select_overlay != null and is_instance_valid(country_select_overlay):
+        country_select_overlay.queue_free()
+
+    country_select_overlay = PanelContainer.new()
+    country_select_overlay.set_anchors_preset(Control.PRESET_CENTER)
+    country_select_overlay.position = Vector2(340,120)
+    country_select_overlay.size = Vector2(920,650)
+    country_select_overlay.add_theme_stylebox_override("panel", _panel_style(Color("181614"), Color("b28a4c"), 3))
+    add_child(country_select_overlay)
+
+    var root := VBoxContainer.new()
+    root.add_theme_constant_override("separation", 10)
+    country_select_overlay.add_child(root)
+
+    var title := Label.new()
+    title.text = "ELIGE TU NACIÓN"
+    title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    title.add_theme_font_size_override("font_size", 30)
+    title.add_theme_color_override("font_color", Color("efd39a"))
+    root.add_child(title)
+
+    var subtitle := Label.new()
+    subtitle.text = "Cada país comienza con su economía, POPs, ejércitos, flota, relaciones y Casus Belli."
+    subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    subtitle.add_theme_color_override("font_color", Color("b8aa8d"))
+    root.add_child(subtitle)
+
+    var grid := GridContainer.new()
+    grid.columns = 2
+    grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    root.add_child(grid)
+
+    for country_name in countries:
+        var name := String(country_name)
+        var ctry: Dictionary = countries[name]
+        var button := Button.new()
+        button.custom_minimum_size = Vector2(420,115)
+        button.text = "%s\n%s\nCultura: %s · Militar: %.0f · Tesoro: %.0f" % [
+            name,
+            String(ctry["government"]),
+            String(ctry["culture"]),
+            float(ctry["military"]),
+            float(ctry["treasury"])
+        ]
+        button.add_theme_font_size_override("font_size", 16)
+        var color: Color = COUNTRY_COLORS.get(name, Color.GRAY)
+        button.add_theme_stylebox_override("normal", _panel_style(color.darkened(0.48), color.lightened(0.10), 2))
+        button.add_theme_stylebox_override("hover", _panel_style(color.darkened(0.30), Color("ead39a"), 2))
+        button.pressed.connect(func(): _start_as_country(name))
+        grid.add_child(button)
+
+
+func _start_as_country(country_name: String) -> void:
+    if not countries.has(country_name):
+        return
+
+    player_country = country_name
+    game_started = true
+    selected_army_id = -1
+    selected_province_index = _first_owned_province(country_name)
+
+    if country_select_overlay != null:
+        country_select_overlay.visible = false
+
+    status_label.text = "Gobiernas %s. Selecciona un ejército o abre Diplomacia." % country_name
+    _refresh_all()
+
+
+func _create_action_modal(title_text: String) -> VBoxContainer:
+    if action_modal != null and is_instance_valid(action_modal):
+        action_modal.queue_free()
+
+    action_modal = PanelContainer.new()
+    action_modal.set_anchors_preset(Control.PRESET_CENTER)
+    action_modal.position = Vector2(360,135)
+    action_modal.size = Vector2(880,620)
+    action_modal.add_theme_stylebox_override("panel", _panel_style(Color("171615"), Color("a47b42"), 3))
+    add_child(action_modal)
+
+    var root := VBoxContainer.new()
+    root.add_theme_constant_override("separation", 8)
+    action_modal.add_child(root)
+
+    var header := HBoxContainer.new()
+    root.add_child(header)
+
+    var title := Label.new()
+    title.text = "  " + title_text
+    title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    title.add_theme_font_size_override("font_size", 24)
+    title.add_theme_color_override("font_color", Color("ecd09a"))
+    header.add_child(title)
+
+    var close := Button.new()
+    close.text = "✕"
+    close.custom_minimum_size = Vector2(44,36)
+    _style_small_button(close)
+    close.pressed.connect(func(): action_modal.visible = false)
+    header.add_child(close)
+
+    var scroll := ScrollContainer.new()
+    scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    root.add_child(scroll)
+
+    action_modal_content = VBoxContainer.new()
+    action_modal_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    action_modal_content.add_theme_constant_override("separation", 8)
+    scroll.add_child(action_modal_content)
+
+    return action_modal_content
+
+
+func _action_label(text_value: String, size_value: int = 15) -> Label:
+    var label := Label.new()
+    label.text = text_value
+    label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    label.add_theme_font_size_override("font_size", size_value)
+    label.add_theme_color_override("font_color", Color("ddd0b4"))
+    return label
+
+
+func _open_diplomacy_panel() -> void:
+    if not game_started:
+        return
+
+    _refresh_casus_bellis()
+    var content := _create_action_modal("DIPLOMACIA Y CASUS BELLI — " + player_country)
+    content.add_child(_action_label("En Victoria II el CB define qué puedes exigir; aquí el warscore de batallas y ocupaciones determina qué objetivos puedes imponer.", 14))
+
+    var war_index := -1
+    for i in range(wars.size()):
+        if String(wars[i]["attacker"]) == player_country or String(wars[i]["defender"]) == player_country:
+            war_index = i
+            break
+
+    if war_index >= 0:
+        var w: Dictionary = wars[war_index]
+        var enemy := String(w["defender"]) if String(w["attacker"]) == player_country else String(w["attacker"])
+        var score := _warscore_for(w, player_country)
+        var cost := _war_goal_total_cost(w, player_country)
+        content.add_child(_action_label("GUERRA ACTIVA: %s vs %s" % [player_country, enemy], 20))
+        content.add_child(_action_label("Warscore: %+.1f · Coste de objetivos actuales: %.0f" % [score, cost], 17))
+
+        for goal_data in w.get("war_goals", []):
+            var goal: Dictionary = goal_data
+            content.add_child(_action_label("• %s — coste %d — añadido por %s" % [_goal_description(goal), int(goal.get("cost",0)), String(goal.get("added_by",""))]))
+
+        var peace := Button.new()
+        peace.text = "Exigir paz con los objetivos actuales"
+        _style_menu_button(peace)
+        peace.disabled = score < cost or cost <= 0.0
+        peace.tooltip_text = "Necesitas warscore suficiente para cubrir el coste de tus objetivos."
+        peace.pressed.connect(func(): _player_enforce_peace(war_index))
+        content.add_child(peace)
+
+        content.add_child(_action_label("Añadir objetivo de guerra", 19))
+        for cb_data in casus_bellis:
+            var cb: Dictionary = cb_data
+            if String(cb["owner"]) != player_country or String(cb["target"]) != enemy:
+                continue
+            var cb_copy: Dictionary = cb.duplicate(true)
+            var add := Button.new()
+            add.text = "%s%s · coste %d" % [
+                String(_cb_def(String(cb["type"])).get("name", cb["type"])),
+                " — " + String(cb.get("province","")) if String(cb.get("province","")) != "" else "",
+                int(cb["cost"])
+            ]
+            _style_menu_button(add)
+            add.disabled = score < cost + float(cb["cost"])
+            add.pressed.connect(func(): _player_add_goal(war_index, cb_copy))
+            content.add_child(add)
+        return
+
+    content.add_child(_action_label("CASUS BELLI DISPONIBLES", 20))
+    var found := false
+    for cb_data in casus_bellis:
+        var cb: Dictionary = cb_data
+        if String(cb["owner"]) != player_country:
+            continue
+
+        found = true
+        var cb_copy: Dictionary = cb.duplicate(true)
+        var definition := _cb_def(String(cb["type"]))
+        var button := Button.new()
+        button.text = "Declarar guerra a %s · %s%s · warscore %d" % [
+            String(cb["target"]),
+            String(definition.get("name", cb["type"])),
+            " (" + String(cb.get("province","")) + ")" if String(cb.get("province","")) != "" else "",
+            int(cb["cost"])
+        ]
+        _style_menu_button(button)
+        button.pressed.connect(func(): _player_declare_cb(cb_copy))
+        content.add_child(button)
+
+    if not found:
+        content.add_child(_action_label("No tienes un Casus Belli disponible en este momento."))
+
+
+func _player_declare_cb(cb: Dictionary) -> void:
+    if _declare_war_with_cb(cb):
+        status_label.text = "Guerra declarada a %s." % String(cb["target"])
+        if action_modal != null:
+            action_modal.visible = false
+        _refresh_all()
+
+
+func _player_add_goal(war_index: int, cb: Dictionary) -> void:
+    if _add_wargoal_from_cb(war_index, cb):
+        status_label.text = "Nuevo objetivo de guerra añadido."
+    else:
+        status_label.text = "No tienes warscore suficiente para añadir ese objetivo."
+    _open_diplomacy_panel()
+    _refresh_all()
+
+
+func _player_enforce_peace(war_index: int) -> void:
+    if war_index < 0 or war_index >= wars.size():
+        return
+    var before := wars.size()
+    _enforce_peace(war_index, player_country)
+    if wars.size() < before:
+        selected_army_id = -1
+        status_label.text = "Tratado de paz impuesto."
+        if action_modal != null:
+            action_modal.visible = false
+    _refresh_all()
+
+
+func _open_military_panel() -> void:
+    if not game_started:
+        return
+
+    var content := _create_action_modal("FUERZAS ARMADAS — " + player_country)
+    content.add_child(_action_label("Selecciona una ficha de ejército en el mapa o usa esta lista. Después haz clic en una provincia adyacente; para cruzar el mar necesitas transportes.", 14))
+
+    var war_index := -1
+    for i in range(wars.size()):
+        if String(wars[i]["attacker"]) == player_country or String(wars[i]["defender"]) == player_country:
+            war_index = i
+            break
+
+    if war_index >= 0:
+        var w: Dictionary = wars[war_index]
+        content.add_child(_action_label("WAR SCORE: %+.1f" % _warscore_for(w, player_country), 20))
+
+    content.add_child(_action_label("EJÉRCITOS", 20))
+    for army_data in armies:
+        var army: Dictionary = army_data
+        if String(army["country"]) != player_country:
+            continue
+        var army_id := int(army["id"])
+        var button := Button.new()
+        var order_text := ""
+        if int(army.get("move_years_remaining", 0)) > 0:
+            order_text = " → %s (%d años)" % [String(provinces[int(army["target_province"])]["name"]), int(army["move_years_remaining"])]
+        button.text = "Ejército #%d · %s · %d soldados · Org %.0f%%%s" % [
+            army_id,
+            String(provinces[int(army["province"])]["name"]),
+            int(army["soldiers"]),
+            float(army["organization"]) * 100.0,
+            order_text
+        ]
+        _style_menu_button(button)
+        button.pressed.connect(func(): _select_army_from_panel(army_id))
+        content.add_child(button)
+
+    content.add_child(_action_label("FLOTAS DE TRANSPORTE", 20))
+    for fleet_data in fleets:
+        var fleet: Dictionary = fleet_data
+        if String(fleet["country"]) != player_country:
+            continue
+        content.add_child(_action_label("⚓ Flota #%d · masa terrestre %d · capacidad %d brigadas · fuerza %.0f%%" % [
+            int(fleet["id"]), int(fleet["landmass"]) + 1, int(fleet["transports"]), float(fleet["strength"])
+        ]))
+
+
+func _select_army_from_panel(army_id: int) -> void:
+    if action_modal != null:
+        action_modal.visible = false
+    _on_map_army_selected(army_id)
+
+
 func _major_event(text: String) -> void:
     stats["major_events"] = int(stats["major_events"]) + 1
     _log(text)
@@ -2359,7 +2642,18 @@ func _log(text: String) -> void:
 
 
 func _reset_world() -> void:
+    var chosen_country := player_country
+    var was_started := game_started
     _create_world()
+    _initialize_military_layer()
+    if was_started and countries.has(chosen_country):
+        player_country = chosen_country
+        game_started = true
+        selected_province_index = _first_owned_province(player_country)
+    else:
+        player_country = ""
+        game_started = false
+        _show_country_select()
     _refresh_all()
 
 
@@ -2371,14 +2665,32 @@ func _use_seed() -> void:
         return
 
     current_seed = int(candidate)
+    var chosen_country := player_country
+    var was_started := game_started
     _create_world()
+    _initialize_military_layer()
+    if was_started and countries.has(chosen_country):
+        player_country = chosen_country
+        game_started = true
+        selected_province_index = _first_owned_province(player_country)
+    else:
+        _show_country_select()
     _refresh_all()
 
 
 func _random_world() -> void:
     current_seed = int(Time.get_unix_time_from_system()) + int(Time.get_ticks_msec())
     seed_input.text = str(current_seed)
+    var chosen_country := player_country
+    var was_started := game_started
     _create_world()
+    _initialize_military_layer()
+    if was_started and countries.has(chosen_country):
+        player_country = chosen_country
+        game_started = true
+        selected_province_index = _first_owned_province(player_country)
+    else:
+        _show_country_select()
     _refresh_all()
 
 
@@ -2405,7 +2717,7 @@ func _refresh_topbar() -> void:
     if provinces.is_empty():
         return
 
-    var owner := String(provinces[selected_province_index]["owner"])
+    var owner := player_country if game_started and countries.has(player_country) else String(provinces[selected_province_index]["owner"])
     var c: Dictionary = countries[owner]
     var literacy := _country_avg_pop_value(owner, "literacy") * 100.0
     var active := String(c.get("active_research", ""))
@@ -2423,7 +2735,7 @@ func _refresh_outliner() -> void:
     if provinces.is_empty():
         return
 
-    var owner := String(provinces[selected_province_index]["owner"])
+    var owner := player_country if game_started and countries.has(player_country) else String(provinces[selected_province_index]["owner"])
     var c: Dictionary = countries[owner]
     var lines: Array[String] = []
 
@@ -2447,9 +2759,22 @@ func _refresh_outliner() -> void:
         if String(w["attacker"]) == owner or String(w["defender"]) == owner:
             has_war = true
             lines.append("⚔ %s — %s" % [String(w["attacker"]), String(w["defender"])])
-            lines.append("   Objetivo: %s" % String(w.get("goal_province", "sin objetivo territorial")))
+            lines.append("   Warscore: %+.1f" % _warscore_for(w, owner))
+            for goal_data in w.get("war_goals", []):
+                var goal: Dictionary = goal_data
+                lines.append("   • %s (%d)" % [_goal_description(goal), int(goal.get("cost",0))])
     if not has_war:
         lines.append("En paz")
+
+    lines.append("\n[color=#d9b96d][b]EJÉRCITOS[/b][/color]")
+    var army_count := 0
+    for army_data in armies:
+        var army: Dictionary = army_data
+        if String(army["country"]) == owner and int(army["soldiers"]) > 0:
+            army_count += 1
+            lines.append("♟ #%d · %s · %d soldados" % [int(army["id"]), String(provinces[int(army["province"])]["name"]), int(army["soldiers"])])
+    if army_count == 0:
+        lines.append("Sin ejércitos de campaña")
 
     lines.append("\n[color=#d9b96d][b]INVESTIGACIÓN[/b][/color]")
     var active := String(c.get("active_research", ""))
@@ -2486,10 +2811,13 @@ func _refresh_province_aggregates() -> void:
 func _rebuild_map() -> void:
     if political_map != null:
         political_map.set_world(provinces, COUNTRY_COLORS)
+        political_map.set_armies(armies, player_country)
         political_map.set_selected(selected_province_index)
+        political_map.set_selected_army(selected_army_id)
 
     if minimap != null:
         minimap.set_world(provinces, COUNTRY_COLORS)
+        minimap.set_armies([], player_country)
         minimap.set_selected(selected_province_index)
 
 func _show_province(index: int) -> void:
@@ -3390,6 +3718,8 @@ func _load_game() -> void:
 
     rng.seed = current_seed
     status_label.text = "Partida cargada."
+    if game_started and country_select_overlay != null:
+        country_select_overlay.visible = false
     _refresh_province_aggregates()
     _refresh_all()
 
