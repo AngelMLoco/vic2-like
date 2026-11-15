@@ -1,0 +1,46 @@
+{
+ "ideologies": [
+  {
+   "id": "tradicionalista",
+   "name": "Tradicionalista",
+   "group": "conservative",
+   "color": "5a3a8a"
+  },
+  {
+   "id": "conservador",
+   "name": "Conservador",
+   "group": "conservative",
+   "color": "3a5aa8"
+  },
+  {
+   "id": "liberal",
+   "name": "Liberal",
+   "group": "liberal",
+   "color": "e8c83a"
+  },
+  {
+   "id": "radical",
+   "name": "Radical",
+   "group": "liberal",
+   "color": "e8883a"
+  },
+  {
+   "id": "socialista",
+   "name": "Socialista",
+   "group": "socialist",
+   "color": "c83a3a"
+  },
+  {
+   "id": "comunitarista",
+   "name": "Comunitarista",
+   "group": "socialist",
+   "color": "8a1a1a"
+  },
+  {
+   "id": "autoritario",
+   "name": "Autoritario",
+   "group": "conservative",
+   "color": "4a4a4a"
+  }
+ ]
+}

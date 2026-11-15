@@ -1,0 +1,745 @@
+{
+ "_doc": "Culturas del escenario de prueba (Tierra, año 136). 'religion' es la religión por defecto de los POPs de esa cultura. 'color' es opcional: si falta se deriva del id.",
+ "groups": [
+  {
+   "id": "celtica",
+   "name": "Céltica"
+  },
+  {
+   "id": "latina",
+   "name": "Latina"
+  },
+  {
+   "id": "germanica",
+   "name": "Germánica"
+  },
+  {
+   "id": "nordica",
+   "name": "Nórdica"
+  },
+  {
+   "id": "finougria",
+   "name": "Fino-úgrica"
+  },
+  {
+   "id": "eslava",
+   "name": "Eslava"
+  },
+  {
+   "id": "helenica",
+   "name": "Helénica"
+  },
+  {
+   "id": "semitica",
+   "name": "Semítica"
+  },
+  {
+   "id": "afroasiatica",
+   "name": "Afroasiática"
+  },
+  {
+   "id": "nilotica",
+   "name": "Nilótica"
+  },
+  {
+   "id": "irania",
+   "name": "Irania"
+  },
+  {
+   "id": "estepa",
+   "name": "Estepa"
+  },
+  {
+   "id": "indica",
+   "name": "Índica"
+  },
+  {
+   "id": "dharmica",
+   "name": "Dhármica"
+  },
+  {
+   "id": "sinica",
+   "name": "Sínica"
+  },
+  {
+   "id": "nipona",
+   "name": "Nipona"
+  },
+  {
+   "id": "austronesia",
+   "name": "Austronesia"
+  },
+  {
+   "id": "oceanica",
+   "name": "Oceánica"
+  },
+  {
+   "id": "africana_occidental",
+   "name": "África occidental"
+  },
+  {
+   "id": "bantu",
+   "name": "Bantú"
+  },
+  {
+   "id": "norteamericana",
+   "name": "Norteamericana"
+  },
+  {
+   "id": "mesoamericana",
+   "name": "Mesoamericana"
+  },
+  {
+   "id": "andina",
+   "name": "Andina"
+  },
+  {
+   "id": "amazonica",
+   "name": "Amazónica"
+  }
+ ],
+ "cultures": [
+  {
+   "id": "hibernia",
+   "name": "Hiberna",
+   "group": "celtica",
+   "religion": "druidica"
+  },
+  {
+   "id": "caledonia",
+   "name": "Caledonia",
+   "group": "celtica",
+   "religion": "druidica"
+  },
+  {
+   "id": "britana",
+   "name": "Britana",
+   "group": "celtica",
+   "religion": "aureliana"
+  },
+  {
+   "id": "franca",
+   "name": "Franca",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "hesperica",
+   "name": "Hespérica",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "aragonesa",
+   "name": "Aragonesa",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "lusitana",
+   "name": "Lusitana",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "padana",
+   "name": "Padana",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "latina",
+   "name": "Latina",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "siciliota",
+   "name": "Siciliota",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "dacica",
+   "name": "Dácica",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "helvecia",
+   "name": "Helvecia",
+   "group": "latina",
+   "religion": "aureliana"
+  },
+  {
+   "id": "batava",
+   "name": "Bátava",
+   "group": "germanica",
+   "religion": "vanica"
+  },
+  {
+   "id": "renana",
+   "name": "Renana",
+   "group": "germanica",
+   "religion": "aureliana"
+  },
+  {
+   "id": "sajona",
+   "name": "Sajona",
+   "group": "germanica",
+   "religion": "vanica"
+  },
+  {
+   "id": "bavara",
+   "name": "Bávara",
+   "group": "germanica",
+   "religion": "aureliana"
+  },
+  {
+   "id": "norica",
+   "name": "Nórica",
+   "group": "germanica",
+   "religion": "aureliana"
+  },
+  {
+   "id": "danica",
+   "name": "Dánica",
+   "group": "nordica",
+   "religion": "vanica"
+  },
+  {
+   "id": "nordica",
+   "name": "Nórdica",
+   "group": "nordica",
+   "religion": "vanica"
+  },
+  {
+   "id": "svea",
+   "name": "Svea",
+   "group": "nordica",
+   "religion": "vanica"
+  },
+  {
+   "id": "suomi",
+   "name": "Suomi",
+   "group": "finougria",
+   "religion": "tengrista"
+  },
+  {
+   "id": "panonia",
+   "name": "Panonia",
+   "group": "finougria",
+   "religion": "tengrista"
+  },
+  {
+   "id": "bohema",
+   "name": "Bohema",
+   "group": "eslava",
+   "religion": "perunica"
+  },
+  {
+   "id": "sarmata",
+   "name": "Sármata",
+   "group": "eslava",
+   "religion": "perunica"
+  },
+  {
+   "id": "rutena",
+   "name": "Rutena",
+   "group": "eslava",
+   "religion": "perunica"
+  },
+  {
+   "id": "pontica",
+   "name": "Póntica",
+   "group": "eslava",
+   "religion": "perunica"
+  },
+  {
+   "id": "baltica",
+   "name": "Báltica",
+   "group": "eslava",
+   "religion": "perunica"
+  },
+  {
+   "id": "helenica",
+   "name": "Helénica",
+   "group": "helenica",
+   "religion": "olimpica"
+  },
+  {
+   "id": "tracia",
+   "name": "Tracia",
+   "group": "helenica",
+   "religion": "olimpica"
+  },
+  {
+   "id": "ilirica",
+   "name": "Ilírica",
+   "group": "helenica",
+   "religion": "olimpica"
+  },
+  {
+   "id": "anatolia",
+   "name": "Anatolia",
+   "group": "helenica",
+   "religion": "olimpica"
+  },
+  {
+   "id": "cirenaica",
+   "name": "Cirenaica",
+   "group": "helenica",
+   "religion": "olimpica"
+  },
+  {
+   "id": "levantina",
+   "name": "Levantina",
+   "group": "semitica",
+   "religion": "baalita"
+  },
+  {
+   "id": "mesopotamica",
+   "name": "Mesopotámica",
+   "group": "semitica",
+   "religion": "baalita"
+  },
+  {
+   "id": "punica",
+   "name": "Púnica",
+   "group": "semitica",
+   "religion": "baalita"
+  },
+  {
+   "id": "arabiga",
+   "name": "Arábiga",
+   "group": "semitica",
+   "religion": "baalita"
+  },
+  {
+   "id": "sabea",
+   "name": "Sabea",
+   "group": "semitica",
+   "religion": "baalita"
+  },
+  {
+   "id": "maura",
+   "name": "Maura",
+   "group": "afroasiatica",
+   "religion": "baalita"
+  },
+  {
+   "id": "bereber",
+   "name": "Bereber",
+   "group": "afroasiatica",
+   "religion": "baalita"
+  },
+  {
+   "id": "aksumita",
+   "name": "Aksumita",
+   "group": "afroasiatica",
+   "religion": "baalita"
+  },
+  {
+   "id": "somali",
+   "name": "Somalí",
+   "group": "afroasiatica",
+   "religion": "baalita"
+  },
+  {
+   "id": "kemetica",
+   "name": "Kemética",
+   "group": "nilotica",
+   "religion": "kemetica"
+  },
+  {
+   "id": "nubia",
+   "name": "Nubia",
+   "group": "nilotica",
+   "religion": "kemetica"
+  },
+  {
+   "id": "parsa",
+   "name": "Parsa",
+   "group": "irania",
+   "religion": "llama_eterna"
+  },
+  {
+   "id": "bactriana",
+   "name": "Bactriana",
+   "group": "irania",
+   "religion": "llama_eterna"
+  },
+  {
+   "id": "sogdiana",
+   "name": "Sogdiana",
+   "group": "irania",
+   "religion": "llama_eterna"
+  },
+  {
+   "id": "kartveliana",
+   "name": "Kartveliana",
+   "group": "irania",
+   "religion": "llama_eterna"
+  },
+  {
+   "id": "kipchak",
+   "name": "Kipchak",
+   "group": "estepa",
+   "religion": "tengrista"
+  },
+  {
+   "id": "mongola",
+   "name": "Mongola",
+   "group": "estepa",
+   "religion": "tengrista"
+  },
+  {
+   "id": "siberiana",
+   "name": "Siberiana",
+   "group": "estepa",
+   "religion": "tengrista"
+  },
+  {
+   "id": "buriata",
+   "name": "Buriata",
+   "group": "estepa",
+   "religion": "tengrista"
+  },
+  {
+   "id": "tungusa",
+   "name": "Tungusa",
+   "group": "estepa",
+   "religion": "tengrista"
+  },
+  {
+   "id": "uigur",
+   "name": "Uigur",
+   "group": "estepa",
+   "religion": "tengrista"
+  },
+  {
+   "id": "jurchen",
+   "name": "Jurchen",
+   "group": "estepa",
+   "religion": "tianming"
+  },
+  {
+   "id": "sindhi",
+   "name": "Sindhi",
+   "group": "indica",
+   "religion": "vedica"
+  },
+  {
+   "id": "indostana",
+   "name": "Indostana",
+   "group": "indica",
+   "religion": "vedica"
+  },
+  {
+   "id": "bengali",
+   "name": "Bengalí",
+   "group": "indica",
+   "religion": "vedica"
+  },
+  {
+   "id": "dravida",
+   "name": "Drávida",
+   "group": "indica",
+   "religion": "vedica"
+  },
+  {
+   "id": "decani",
+   "name": "Decaní",
+   "group": "indica",
+   "religion": "vedica"
+  },
+  {
+   "id": "himalaya",
+   "name": "Himalaya",
+   "group": "indica",
+   "religion": "vedica"
+  },
+  {
+   "id": "cingalesa",
+   "name": "Cingalesa",
+   "group": "dharmica",
+   "religion": "dharmica"
+  },
+  {
+   "id": "bamar",
+   "name": "Bamar",
+   "group": "dharmica",
+   "religion": "dharmica"
+  },
+  {
+   "id": "tai",
+   "name": "Tai",
+   "group": "dharmica",
+   "religion": "dharmica"
+  },
+  {
+   "id": "jemer",
+   "name": "Jemer",
+   "group": "dharmica",
+   "religion": "dharmica"
+  },
+  {
+   "id": "tibetana",
+   "name": "Tibetana",
+   "group": "dharmica",
+   "religion": "dharmica"
+  },
+  {
+   "id": "han",
+   "name": "Han",
+   "group": "sinica",
+   "religion": "tianming"
+  },
+  {
+   "id": "yue",
+   "name": "Yue",
+   "group": "sinica",
+   "religion": "tianming"
+  },
+  {
+   "id": "bai",
+   "name": "Bai",
+   "group": "sinica",
+   "religion": "tianming"
+  },
+  {
+   "id": "coreana",
+   "name": "Coreana",
+   "group": "sinica",
+   "religion": "tianming"
+  },
+  {
+   "id": "viet",
+   "name": "Viet",
+   "group": "sinica",
+   "religion": "tianming"
+  },
+  {
+   "id": "yamato",
+   "name": "Yamato",
+   "group": "nipona",
+   "religion": "kami"
+  },
+  {
+   "id": "malaya",
+   "name": "Malaya",
+   "group": "austronesia",
+   "religion": "vedica"
+  },
+  {
+   "id": "javanesa",
+   "name": "Javanesa",
+   "group": "austronesia",
+   "religion": "vedica"
+  },
+  {
+   "id": "tagala",
+   "name": "Tagala",
+   "group": "austronesia",
+   "religion": "vedica"
+  },
+  {
+   "id": "malgache",
+   "name": "Malgache",
+   "group": "austronesia",
+   "religion": "vedica"
+  },
+  {
+   "id": "papua",
+   "name": "Papúa",
+   "group": "oceanica",
+   "religion": "animista"
+  },
+  {
+   "id": "polinesia",
+   "name": "Polinesia",
+   "group": "oceanica",
+   "religion": "animista"
+  },
+  {
+   "id": "maori",
+   "name": "Maorí",
+   "group": "oceanica",
+   "religion": "animista"
+  },
+  {
+   "id": "aborigen",
+   "name": "Aborigen",
+   "group": "oceanica",
+   "religion": "animista"
+  },
+  {
+   "id": "yoruba",
+   "name": "Yoruba",
+   "group": "africana_occidental",
+   "religion": "ancestral"
+  },
+  {
+   "id": "kanuri",
+   "name": "Kanuri",
+   "group": "africana_occidental",
+   "religion": "ancestral"
+  },
+  {
+   "id": "akan",
+   "name": "Akan",
+   "group": "africana_occidental",
+   "religion": "ancestral"
+  },
+  {
+   "id": "mande",
+   "name": "Mandé",
+   "group": "africana_occidental",
+   "religion": "ancestral"
+  },
+  {
+   "id": "swahili",
+   "name": "Swahili",
+   "group": "bantu",
+   "religion": "ancestral"
+  },
+  {
+   "id": "lacustre",
+   "name": "Lacustre",
+   "group": "bantu",
+   "religion": "ancestral"
+  },
+  {
+   "id": "kongo",
+   "name": "Kongo",
+   "group": "bantu",
+   "religion": "ancestral"
+  },
+  {
+   "id": "shona",
+   "name": "Shona",
+   "group": "bantu",
+   "religion": "ancestral"
+  },
+  {
+   "id": "nguni",
+   "name": "Nguni",
+   "group": "bantu",
+   "religion": "ancestral"
+  },
+  {
+   "id": "khoisan",
+   "name": "Khoisan",
+   "group": "bantu",
+   "religion": "ancestral"
+  },
+  {
+   "id": "bantu",
+   "name": "Bantú",
+   "group": "bantu",
+   "religion": "ancestral"
+  },
+  {
+   "id": "haudenia",
+   "name": "Haudenia",
+   "group": "norteamericana",
+   "religion": "gran_espiritu"
+  },
+  {
+   "id": "misisipiana",
+   "name": "Misisipiana",
+   "group": "norteamericana",
+   "religion": "gran_espiritu"
+  },
+  {
+   "id": "pueblo",
+   "name": "Pueblo",
+   "group": "norteamericana",
+   "religion": "gran_espiritu"
+  },
+  {
+   "id": "algonquina",
+   "name": "Algonquina",
+   "group": "norteamericana",
+   "religion": "gran_espiritu"
+  },
+  {
+   "id": "llanera",
+   "name": "Llanera",
+   "group": "norteamericana",
+   "religion": "gran_espiritu"
+  },
+  {
+   "id": "inuit",
+   "name": "Inuit",
+   "group": "norteamericana",
+   "religion": "gran_espiritu"
+  },
+  {
+   "id": "nahua",
+   "name": "Nahua",
+   "group": "mesoamericana",
+   "religion": "quinto_sol"
+  },
+  {
+   "id": "maya",
+   "name": "Maya",
+   "group": "mesoamericana",
+   "religion": "quinto_sol"
+  },
+  {
+   "id": "chichimeca",
+   "name": "Chichimeca",
+   "group": "mesoamericana",
+   "religion": "quinto_sol"
+  },
+  {
+   "id": "chibcha",
+   "name": "Chibcha",
+   "group": "andina",
+   "religion": "inti"
+  },
+  {
+   "id": "quechua",
+   "name": "Quechua",
+   "group": "andina",
+   "religion": "inti"
+  },
+  {
+   "id": "patagona",
+   "name": "Patagona",
+   "group": "andina",
+   "religion": "animista"
+  },
+  {
+   "id": "tupi",
+   "name": "Tupí",
+   "group": "amazonica",
+   "religion": "animista"
+  },
+  {
+   "id": "guarani",
+   "name": "Guaraní",
+   "group": "amazonica",
+   "religion": "animista"
+  },
+  {
+   "id": "amazonica",
+   "name": "Amazónica",
+   "group": "amazonica",
+   "religion": "animista"
+  },
+  {
+   "id": "taina",
+   "name": "Taína",
+   "group": "amazonica",
+   "religion": "animista"
+  },
+  {
+   "id": "caribe",
+   "name": "Caribe",
+   "group": "amazonica",
+   "religion": "animista"
+  }
+ ]
+}

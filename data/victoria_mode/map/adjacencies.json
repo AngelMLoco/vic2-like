@@ -1,0 +1,20 @@
+[
+ {
+  "a": 3116,
+  "b": 2924,
+  "type": "sea_strait",
+  "name": "Estrecho de Mesina"
+ },
+ {
+  "a": 1920,
+  "b": 1552,
+  "type": "land_crossing",
+  "name": "Paso de Gibraltar"
+ },
+ {
+  "a": 2850,
+  "b": 1734,
+  "type": "land_crossing",
+  "name": "Paso de Calais"
+ }
+]

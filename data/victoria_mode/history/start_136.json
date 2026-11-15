@@ -1,0 +1,572 @@
+{
+ "_doc": "Estado inicial del escenario. Las brigadas y barcos se crean en la capital; las fábricas se reparten entre los estados propios más poblados.",
+ "start_date": {
+  "year": 136,
+  "month": 1,
+  "day": 1
+ },
+ "countries": {
+  "BRI": {
+   "brigades": 18,
+   "ships": 40,
+   "factory_levels": 14
+  },
+  "CAL": {
+   "brigades": 5,
+   "ships": 6,
+   "factory_levels": 1
+  },
+  "HIB": {
+   "brigades": 4,
+   "ships": 3,
+   "factory_levels": 0
+  },
+  "FRK": {
+   "brigades": 30,
+   "ships": 24,
+   "factory_levels": 12
+  },
+  "BAT": {
+   "brigades": 6,
+   "ships": 18,
+   "factory_levels": 6
+  },
+  "HES": {
+   "brigades": 16,
+   "ships": 20,
+   "factory_levels": 4
+  },
+  "ARG": {
+   "brigades": 6,
+   "ships": 10,
+   "factory_levels": 3
+  },
+  "LUS": {
+   "brigades": 5,
+   "ships": 14,
+   "factory_levels": 1
+  },
+  "RHE": {
+   "brigades": 6,
+   "ships": 2,
+   "factory_levels": 5
+  },
+  "BRM": {
+   "brigades": 16,
+   "ships": 6,
+   "factory_levels": 7
+  },
+  "BAY": {
+   "brigades": 6,
+   "ships": 0,
+   "factory_levels": 3
+  },
+  "HLV": {
+   "brigades": 4,
+   "ships": 0,
+   "factory_levels": 2
+  },
+  "DAN": {
+   "brigades": 22,
+   "ships": 6,
+   "factory_levels": 8
+  },
+  "PAD": {
+   "brigades": 7,
+   "ships": 8,
+   "factory_levels": 5
+  },
+  "AUR": {
+   "brigades": 4,
+   "ships": 2,
+   "factory_levels": 1
+  },
+  "SIK": {
+   "brigades": 6,
+   "ships": 8,
+   "factory_levels": 0
+  },
+  "DNA": {
+   "brigades": 5,
+   "ships": 12,
+   "factory_levels": 2
+  },
+  "NOR": {
+   "brigades": 4,
+   "ships": 10,
+   "factory_levels": 1
+  },
+  "SVE": {
+   "brigades": 10,
+   "ships": 14,
+   "factory_levels": 3
+  },
+  "LIV": {
+   "brigades": 3,
+   "ships": 3,
+   "factory_levels": 0
+  },
+  "SAR": {
+   "brigades": 14,
+   "ships": 2,
+   "factory_levels": 2
+  },
+  "RUT": {
+   "brigades": 34,
+   "ships": 10,
+   "factory_levels": 4
+  },
+  "KIE": {
+   "brigades": 9,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "SIB": {
+   "brigades": 5,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "DAC": {
+   "brigades": 6,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "THR": {
+   "brigades": 5,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "HLS": {
+   "brigades": 6,
+   "ships": 16,
+   "factory_levels": 1
+  },
+  "ILL": {
+   "brigades": 9,
+   "ships": 4,
+   "factory_levels": 0
+  },
+  "ANA": {
+   "brigades": 28,
+   "ships": 18,
+   "factory_levels": 3
+  },
+  "KAR": {
+   "brigades": 5,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "PRS": {
+   "brigades": 24,
+   "ships": 6,
+   "factory_levels": 1
+  },
+  "BAC": {
+   "brigades": 7,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "SOG": {
+   "brigades": 8,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "HOR": {
+   "brigades": 14,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "BAB": {
+   "brigades": 8,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "LEV": {
+   "brigades": 5,
+   "ships": 6,
+   "factory_levels": 1
+  },
+  "NEJ": {
+   "brigades": 6,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "SAB": {
+   "brigades": 3,
+   "ships": 4,
+   "factory_levels": 0
+  },
+  "OMA": {
+   "brigades": 4,
+   "ships": 10,
+   "factory_levels": 0
+  },
+  "KEM": {
+   "brigades": 14,
+   "ships": 8,
+   "factory_levels": 1
+  },
+  "CYR": {
+   "brigades": 3,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "CAR": {
+   "brigades": 8,
+   "ships": 16,
+   "factory_levels": 1
+  },
+  "MAU": {
+   "brigades": 9,
+   "ships": 6,
+   "factory_levels": 0
+  },
+  "NUB": {
+   "brigades": 8,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "AKS": {
+   "brigades": 10,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "PUN": {
+   "brigades": 3,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "OYO": {
+   "brigades": 8,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "KAN": {
+   "brigades": 8,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "ASH": {
+   "brigades": 8,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "SAH": {
+   "brigades": 10,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "SWA": {
+   "brigades": 3,
+   "ships": 6,
+   "factory_levels": 0
+  },
+  "LAK": {
+   "brigades": 5,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "KON": {
+   "brigades": 6,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "ZIM": {
+   "brigades": 5,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "ZUL": {
+   "brigades": 6,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "MER": {
+   "brigades": 4,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "SIN": {
+   "brigades": 14,
+   "ships": 4,
+   "factory_levels": 1
+  },
+  "GAN": {
+   "brigades": 30,
+   "ships": 6,
+   "factory_levels": 4
+  },
+  "DEC": {
+   "brigades": 12,
+   "ships": 4,
+   "factory_levels": 1
+  },
+  "CHO": {
+   "brigades": 8,
+   "ships": 10,
+   "factory_levels": 1
+  },
+  "HIM": {
+   "brigades": 4,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "LAN": {
+   "brigades": 3,
+   "ships": 4,
+   "factory_levels": 0
+  },
+  "XIN": {
+   "brigades": 6,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "TIB": {
+   "brigades": 6,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "NAN": {
+   "brigades": 6,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "JUR": {
+   "brigades": 8,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "KHG": {
+   "brigades": 14,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "TIA": {
+   "brigades": 36,
+   "ships": 14,
+   "factory_levels": 10
+  },
+  "YUE": {
+   "brigades": 20,
+   "ships": 16,
+   "factory_levels": 5
+  },
+  "KOR": {
+   "brigades": 7,
+   "ships": 6,
+   "factory_levels": 1
+  },
+  "YAM": {
+   "brigades": 16,
+   "ships": 12,
+   "factory_levels": 4
+  },
+  "VIE": {
+   "brigades": 8,
+   "ships": 4,
+   "factory_levels": 0
+  },
+  "SIA": {
+   "brigades": 8,
+   "ships": 4,
+   "factory_levels": 0
+  },
+  "PAG": {
+   "brigades": 8,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "KHM": {
+   "brigades": 5,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "SRI": {
+   "brigades": 6,
+   "ships": 14,
+   "factory_levels": 0
+  },
+  "MAJ": {
+   "brigades": 6,
+   "ships": 6,
+   "factory_levels": 0
+  },
+  "TON": {
+   "brigades": 3,
+   "ships": 4,
+   "factory_levels": 0
+  },
+  "CFF": {
+   "brigades": 8,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "GRR": {
+   "brigades": 6,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "PUE": {
+   "brigades": 3,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "ANH": {
+   "brigades": 14,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "MAY": {
+   "brigades": 6,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "MUI": {
+   "brigades": 4,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "TAW": {
+   "brigades": 14,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "TUP": {
+   "brigades": 4,
+   "ships": 0,
+   "factory_levels": 0
+  },
+  "ANT": {
+   "brigades": 3,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "CRB": {
+   "brigades": 3,
+   "ships": 2,
+   "factory_levels": 0
+  },
+  "AOR": {
+   "brigades": 3,
+   "ships": 2,
+   "factory_levels": 0
+  }
+ },
+ "alliances": [
+  [
+   "FRK",
+   "HES"
+  ],
+  [
+   "BRI",
+   "BAT"
+  ],
+  [
+   "DAN",
+   "BAY"
+  ],
+  [
+   "BRM",
+   "SVE"
+  ],
+  [
+   "TIA",
+   "KOR"
+  ],
+  [
+   "ANA",
+   "BAB"
+  ],
+  [
+   "GAN",
+   "HIM"
+  ],
+  [
+   "RUT",
+   "KIE"
+  ]
+ ],
+ "relations": [
+  [
+   "FRK",
+   "BRI",
+   -80
+  ],
+  [
+   "FRK",
+   "BRM",
+   -40
+  ],
+  [
+   "DAN",
+   "ANA",
+   -90
+  ],
+  [
+   "RUT",
+   "SAR",
+   -70
+  ],
+  [
+   "RUT",
+   "ANA",
+   -60
+  ],
+  [
+   "TIA",
+   "YUE",
+   -50
+  ],
+  [
+   "BRI",
+   "BAT",
+   120
+  ],
+  [
+   "FRK",
+   "HES",
+   110
+  ],
+  [
+   "HES",
+   "LUS",
+   -30
+  ],
+  [
+   "CAL",
+   "BRI",
+   -60
+  ],
+  [
+   "HIB",
+   "BRI",
+   -90
+  ],
+  [
+   "CAR",
+   "AUR",
+   -40
+  ],
+  [
+   "PRS",
+   "ANA",
+   -70
+  ]
+ ],
+ "wars": [
+  {
+   "name": "Guerra de las Tierras Altas",
+   "attackers": [
+    "BRI"
+   ],
+   "defenders": [
+    "CAL"
+   ],
+   "start": {
+    "year": 135,
+    "month": 9,
+    "day": 1
+   }
+  }
+ ]
+}

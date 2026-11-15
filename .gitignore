@@ -2,3 +2,7 @@
 *.tmp
 *.log
 *.uid
+
+# Caché de descargas del importador de mapa
+tools/map_import/.cache/
+__pycache__/

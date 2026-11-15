@@ -1,0 +1,64 @@
+{
+ "governments": [
+  {
+   "id": "monarquia_absoluta",
+   "name": "Monarquía absoluta",
+   "elections": false,
+   "description": "Monarca absoluto: sin elecciones; el rey nombra al partido gobernante."
+  },
+  {
+   "id": "monarquia_constitucional",
+   "name": "Monarquía constitucional",
+   "elections": true,
+   "description": "Corona fuerte con una cámara electa de poderes limitados."
+  },
+  {
+   "id": "monarquia_parlamentaria",
+   "name": "Monarquía parlamentaria",
+   "elections": true,
+   "description": "El gobierno sale del parlamento; la corona reina pero no gobierna."
+  },
+  {
+   "id": "republica",
+   "name": "República",
+   "elections": true,
+   "description": "Gobierno electo sin monarca."
+  },
+  {
+   "id": "republica_oligarquica",
+   "name": "República oligárquica",
+   "elections": true,
+   "description": "República de grandes familias y mercaderes; voto censitario."
+  },
+  {
+   "id": "teocracia",
+   "name": "Teocracia",
+   "elections": false,
+   "description": "Gobierno del clero en nombre de la fe."
+  },
+  {
+   "id": "dictadura",
+   "name": "Dictadura",
+   "elections": false,
+   "description": "Poder concentrado en un caudillo militar o un shogun."
+  },
+  {
+   "id": "jefatura_militar",
+   "name": "Jefatura militar",
+   "elections": false,
+   "description": "Caudillos y consejos de guerra."
+  },
+  {
+   "id": "jefatura_tribal",
+   "name": "Jefatura tribal",
+   "elections": false,
+   "description": "Consejos de ancianos y jefes de clan."
+  },
+  {
+   "id": "horda",
+   "name": "Horda",
+   "elections": false,
+   "description": "Confederación nómada bajo un kan."
+  }
+ ]
+}

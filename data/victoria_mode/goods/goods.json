@@ -1,0 +1,428 @@
+{
+ "_doc": "Catálogo de bienes. category: raw | industrial | consumer | luxury | military | fantasy. rgo: farm (campesinos) / mine (jornaleros) si puede ser recurso provincial. Los bienes 'fantasy' quedan bloqueados hasta GLOBAL_MAGIC_ACTIVATED.",
+ "goods": [
+  {
+   "id": "grain",
+   "name": "Grano",
+   "category": "raw",
+   "base_price": 2.2,
+   "rgo": "farm",
+   "color": "e3c75a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "cattle",
+   "name": "Ganado",
+   "category": "raw",
+   "base_price": 2.0,
+   "rgo": "farm",
+   "color": "a46b3d",
+   "unlock_flag": ""
+  },
+  {
+   "id": "fish",
+   "name": "Pescado",
+   "category": "raw",
+   "base_price": 1.5,
+   "rgo": "mine",
+   "color": "6aa7c9",
+   "unlock_flag": ""
+  },
+  {
+   "id": "fruit",
+   "name": "Fruta",
+   "category": "raw",
+   "base_price": 1.8,
+   "rgo": "farm",
+   "color": "e57c3a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "wool",
+   "name": "Lana",
+   "category": "raw",
+   "base_price": 0.7,
+   "rgo": "farm",
+   "color": "e8e2cf",
+   "unlock_flag": ""
+  },
+  {
+   "id": "cotton",
+   "name": "Algodón",
+   "category": "raw",
+   "base_price": 2.0,
+   "rgo": "farm",
+   "color": "f4f1e6",
+   "unlock_flag": ""
+  },
+  {
+   "id": "dye",
+   "name": "Tintes",
+   "category": "raw",
+   "base_price": 12.0,
+   "rgo": "farm",
+   "color": "7a3fa8",
+   "unlock_flag": ""
+  },
+  {
+   "id": "silk",
+   "name": "Seda",
+   "category": "raw",
+   "base_price": 10.0,
+   "rgo": "farm",
+   "color": "e8b4d2",
+   "unlock_flag": ""
+  },
+  {
+   "id": "tea",
+   "name": "Té",
+   "category": "raw",
+   "base_price": 2.6,
+   "rgo": "farm",
+   "color": "4f8a3d",
+   "unlock_flag": ""
+  },
+  {
+   "id": "coffee",
+   "name": "Café",
+   "category": "raw",
+   "base_price": 2.1,
+   "rgo": "farm",
+   "color": "5a3a24",
+   "unlock_flag": ""
+  },
+  {
+   "id": "tobacco",
+   "name": "Tabaco",
+   "category": "raw",
+   "base_price": 1.1,
+   "rgo": "farm",
+   "color": "8a6a2f",
+   "unlock_flag": ""
+  },
+  {
+   "id": "opium",
+   "name": "Adormidera",
+   "category": "raw",
+   "base_price": 3.2,
+   "rgo": "farm",
+   "color": "b04a6a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "sugar",
+   "name": "Azúcar",
+   "category": "raw",
+   "base_price": 2.4,
+   "rgo": "farm",
+   "color": "f2efe8",
+   "unlock_flag": ""
+  },
+  {
+   "id": "spices",
+   "name": "Especias",
+   "category": "raw",
+   "base_price": 6.0,
+   "rgo": "farm",
+   "color": "c8642a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "wine",
+   "name": "Vino",
+   "category": "raw",
+   "base_price": 9.7,
+   "rgo": "farm",
+   "color": "7a1f3a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "rubber",
+   "name": "Caucho",
+   "category": "raw",
+   "base_price": 7.0,
+   "rgo": "mine",
+   "color": "3d3d3d",
+   "unlock_flag": ""
+  },
+  {
+   "id": "timber",
+   "name": "Madera",
+   "category": "raw",
+   "base_price": 0.9,
+   "rgo": "mine",
+   "color": "7a5a32",
+   "unlock_flag": ""
+  },
+  {
+   "id": "tropical_wood",
+   "name": "Madera tropical",
+   "category": "raw",
+   "base_price": 5.4,
+   "rgo": "mine",
+   "color": "5a3a1f",
+   "unlock_flag": ""
+  },
+  {
+   "id": "furs",
+   "name": "Pieles",
+   "category": "raw",
+   "base_price": 4.0,
+   "rgo": "mine",
+   "color": "9a7a5a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "coal",
+   "name": "Carbón",
+   "category": "raw",
+   "base_price": 2.3,
+   "rgo": "mine",
+   "color": "2f2f2f",
+   "unlock_flag": ""
+  },
+  {
+   "id": "iron",
+   "name": "Hierro",
+   "category": "raw",
+   "base_price": 3.5,
+   "rgo": "mine",
+   "color": "8a8f96",
+   "unlock_flag": ""
+  },
+  {
+   "id": "sulphur",
+   "name": "Azufre",
+   "category": "raw",
+   "base_price": 6.0,
+   "rgo": "mine",
+   "color": "e5e04a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "precious_metal",
+   "name": "Metales preciosos",
+   "category": "raw",
+   "base_price": 8.0,
+   "rgo": "mine",
+   "color": "f0cf4a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "oil",
+   "name": "Aceite mineral",
+   "category": "raw",
+   "base_price": 12.0,
+   "rgo": "mine",
+   "color": "1f1f2a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "lumber",
+   "name": "Tablones",
+   "category": "industrial",
+   "base_price": 1.0,
+   "rgo": null,
+   "color": "a07a4a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "fabric",
+   "name": "Tela",
+   "category": "industrial",
+   "base_price": 1.8,
+   "rgo": null,
+   "color": "d8c8a8",
+   "unlock_flag": ""
+  },
+  {
+   "id": "steel",
+   "name": "Acero",
+   "category": "industrial",
+   "base_price": 4.7,
+   "rgo": null,
+   "color": "6a7a8a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "cement",
+   "name": "Cemento",
+   "category": "industrial",
+   "base_price": 16.0,
+   "rgo": null,
+   "color": "b8b0a0",
+   "unlock_flag": ""
+  },
+  {
+   "id": "glass",
+   "name": "Vidrio",
+   "category": "industrial",
+   "base_price": 2.9,
+   "rgo": null,
+   "color": "a8d8e8",
+   "unlock_flag": ""
+  },
+  {
+   "id": "paper",
+   "name": "Papel",
+   "category": "industrial",
+   "base_price": 3.4,
+   "rgo": null,
+   "color": "f0ead8",
+   "unlock_flag": ""
+  },
+  {
+   "id": "fertilizer",
+   "name": "Fertilizante",
+   "category": "industrial",
+   "base_price": 10.0,
+   "rgo": null,
+   "color": "6a8a3a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "explosives",
+   "name": "Pólvora",
+   "category": "industrial",
+   "base_price": 20.0,
+   "rgo": null,
+   "color": "c83a2a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "machine_parts",
+   "name": "Piezas de maquinaria",
+   "category": "industrial",
+   "base_price": 36.5,
+   "rgo": null,
+   "color": "4a5a6a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "regular_clothes",
+   "name": "Ropa común",
+   "category": "consumer",
+   "base_price": 5.8,
+   "rgo": null,
+   "color": "8aa0c8",
+   "unlock_flag": ""
+  },
+  {
+   "id": "luxury_clothes",
+   "name": "Ropa de lujo",
+   "category": "luxury",
+   "base_price": 65.0,
+   "rgo": null,
+   "color": "b84a8a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "furniture",
+   "name": "Muebles",
+   "category": "consumer",
+   "base_price": 4.9,
+   "rgo": null,
+   "color": "8a5a2a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "luxury_furniture",
+   "name": "Muebles de lujo",
+   "category": "luxury",
+   "base_price": 59.0,
+   "rgo": null,
+   "color": "6a2a1a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "liquor",
+   "name": "Licores",
+   "category": "consumer",
+   "base_price": 6.4,
+   "rgo": null,
+   "color": "c8a05a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "canned_food",
+   "name": "Conservas",
+   "category": "consumer",
+   "base_price": 16.0,
+   "rgo": null,
+   "color": "c87a4a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "small_arms",
+   "name": "Armas ligeras",
+   "category": "military",
+   "base_price": 37.0,
+   "rgo": null,
+   "color": "4a4a3a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "ammunition",
+   "name": "Munición",
+   "category": "military",
+   "base_price": 17.5,
+   "rgo": null,
+   "color": "7a6a3a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "artillery",
+   "name": "Artillería",
+   "category": "military",
+   "base_price": 60.0,
+   "rgo": null,
+   "color": "3a3a3a",
+   "unlock_flag": ""
+  },
+  {
+   "id": "sailing_ships",
+   "name": "Navíos de vela",
+   "category": "military",
+   "base_price": 42.0,
+   "rgo": null,
+   "color": "6a8aa8",
+   "unlock_flag": ""
+  },
+  {
+   "id": "mana_crystal",
+   "name": "Cristal de maná",
+   "category": "fantasy",
+   "base_price": 40.0,
+   "rgo": "mine",
+   "color": "6ad8f0",
+   "unlock_flag": "GLOBAL_MAGIC_ACTIVATED"
+  },
+  {
+   "id": "arcane_reagents",
+   "name": "Reactivos arcanos",
+   "category": "fantasy",
+   "base_price": 25.0,
+   "rgo": "farm",
+   "color": "a86ad8",
+   "unlock_flag": "GLOBAL_MAGIC_ACTIVATED"
+  },
+  {
+   "id": "enchanted_components",
+   "name": "Componentes encantados",
+   "category": "fantasy",
+   "base_price": 80.0,
+   "rgo": null,
+   "color": "d86af0",
+   "unlock_flag": "GLOBAL_MAGIC_ACTIVATED"
+  },
+  {
+   "id": "alchemical_elixir",
+   "name": "Elixir alquímico",
+   "category": "fantasy",
+   "base_price": 55.0,
+   "rgo": null,
+   "color": "6af0a8",
+   "unlock_flag": "GLOBAL_MAGIC_ACTIVATED"
+  }
+ ]
+}

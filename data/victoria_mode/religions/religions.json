@@ -1,0 +1,113 @@
+{
+ "_doc": "Religiones. 'group' permite tolerancias y conversiones futuras.",
+ "religions": [
+  {
+   "id": "aureliana",
+   "name": "Culto Aureliano",
+   "group": "pantheon",
+   "color": "e8c547"
+  },
+  {
+   "id": "druidica",
+   "name": "Senda Druídica",
+   "group": "pantheon",
+   "color": "4f8f3a"
+  },
+  {
+   "id": "vanica",
+   "name": "Fe Vánica",
+   "group": "pantheon",
+   "color": "6c8fbf"
+  },
+  {
+   "id": "perunica",
+   "name": "Fe del Trueno",
+   "group": "pantheon",
+   "color": "8a5bb0"
+  },
+  {
+   "id": "olimpica",
+   "name": "Culto Olímpico",
+   "group": "pantheon",
+   "color": "f2f2f2"
+  },
+  {
+   "id": "baalita",
+   "name": "Culto de Baal",
+   "group": "semitic",
+   "color": "b0563c"
+  },
+  {
+   "id": "kemetica",
+   "name": "Culto Solar de Kemet",
+   "group": "semitic",
+   "color": "f0a830"
+  },
+  {
+   "id": "llama_eterna",
+   "name": "Fe de la Llama Eterna",
+   "group": "dualist",
+   "color": "e0622a"
+  },
+  {
+   "id": "tengrista",
+   "name": "Tengrismo Celeste",
+   "group": "shamanic",
+   "color": "4fb8c4"
+  },
+  {
+   "id": "vedica",
+   "name": "Dharma Védico",
+   "group": "dharmic",
+   "color": "e07a2f"
+  },
+  {
+   "id": "dharmica",
+   "name": "Senda Óctuple",
+   "group": "dharmic",
+   "color": "f2d16b"
+  },
+  {
+   "id": "tianming",
+   "name": "Mandato Celeste",
+   "group": "eastern",
+   "color": "c73a3a"
+  },
+  {
+   "id": "kami",
+   "name": "Senda de los Kami",
+   "group": "eastern",
+   "color": "e46a8c"
+  },
+  {
+   "id": "animista",
+   "name": "Animismo",
+   "group": "shamanic",
+   "color": "6b8e4e"
+  },
+  {
+   "id": "ancestral",
+   "name": "Culto de los Ancestros",
+   "group": "shamanic",
+   "color": "8c6a3f"
+  },
+  {
+   "id": "gran_espiritu",
+   "name": "Gran Espíritu",
+   "group": "shamanic",
+   "color": "9c7b5a"
+  },
+  {
+   "id": "quinto_sol",
+   "name": "Culto del Quinto Sol",
+   "group": "mesoamerican",
+   "color": "2e9c8a"
+  },
+  {
+   "id": "inti",
+   "name": "Culto de Inti",
+   "group": "mesoamerican",
+   "color": "d4a017"
+  }
+ ]
+}

@@ -1,0 +1,3135 @@
+{
+ "_doc": "Naciones del escenario de prueba (año 136). 'capital': null = se elige la provincia propia más poblada. 'flag' define una bandera original por patrón. 'magic_branches' se usará al activarse GLOBAL_MAGIC_ACTIVATED.",
+ "countries": [
+  {
+   "tag": "BRI",
+   "name": "Reino de Britannia",
+   "color": "b8323a",
+   "flag": {
+    "pattern": "chevron",
+    "colors": [
+     "b8323a",
+     "3f8f4a",
+     "d9b22c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "britana",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "monarquia_parlamentaria",
+   "ruling_party": {
+    "name": "Partido Liberal",
+    "ideology": "liberal"
+   },
+   "civilized": true,
+   "prestige": 70,
+   "treasury": 13400,
+   "literacy": 0.32,
+   "description": "Monarquía insular con la mayor flota mercante del mundo conocido. Su parlamento de mercaderes impulsa manufacturas y colonias.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "CAL",
+   "name": "Reino de Caledonia",
+   "color": "3c5a8c",
+   "flag": {
+    "pattern": "saltire",
+    "colors": [
+     "3c5a8c",
+     "6b2a6b",
+     "21314d"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "caledonia",
+   "accepted_cultures": [],
+   "religion": "druidica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 12,
+   "treasury": 2540,
+   "literacy": 0.2,
+   "description": "Clanes de las tierras altas unidos bajo una corona orgullosa y desconfiada del sur.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "HIB",
+   "name": "Alto Reino de Hibernia",
+   "color": "3f8f4a",
+   "flag": {
+    "pattern": "chevron",
+    "colors": [
+     "3f8f4a",
+     "1d1d1d",
+     "224e28"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "hibernia",
+   "accepted_cultures": [],
+   "religion": "druidica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.15,
+   "description": "Isla verde de reyes y druidas, codiciada por sus vecinos.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "FRK",
+   "name": "Reino de Frankia",
+   "color": "2f55a4",
+   "flag": {
+    "pattern": "disc",
+    "colors": [
+     "2f55a4",
+     "d9b22c",
+     "3f8f4a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "franca",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 75,
+   "treasury": 13400,
+   "literacy": 0.28,
+   "description": "La gran monarquía continental: populosa, centralizada y con el ejército más temido de occidente.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "BAT",
+   "name": "Provincias Unidas de Batavia",
+   "color": "e2862f",
+   "flag": {
+    "pattern": "tricolor_h",
+    "colors": [
+     "e2862f",
+     "1d1d1d",
+     "b8323a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "batava",
+   "accepted_cultures": [],
+   "religion": "vanica",
+   "government": "republica_oligarquica",
+   "ruling_party": {
+    "name": "Partido Liberal",
+    "ideology": "liberal"
+   },
+   "civilized": true,
+   "prestige": 25,
+   "treasury": 5600,
+   "literacy": 0.34,
+   "description": "República de comerciantes, diques y bancos; su riqueza supera con mucho su tamaño.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "HES",
+   "name": "Corona de Hesperia",
+   "color": "d9b22c",
+   "flag": {
+    "pattern": "tricolor_v",
+    "colors": [
+     "d9b22c",
+     "ffffff",
+     "776118"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "hesperica",
+   "accepted_cultures": [
+    "aragonesa"
+   ],
+   "religion": "aureliana",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 45,
+   "treasury": 7400,
+   "literacy": 0.18,
+   "description": "Antiguo reino peninsular, piadoso y aristocrático, con ambiciones oceánicas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "ARG",
+   "name": "Corona de Aragonia",
+   "color": "c8533a",
+   "flag": {
+    "pattern": "tricolor_v",
+    "colors": [
+     "c8533a",
+     "f2efe4",
+     "6e2d1f"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "aragonesa",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "monarquia_constitucional",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 18,
+   "treasury": 3860,
+   "literacy": 0.22,
+   "description": "Principado mediterráneo de cortes y fueros, dueño de puertos ricos.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "LUS",
+   "name": "Reino de Lusitania",
+   "color": "2e8a6e",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "2e8a6e",
+     "ffffff",
+     "6b2a6b"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "lusitana",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 22,
+   "treasury": 3740,
+   "literacy": 0.16,
+   "description": "Pequeño reino atlántico de navegantes y factorías lejanas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "RHE",
+   "name": "Liga Renana",
+   "color": "8fa6c9",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "8fa6c9",
+     "3f8f4a",
+     "4e5b6e"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "renana",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "republica_oligarquica",
+   "ruling_party": {
+    "name": "Partido Liberal",
+    "ideology": "liberal"
+   },
+   "civilized": true,
+   "prestige": 14,
+   "treasury": 3980,
+   "literacy": 0.3,
+   "description": "Ciudades libres del Rin unidas por el comercio y el miedo a sus vecinos.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "BRM",
+   "name": "Reino de Brandenmark",
+   "color": "4b5563",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "4b5563",
+     "2f55a4",
+     "6b2a6b"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "sajona",
+   "accepted_cultures": [],
+   "religion": "vanica",
+   "government": "monarquia_constitucional",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 38,
+   "treasury": 7460,
+   "literacy": 0.36,
+   "description": "Estado militar de llanuras y cuarteles, disciplinado y ambicioso.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "BAY",
+   "name": "Ducado de Bavaria",
+   "color": "5aa0d8",
+   "flag": {
+    "pattern": "saltire",
+    "colors": [
+     "5aa0d8",
+     "d9b22c",
+     "315876"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "bavara",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 16,
+   "treasury": 3620,
+   "literacy": 0.27,
+   "description": "Ducado alpino próspero y devoto del Culto Aureliano.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "HLV",
+   "name": "Confederación Helvecia",
+   "color": "c7c7c7",
+   "flag": {
+    "pattern": "disc",
+    "colors": [
+     "c7c7c7",
+     "d9b22c",
+     "6d6d6d"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "helvecia",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "republica",
+   "ruling_party": {
+    "name": "Partido Liberal",
+    "ideology": "liberal"
+   },
+   "civilized": true,
+   "prestige": 10,
+   "treasury": 2600,
+   "literacy": 0.38,
+   "description": "Cantones montañeses neutrales, famosos por sus mercenarios y relojeros.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "DAN",
+   "name": "Imperio Danubiano",
+   "color": "e6d7a3",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "e6d7a3",
+     "3f8f4a",
+     "2f55a4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "norica",
+   "accepted_cultures": [
+    "bohema",
+    "panonia"
+   ],
+   "religion": "aureliana",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 55,
+   "treasury": 9800,
+   "literacy": 0.24,
+   "description": "Imperio multiétnico del Danubio sostenido por una dinastía antigua y una burocracia densa.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "PAD",
+   "name": "Ducado de Padania",
+   "color": "4f9e8f",
+   "flag": {
+    "pattern": "nordic_cross",
+    "colors": [
+     "4f9e8f",
+     "ffffff",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "padana",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "monarquia_constitucional",
+   "ruling_party": {
+    "name": "Partido Liberal",
+    "ideology": "liberal"
+   },
+   "civilized": true,
+   "prestige": 20,
+   "treasury": 4700,
+   "literacy": 0.27,
+   "description": "Llanura rica de talleres de seda y bancos; cuna de ideas nuevas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "AUR",
+   "name": "Estados Aurelios",
+   "color": "f1e7b8",
+   "flag": {
+    "pattern": "tricolor_v",
+    "colors": [
+     "f1e7b8",
+     "d9b22c",
+     "f2efe4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "latina",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "teocracia",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 30,
+   "treasury": 4700,
+   "literacy": 0.22,
+   "description": "Teocracia del Sumo Pontífice Aureliano, sede espiritual del occidente.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SIK",
+   "name": "Reino de Sikelia",
+   "color": "d1683c",
+   "flag": {
+    "pattern": "diagonal",
+    "colors": [
+     "d1683c",
+     "d9b22c",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "siciliota",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 12,
+   "treasury": 2240,
+   "literacy": 0.12,
+   "description": "Reino meridional de latifundios y puertos antiguos.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "DNA",
+   "name": "Reino de Dania",
+   "color": "c43c3c",
+   "flag": {
+    "pattern": "diagonal",
+    "colors": [
+     "c43c3c",
+     "f2efe4",
+     "b8323a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "danica",
+   "accepted_cultures": [],
+   "religion": "vanica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 18,
+   "treasury": 3560,
+   "literacy": 0.33,
+   "description": "Guardianes de los estrechos del norte.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "NOR",
+   "name": "Reino de Norrland",
+   "color": "7f3b3b",
+   "flag": {
+    "pattern": "disc",
+    "colors": [
+     "7f3b3b",
+     "2f55a4",
+     "452020"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "nordica",
+   "accepted_cultures": [],
+   "religion": "vanica",
+   "government": "monarquia_constitucional",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 12,
+   "treasury": 2540,
+   "literacy": 0.3,
+   "description": "Fiordos, pescadores y madereros bajo una corona modesta.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SVE",
+   "name": "Reino de Svea",
+   "color": "3c78c3",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "3c78c3",
+     "b8323a",
+     "2f55a4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "svea",
+   "accepted_cultures": [
+    "suomi"
+   ],
+   "religion": "vanica",
+   "government": "monarquia_constitucional",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 30,
+   "treasury": 5300,
+   "literacy": 0.34,
+   "description": "Potencia báltica de minas de hierro y viejas glorias militares.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "LIV",
+   "name": "Ducado de Livonia",
+   "color": "6f8f62",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "6f8f62",
+     "b8323a",
+     "d9b22c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "baltica",
+   "accepted_cultures": [],
+   "religion": "perunica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 6,
+   "treasury": 1520,
+   "literacy": 0.2,
+   "description": "Ducado báltico de puertos mercantes y señores terratenientes.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SAR",
+   "name": "Mancomunidad de Sarmatia",
+   "color": "c25e7a",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "c25e7a",
+     "ffffff",
+     "2f55a4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "sarmata",
+   "accepted_cultures": [
+    "baltica"
+   ],
+   "religion": "perunica",
+   "government": "monarquia_constitucional",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 28,
+   "treasury": 4760,
+   "literacy": 0.15,
+   "description": "Mancomunidad de nobles con un rey electo y una dieta indomable.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "RUT",
+   "name": "Gran Principado de Ruthenia",
+   "color": "3f7d4a",
+   "flag": {
+    "pattern": "border",
+    "colors": [
+     "3f7d4a",
+     "b8323a",
+     "224428"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "rutena",
+   "accepted_cultures": [],
+   "religion": "perunica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 50,
+   "treasury": 8000,
+   "literacy": 0.08,
+   "description": "Inmenso principado de bosques y estepas, de servidumbre y nieves.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "KIE",
+   "name": "Hetmanato de Kievara",
+   "color": "e1c341",
+   "flag": {
+    "pattern": "border",
+    "colors": [
+     "e1c341",
+     "ffffff",
+     "7b6b23"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "pontica",
+   "accepted_cultures": [],
+   "religion": "perunica",
+   "government": "jefatura_militar",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 14,
+   "treasury": 2480,
+   "literacy": 0.1,
+   "description": "Hetmanato de tierras negras y caballería libre.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SIB",
+   "name": "Kanato de Sibir",
+   "color": "8a9a5b",
+   "flag": {
+    "pattern": "diagonal",
+    "colors": [
+     "8a9a5b",
+     "f2efe4",
+     "4b5432"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "siberiana",
+   "accepted_cultures": [],
+   "religion": "tengrista",
+   "government": "horda",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 6,
+   "treasury": 1520,
+   "literacy": 0.03,
+   "description": "Kanato de la taiga occidental, cazador de pieles.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "DAC",
+   "name": "Principado de Dacia",
+   "color": "3d6bb3",
+   "flag": {
+    "pattern": "border",
+    "colors": [
+     "3d6bb3",
+     "ffffff",
+     "213a62"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "dacica",
+   "accepted_cultures": [],
+   "religion": "aureliana",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.1,
+   "description": "Principado de los Cárpatos, puerta entre imperios.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "THR",
+   "name": "Zarato de Tracia",
+   "color": "5c9e5c",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "5c9e5c",
+     "d9b22c",
+     "1d1d1d"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "tracia",
+   "accepted_cultures": [],
+   "religion": "olimpica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.09,
+   "description": "Zarato de valles y monasterios.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "HLS",
+   "name": "Liga Helénica",
+   "color": "4f86c6",
+   "flag": {
+    "pattern": "tricolor_h",
+    "colors": [
+     "4f86c6",
+     "d9b22c",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "helenica",
+   "accepted_cultures": [],
+   "religion": "olimpica",
+   "government": "republica_oligarquica",
+   "ruling_party": {
+    "name": "Partido Liberal",
+    "ideology": "liberal"
+   },
+   "civilized": true,
+   "prestige": 22,
+   "treasury": 3740,
+   "literacy": 0.25,
+   "description": "Liga de ciudades marítimas heredera de una cultura milenaria.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "ILL",
+   "name": "Reino de Illyria",
+   "color": "9a4f8c",
+   "flag": {
+    "pattern": "nordic_cross",
+    "colors": [
+     "9a4f8c",
+     "ffffff",
+     "2f55a4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "ilirica",
+   "accepted_cultures": [],
+   "religion": "olimpica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 12,
+   "treasury": 2240,
+   "literacy": 0.1,
+   "description": "Reino montañés de clanes y fortalezas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "ANA",
+   "name": "Imperio Anatolio",
+   "color": "b5453a",
+   "flag": {
+    "pattern": "saltire",
+    "colors": [
+     "b5453a",
+     "ffffff",
+     "f2efe4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "anatolia",
+   "accepted_cultures": [
+    "helenica"
+   ],
+   "religion": "olimpica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 58,
+   "treasury": 8660,
+   "literacy": 0.1,
+   "description": "Imperio de dos continentes que domina los estrechos y las rutas de oriente.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "KAR",
+   "name": "Reino de Kartvelia",
+   "color": "a33c5a",
+   "flag": {
+    "pattern": "diagonal",
+    "colors": [
+     "a33c5a",
+     "d9b22c",
+     "592131"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "kartveliana",
+   "accepted_cultures": [],
+   "religion": "llama_eterna",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.12,
+   "description": "Reino caucásico de viñedos y torres.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "PRS",
+   "name": "Imperio Parsa",
+   "color": "4fae7a",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "4fae7a",
+     "b8323a",
+     "d9b22c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "parsa",
+   "accepted_cultures": [
+    "bactriana"
+   ],
+   "religion": "llama_eterna",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 45,
+   "treasury": 6500,
+   "literacy": 0.08,
+   "description": "Shahanshah de la meseta, heredero de imperios antiguos.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "BAC",
+   "name": "Reino de Bactria",
+   "color": "c9a26b",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "c9a26b",
+     "3f8f4a",
+     "f2efe4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "bactriana",
+   "accepted_cultures": [],
+   "religion": "llama_eterna",
+   "government": "jefatura_militar",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.04,
+   "description": "Reino montañoso de pasos y caravanas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SOG",
+   "name": "Kanato de Sogdiana",
+   "color": "4dbab0",
+   "flag": {
+    "pattern": "chevron",
+    "colors": [
+     "4dbab0",
+     "f2efe4",
+     "d9b22c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "sogdiana",
+   "accepted_cultures": [],
+   "religion": "llama_eterna",
+   "government": "horda",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.05,
+   "description": "Ciudades-oasis de la ruta de la seda bajo un kan.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "HOR",
+   "name": "Horda Blanca",
+   "color": "a8836a",
+   "flag": {
+    "pattern": "border",
+    "colors": [
+     "a8836a",
+     "6b2a6b",
+     "2f55a4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "kipchak",
+   "accepted_cultures": [],
+   "religion": "tengrista",
+   "government": "horda",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 14,
+   "treasury": 2480,
+   "literacy": 0.02,
+   "description": "Confederación nómada de la gran estepa.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "BAB",
+   "name": "Reino de Babilonia",
+   "color": "8f6fb8",
+   "flag": {
+    "pattern": "border",
+    "colors": [
+     "8f6fb8",
+     "2f55a4",
+     "4e3d65"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "mesopotamica",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 14,
+   "treasury": 2480,
+   "literacy": 0.07,
+   "description": "Reino de los dos ríos, de canales y ruinas antiguas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "LEV",
+   "name": "Principado del Levante",
+   "color": "6bb8d6",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "6bb8d6",
+     "b8323a",
+     "6b2a6b"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "levantina",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "republica_oligarquica",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 12,
+   "treasury": 2540,
+   "literacy": 0.15,
+   "description": "Puertos de mercaderes y templos en la costa oriental.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "NEJ",
+   "name": "Emirato de Nejd",
+   "color": "6a7f3c",
+   "flag": {
+    "pattern": "chevron",
+    "colors": [
+     "6a7f3c",
+     "1d1d1d",
+     "d9b22c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "arabiga",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "teocracia",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.04,
+   "description": "Tribus del desierto unidas por un emir y una fe severa.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SAB",
+   "name": "Reino de Saba",
+   "color": "a5598d",
+   "flag": {
+    "pattern": "nordic_cross",
+    "colors": [
+     "a5598d",
+     "f2efe4",
+     "5a304d"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "sabea",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 6,
+   "treasury": 1520,
+   "literacy": 0.06,
+   "description": "Reino del incienso y las terrazas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "OMA",
+   "name": "Sultanato de Omania",
+   "color": "9e2b2b",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "9e2b2b",
+     "d9b22c",
+     "561717"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "arabiga",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.06,
+   "description": "Sultanato marinero que domina las rutas del océano.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "KEM",
+   "name": "Reino de Kemet",
+   "color": "e3c26d",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "e3c26d",
+     "3f8f4a",
+     "7c6a3b"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "kemetica",
+   "accepted_cultures": [],
+   "religion": "kemetica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 28,
+   "treasury": 4460,
+   "literacy": 0.06,
+   "description": "Reino del Nilo, granero del mundo antiguo.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "CYR",
+   "name": "Reino de Cirenaica",
+   "color": "b28d4f",
+   "flag": {
+    "pattern": "disc",
+    "colors": [
+     "b28d4f",
+     "2f55a4",
+     "614d2b"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "cirenaica",
+   "accepted_cultures": [],
+   "religion": "olimpica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 6,
+   "treasury": 1520,
+   "literacy": 0.1,
+   "description": "Colonias helénicas en la costa africana.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "CAR",
+   "name": "República de Cartago",
+   "color": "7a3f78",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "7a3f78",
+     "1d1d1d",
+     "d9b22c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "punica",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "republica_oligarquica",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 24,
+   "treasury": 3980,
+   "literacy": 0.14,
+   "description": "República mercantil que resurge del recuerdo de su antigua grandeza.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "MAU",
+   "name": "Reino de Mauretania",
+   "color": "3a8c5c",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "3a8c5c",
+     "b8323a",
+     "1f4d32"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "maura",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 14,
+   "treasury": 2480,
+   "literacy": 0.06,
+   "description": "Reino de montañas y desiertos en el extremo occidental.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "NUB",
+   "name": "Reino de Nubia",
+   "color": "a1622f",
+   "flag": {
+    "pattern": "bicolor_v",
+    "colors": [
+     "a1622f",
+     "6b2a6b",
+     "583519"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "nubia",
+   "accepted_cultures": [],
+   "religion": "kemetica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.03,
+   "description": "Reino de reinas arqueras en el alto Nilo.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "AKS",
+   "name": "Imperio de Aksum",
+   "color": "4a8f3d",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "4a8f3d",
+     "ffffff",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "aksumita",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 16,
+   "treasury": 2720,
+   "literacy": 0.05,
+   "description": "Imperio de las tierras altas, de obeliscos y monedas de oro.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "PUN",
+   "name": "Tierra de Punt",
+   "color": "c27c4a",
+   "flag": {
+    "pattern": "border",
+    "colors": [
+     "c27c4a",
+     "d9b22c",
+     "6a4428"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "somali",
+   "accepted_cultures": [],
+   "religion": "baalita",
+   "government": "jefatura_tribal",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 4,
+   "treasury": 1280,
+   "literacy": 0.02,
+   "description": "Clanes costeros del incienso.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "OYO",
+   "name": "Imperio de Oyo",
+   "color": "9cc35a",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "9cc35a",
+     "6b2a6b",
+     "3f8f4a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "yoruba",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.02,
+   "description": "Imperio de caballería y ciudades amuralladas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "KAN",
+   "name": "Imperio de Kanem",
+   "color": "c49a3e",
+   "flag": {
+    "pattern": "tricolor_v",
+    "colors": [
+     "c49a3e",
+     "ffffff",
+     "f2efe4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "kanuri",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.02,
+   "description": "Imperio del lago y de las rutas transaharianas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "ASH",
+   "name": "Confederación Ashanti",
+   "color": "e3a948",
+   "flag": {
+    "pattern": "tricolor_v",
+    "colors": [
+     "e3a948",
+     "3f8f4a",
+     "7c5c27"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "akan",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.02,
+   "description": "Confederación del oro y el taburete sagrado.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SAH",
+   "name": "Imperio del Sahel",
+   "color": "d48a3b",
+   "flag": {
+    "pattern": "tricolor_h",
+    "colors": [
+     "d48a3b",
+     "1d1d1d",
+     "744b20"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "mande",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 14,
+   "treasury": 2480,
+   "literacy": 0.03,
+   "description": "Imperio de los ríos y del oro de la sabana.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SWA",
+   "name": "Ciudades Swahili",
+   "color": "3fa39a",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "3fa39a",
+     "ffffff",
+     "225954"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "swahili",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "republica_oligarquica",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": false,
+   "prestige": 6,
+   "treasury": 1520,
+   "literacy": 0.05,
+   "description": "Ciudades-puerto de coral y comercio monzónico.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "LAK",
+   "name": "Reino de los Lagos",
+   "color": "7aa35a",
+   "flag": {
+    "pattern": "disc",
+    "colors": [
+     "7aa35a",
+     "ffffff",
+     "3f8f4a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "lacustre",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 5,
+   "treasury": 1400,
+   "literacy": 0.02,
+   "description": "Reino de colinas verdes entre grandes lagos.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "KON",
+   "name": "Reino de Kongo",
+   "color": "b55a5a",
+   "flag": {
+    "pattern": "disc",
+    "colors": [
+     "b55a5a",
+     "ffffff",
+     "b8323a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "kongo",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.02,
+   "description": "Reino ribereño del gran río.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "ZIM",
+   "name": "Reino de Zimbara",
+   "color": "8a6b3d",
+   "flag": {
+    "pattern": "bicolor_v",
+    "colors": [
+     "8a6b3d",
+     "1d1d1d",
+     "4b3a21"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "shona",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.02,
+   "description": "Reino de muros de piedra y minas de oro.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "ZUL",
+   "name": "Reino Nguni",
+   "color": "6e8a3a",
+   "flag": {
+    "pattern": "disc",
+    "colors": [
+     "6e8a3a",
+     "3f8f4a",
+     "3c4b1f"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "nguni",
+   "accepted_cultures": [],
+   "religion": "ancestral",
+   "government": "jefatura_militar",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 6,
+   "treasury": 1520,
+   "literacy": 0.01,
+   "description": "Regimientos de pastores guerreros.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "MER",
+   "name": "Reino de Merina",
+   "color": "8d4a8f",
+   "flag": {
+    "pattern": "bicolor_v",
+    "colors": [
+     "8d4a8f",
+     "1d1d1d",
+     "f2efe4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "malgache",
+   "accepted_cultures": [],
+   "religion": "vedica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 5,
+   "treasury": 1400,
+   "literacy": 0.04,
+   "description": "Reino de las tierras altas de la gran isla.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SIN",
+   "name": "Sultanato de Sindh",
+   "color": "4c9a86",
+   "flag": {
+    "pattern": "border",
+    "colors": [
+     "4c9a86",
+     "d9b22c",
+     "295449"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "sindhi",
+   "accepted_cultures": [],
+   "religion": "vedica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 20,
+   "treasury": 3500,
+   "literacy": 0.05,
+   "description": "Reino del Indo y de las puertas del noroeste.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "GAN",
+   "name": "Imperio Gangético",
+   "color": "d9772b",
+   "flag": {
+    "pattern": "tricolor_v",
+    "colors": [
+     "d9772b",
+     "f2efe4",
+     "774117"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "indostana",
+   "accepted_cultures": [
+    "bengali"
+   ],
+   "religion": "vedica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 52,
+   "treasury": 8240,
+   "literacy": 0.06,
+   "description": "Imperio de la llanura del Ganges, inmenso y rico.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "DEC",
+   "name": "Confederación del Decán",
+   "color": "b54a6e",
+   "flag": {
+    "pattern": "saltire",
+    "colors": [
+     "b54a6e",
+     "ffffff",
+     "63283c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "decani",
+   "accepted_cultures": [],
+   "religion": "vedica",
+   "government": "jefatura_militar",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 18,
+   "treasury": 3260,
+   "literacy": 0.05,
+   "description": "Confederación de caudillos de la meseta.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "CHO",
+   "name": "Reino de Chola",
+   "color": "3b79a8",
+   "flag": {
+    "pattern": "diagonal",
+    "colors": [
+     "3b79a8",
+     "f2efe4",
+     "20425c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "dravida",
+   "accepted_cultures": [],
+   "religion": "vedica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 16,
+   "treasury": 3020,
+   "literacy": 0.07,
+   "description": "Reino marinero del sur, de templos y especias.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "HIM",
+   "name": "Reino de Himavat",
+   "color": "9c5f3a",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "9c5f3a",
+     "f2efe4",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "himalaya",
+   "accepted_cultures": [],
+   "religion": "vedica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 4,
+   "treasury": 1280,
+   "literacy": 0.04,
+   "description": "Reino de valles bajo las montañas más altas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "LAN",
+   "name": "Reino de Lanka",
+   "color": "bf3a2a",
+   "flag": {
+    "pattern": "tricolor_h",
+    "colors": [
+     "bf3a2a",
+     "ffffff",
+     "691f17"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "cingalesa",
+   "accepted_cultures": [],
+   "religion": "dharmica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 5,
+   "treasury": 1400,
+   "literacy": 0.1,
+   "description": "Isla de canela y monasterios.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "XIN",
+   "name": "Kanato Uigur",
+   "color": "5aa8c4",
+   "flag": {
+    "pattern": "tricolor_h",
+    "colors": [
+     "5aa8c4",
+     "2f55a4",
+     "315c6b"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "uigur",
+   "accepted_cultures": [],
+   "religion": "tengrista",
+   "government": "horda",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 6,
+   "treasury": 1520,
+   "literacy": 0.04,
+   "description": "Oasis y desiertos en el corazón de Asia.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "TIB",
+   "name": "Reino de Tibetia",
+   "color": "b3906a",
+   "flag": {
+    "pattern": "disc",
+    "colors": [
+     "b3906a",
+     "f2efe4",
+     "3f8f4a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "tibetana",
+   "accepted_cultures": [],
+   "religion": "dharmica",
+   "government": "teocracia",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.06,
+   "description": "Teocracia del techo del mundo.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "NAN",
+   "name": "Reino de Nanzhao",
+   "color": "6f9f52",
+   "flag": {
+    "pattern": "nordic_cross",
+    "colors": [
+     "6f9f52",
+     "f2efe4",
+     "b8323a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "bai",
+   "accepted_cultures": [],
+   "religion": "tianming",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.06,
+   "description": "Reino de montañas y té en el suroeste.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "JUR",
+   "name": "Kanato Jurchen",
+   "color": "5d7fa3",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "5d7fa3",
+     "2f55a4",
+     "3f8f4a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "jurchen",
+   "accepted_cultures": [],
+   "religion": "tianming",
+   "government": "horda",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.03,
+   "description": "Clanes de bosques y caballos del noreste.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "KHG",
+   "name": "Khaganato Mongol",
+   "color": "2f7fae",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "2f7fae",
+     "f2efe4",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "mongola",
+   "accepted_cultures": [],
+   "religion": "tengrista",
+   "government": "horda",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 16,
+   "treasury": 2720,
+   "literacy": 0.02,
+   "description": "Jinetes de la estepa oriental.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "TIA",
+   "name": "Imperio de Tianxia",
+   "color": "d4b23c",
+   "flag": {
+    "pattern": "saltire",
+    "colors": [
+     "d4b23c",
+     "b8323a",
+     "746121"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "han",
+   "accepted_cultures": [],
+   "religion": "tianming",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 72,
+   "treasury": 12440,
+   "literacy": 0.12,
+   "description": "El imperio más poblado: mandarines, canales y mandato del cielo.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "YUE",
+   "name": "Reino de Yue",
+   "color": "c9483e",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "c9483e",
+     "d9b22c",
+     "6e2722"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "yue",
+   "accepted_cultures": [],
+   "religion": "tianming",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 36,
+   "treasury": 6620,
+   "literacy": 0.1,
+   "description": "Reino meridional de arrozales, puertos y seda.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "KOR",
+   "name": "Reino de Koryo",
+   "color": "5276b8",
+   "flag": {
+    "pattern": "bicolor_v",
+    "colors": [
+     "5276b8",
+     "d9b22c",
+     "2d4065"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "coreana",
+   "accepted_cultures": [],
+   "religion": "tianming",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 14,
+   "treasury": 2780,
+   "literacy": 0.18,
+   "description": "Reino peninsular de letrados y fortalezas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "YAM",
+   "name": "Shogunato de Yamato",
+   "color": "d6d6d6",
+   "flag": {
+    "pattern": "border",
+    "colors": [
+     "d6d6d6",
+     "2f55a4",
+     "b8323a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "yamato",
+   "accepted_cultures": [],
+   "religion": "kami",
+   "government": "dictadura",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": true,
+   "prestige": 34,
+   "treasury": 6080,
+   "literacy": 0.3,
+   "description": "Archipiélago cerrado bajo un shogun y sus señores.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "VIE",
+   "name": "Reino de Viethia",
+   "color": "d4a63c",
+   "flag": {
+    "pattern": "nordic_cross",
+    "colors": [
+     "d4a63c",
+     "2f55a4",
+     "3f8f4a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "viet",
+   "accepted_cultures": [],
+   "religion": "tianming",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.1,
+   "description": "Reino de deltas y montañas, resistente a sus vecinos.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SIA",
+   "name": "Reino de Siamia",
+   "color": "3b5fa0",
+   "flag": {
+    "pattern": "bicolor_v",
+    "colors": [
+     "3b5fa0",
+     "b8323a",
+     "b8323a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "tai",
+   "accepted_cultures": [],
+   "religion": "dharmica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 12,
+   "treasury": 2240,
+   "literacy": 0.08,
+   "description": "Reino de elefantes y pagodas doradas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "PAG",
+   "name": "Reino de Pagania",
+   "color": "8fbf4a",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "8fbf4a",
+     "3f8f4a",
+     "4e6928"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "bamar",
+   "accepted_cultures": [],
+   "religion": "dharmica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.08,
+   "description": "Reino de mil templos junto al gran río.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "KHM",
+   "name": "Imperio Jemer",
+   "color": "a8653a",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "a8653a",
+     "1d1d1d",
+     "b8323a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "jemer",
+   "accepted_cultures": [],
+   "religion": "dharmica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.06,
+   "description": "Restos de un gran imperio de templos de piedra.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "SRI",
+   "name": "Talasocracia de Srivijaya",
+   "color": "c25a8a",
+   "flag": {
+    "pattern": "tricolor_h",
+    "colors": [
+     "c25a8a",
+     "1d1d1d",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "malaya",
+   "accepted_cultures": [],
+   "religion": "vedica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido del Orden",
+    "ideology": "conservador"
+   },
+   "civilized": false,
+   "prestige": 16,
+   "treasury": 2720,
+   "literacy": 0.07,
+   "description": "Imperio marítimo que controla el estrecho de las especias.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "MAJ",
+   "name": "Reino de Majapahit",
+   "color": "b04a3a",
+   "flag": {
+    "pattern": "nordic_cross",
+    "colors": [
+     "b04a3a",
+     "2f55a4",
+     "60281f"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "javanesa",
+   "accepted_cultures": [],
+   "religion": "vedica",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.05,
+   "description": "Reino de volcanes y arrozales.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "TON",
+   "name": "Reino de Tondo",
+   "color": "4ab08f",
+   "flag": {
+    "pattern": "diagonal",
+    "colors": [
+     "4ab08f",
+     "d9b22c",
+     "1d1d1d"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "tagala",
+   "accepted_cultures": [],
+   "religion": "vedica",
+   "government": "jefatura_tribal",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 4,
+   "treasury": 1280,
+   "literacy": 0.03,
+   "description": "Señoríos insulares del archipiélago.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "CFF",
+   "name": "Confederación de los Cinco Fuegos",
+   "color": "c26b4f",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "c26b4f",
+     "d9b22c",
+     "1d1d1d"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "haudenia",
+   "accepted_cultures": [],
+   "religion": "gran_espiritu",
+   "government": "jefatura_tribal",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.02,
+   "description": "Liga de naciones de los bosques del este.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "GRR",
+   "name": "Señorío del Gran Río",
+   "color": "b8a05a",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "b8a05a",
+     "3f8f4a",
+     "2f55a4"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "misisipiana",
+   "accepted_cultures": [],
+   "religion": "gran_espiritu",
+   "government": "teocracia",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 8,
+   "treasury": 1760,
+   "literacy": 0.02,
+   "description": "Señorío de montículos y maizales del gran río.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "PUE",
+   "name": "Pueblos de Aridia",
+   "color": "d0905a",
+   "flag": {
+    "pattern": "tricolor_v",
+    "colors": [
+     "d0905a",
+     "d9b22c",
+     "6b2a6b"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "pueblo",
+   "accepted_cultures": [],
+   "religion": "gran_espiritu",
+   "government": "jefatura_tribal",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 4,
+   "treasury": 1280,
+   "literacy": 0.02,
+   "description": "Pueblos de adobe en mesas y cañones.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "ANH",
+   "name": "Imperio de Anáhuac",
+   "color": "3fa36b",
+   "flag": {
+    "pattern": "saltire",
+    "colors": [
+     "3fa36b",
+     "2f55a4",
+     "22593a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "nahua",
+   "accepted_cultures": [],
+   "religion": "quinto_sol",
+   "government": "teocracia",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 22,
+   "treasury": 3440,
+   "literacy": 0.04,
+   "description": "Imperio de lagos y templos escalonados.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "MAY",
+   "name": "Liga de Mayapán",
+   "color": "4fb3a6",
+   "flag": {
+    "pattern": "bicolor_v",
+    "colors": [
+     "4fb3a6",
+     "1d1d1d",
+     "2b625b"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "maya",
+   "accepted_cultures": [],
+   "religion": "quinto_sol",
+   "government": "republica_oligarquica",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 10,
+   "treasury": 2000,
+   "literacy": 0.05,
+   "description": "Liga de ciudades-estado de la selva.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "MUI",
+   "name": "Confederación Muisca",
+   "color": "d6b84a",
+   "flag": {
+    "pattern": "saltire",
+    "colors": [
+     "d6b84a",
+     "d9b22c",
+     "756528"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "chibcha",
+   "accepted_cultures": [],
+   "religion": "inti",
+   "government": "teocracia",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 6,
+   "treasury": 1520,
+   "literacy": 0.03,
+   "description": "Confederación del oro y las lagunas sagradas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "TAW",
+   "name": "Imperio de Tawantin",
+   "color": "c9a227",
+   "flag": {
+    "pattern": "bicolor_v",
+    "colors": [
+     "c9a227",
+     "ffffff",
+     "1d1d1d"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "quechua",
+   "accepted_cultures": [],
+   "religion": "inti",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 26,
+   "treasury": 3920,
+   "literacy": 0.04,
+   "description": "Imperio andino de caminos, terrazas y depósitos.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "TUP",
+   "name": "Confederación Tupí",
+   "color": "5f9e3f",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "5f9e3f",
+     "1d1d1d",
+     "b8323a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "tupi",
+   "accepted_cultures": [],
+   "religion": "animista",
+   "government": "jefatura_tribal",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 4,
+   "treasury": 1280,
+   "literacy": 0.01,
+   "description": "Pueblos de la costa atlántica del sur.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "ANT",
+   "name": "Cacicazgos de Antillia",
+   "color": "3fb3c9",
+   "flag": {
+    "pattern": "cross",
+    "colors": [
+     "3fb3c9",
+     "f2efe4",
+     "3f8f4a"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "taina",
+   "accepted_cultures": [],
+   "religion": "animista",
+   "government": "jefatura_tribal",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 4,
+   "treasury": 1280,
+   "literacy": 0.02,
+   "description": "Cacicazgos de islas cálidas.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "CRB",
+   "name": "Confederación Caribe",
+   "color": "a85c3a",
+   "flag": {
+    "pattern": "canton",
+    "colors": [
+     "a85c3a",
+     "ffffff",
+     "5c321f"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "caribe",
+   "accepted_cultures": [],
+   "religion": "animista",
+   "government": "jefatura_tribal",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 4,
+   "treasury": 1280,
+   "literacy": 0.01,
+   "description": "Navegantes guerreros de las costas del norte.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "AOR",
+   "name": "Iwi de Aorangi",
+   "color": "6a8fa8",
+   "flag": {
+    "pattern": "nordic_cross",
+    "colors": [
+     "6a8fa8",
+     "6b2a6b",
+     "3a4e5c"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "maori",
+   "accepted_cultures": [],
+   "religion": "animista",
+   "government": "jefatura_tribal",
+   "ruling_party": {
+    "name": "Partido de la Tradición",
+    "ideology": "tradicionalista"
+   },
+   "civilized": false,
+   "prestige": 4,
+   "treasury": 1280,
+   "literacy": 0.01,
+   "description": "Tribus de las islas más remotas del sur.",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  }
+ ]
+}

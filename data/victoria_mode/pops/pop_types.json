@@ -1,0 +1,358 @@
+{
+ "_doc": "Tipos de POP. strata: poor/middle/rich (impuestos y necesidades). literacy_mult multiplica la alfabetización base del país. Se pueden añadir tipos nuevos (magos, alquimistas...) solo con datos.",
+ "pop_types": [
+  {
+   "id": "farmers",
+   "name": "Campesinos",
+   "strata": "poor",
+   "color": "8fae4a",
+   "literacy_mult": 0.6,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "labourers",
+   "name": "Jornaleros",
+   "strata": "poor",
+   "color": "a8865a",
+   "literacy_mult": 0.6,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "craftsmen",
+   "name": "Artesanos fabriles",
+   "strata": "poor",
+   "color": "6a8ab8",
+   "literacy_mult": 0.8,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "slaves",
+   "name": "Esclavos",
+   "strata": "poor",
+   "color": "4a4a4a",
+   "literacy_mult": 0.0,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "soldiers",
+   "name": "Soldados",
+   "strata": "poor",
+   "color": "8a3a2a",
+   "literacy_mult": 0.7,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "artisans",
+   "name": "Artesanos",
+   "strata": "middle",
+   "color": "c8945a",
+   "literacy_mult": 1.0,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "clerks",
+   "name": "Oficinistas",
+   "strata": "middle",
+   "color": "5ab0c8",
+   "literacy_mult": 1.8,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "clergy",
+   "name": "Clero",
+   "strata": "middle",
+   "color": "e8e0c8",
+   "literacy_mult": 2.4,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "bureaucrats",
+   "name": "Burócratas",
+   "strata": "middle",
+   "color": "c8c85a",
+   "literacy_mult": 2.0,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "officers",
+   "name": "Oficiales",
+   "strata": "middle",
+   "color": "c85a4a",
+   "literacy_mult": 1.6,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "aristocrats",
+   "name": "Aristócratas",
+   "strata": "rich",
+   "color": "a85ac8",
+   "literacy_mult": 1.8,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  },
+  {
+   "id": "capitalists",
+   "name": "Capitalistas",
+   "strata": "rich",
+   "color": "e8b43a",
+   "literacy_mult": 2.0,
+   "needs": {
+    "life": {
+     "grain": 1.0,
+     "fish": 0.2,
+     "fruit": 0.1,
+     "wool": 0.1
+    },
+    "everyday": {
+     "regular_clothes": 0.2,
+     "furniture": 0.1,
+     "liquor": 0.1,
+     "coffee": 0.05,
+     "tea": 0.05
+    },
+    "luxury": {
+     "luxury_clothes": 0.02,
+     "luxury_furniture": 0.02,
+     "wine": 0.05
+    }
+   }
+  }
+ ],
+ "initial_distribution": {
+  "_doc": "Fracción de la población provincial por tipo al crear el escenario. El resto trabaja el RGO (farmers si rgo=farm, labourers si rgo=mine).",
+  "civilized": {
+   "aristocrats": 0.012,
+   "clergy": 0.016,
+   "bureaucrats": 0.007,
+   "officers": 0.003,
+   "soldiers": 0.03,
+   "artisans": 0.06
+  },
+  "civilized_developed": {
+   "craftsmen": 0.03,
+   "clerks": 0.004,
+   "capitalists": 0.003
+  },
+  "uncivilized": {
+   "aristocrats": 0.014,
+   "clergy": 0.02,
+   "bureaucrats": 0.003,
+   "officers": 0.002,
+   "soldiers": 0.03,
+   "artisans": 0.03
+  },
+  "unowned": {
+   "aristocrats": 0.01,
+   "clergy": 0.02,
+   "soldiers": 0.02
+  }
+ }
+}

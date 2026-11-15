@@ -1,0 +1,18 @@
+{
+ "width": 5632,
+ "height": 2624,
+ "projection": {
+  "type": "miller",
+  "lat_top": 80.0,
+  "lat_bottom": -56.0
+ },
+ "id_encoding": "id = R + G*256 ; B = distancia a la costa en píxeles (0..255)",
+ "land_count": 2922,
+ "sea_count": 389,
+ "lake_count": 146,
+ "first_sea_id": 2923,
+ "first_lake_id": 3312,
+ "wrap_x": true,
+ "source": "Natural Earth (dominio público): ne_10m_admin_1_states_provinces_lakes.geojson, ne_50m_geography_regions_polys.geojson, ne_50m_geography_marine_polys.geojson, ne_10m_populated_places_simple.geojson",
+ "generator": "tools/map_import/build_world.py"
+}

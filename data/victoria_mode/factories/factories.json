@@ -1,0 +1,401 @@
+{
+ "_doc": "Tipos de fábrica. Se construyen en ESTADOS. workforce: trabajadores por nivel (craftsmen) y oficinistas (clerks). inputs/outputs por nivel y día a eficiencia 1.",
+ "factories": [
+  {
+   "id": "textile_mill",
+   "name": "Telar",
+   "inputs": {
+    "cotton": 1.0,
+    "wool": 0.5
+   },
+   "outputs": {
+    "fabric": 1.2
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "clothes_factory",
+   "name": "Fábrica de ropa",
+   "inputs": {
+    "fabric": 1.0,
+    "dye": 0.1
+   },
+   "outputs": {
+    "regular_clothes": 1.0
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "luxury_clothes_factory",
+   "name": "Sastrería de lujo",
+   "inputs": {
+    "silk": 0.6,
+    "regular_clothes": 0.6
+   },
+   "outputs": {
+    "luxury_clothes": 0.3
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "lumber_mill",
+   "name": "Aserradero",
+   "inputs": {
+    "timber": 1.5
+   },
+   "outputs": {
+    "lumber": 1.6
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "furniture_factory",
+   "name": "Fábrica de muebles",
+   "inputs": {
+    "lumber": 1.0,
+    "timber": 0.3
+   },
+   "outputs": {
+    "furniture": 1.0
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "luxury_furniture_factory",
+   "name": "Ebanistería de lujo",
+   "inputs": {
+    "furniture": 0.5,
+    "tropical_wood": 0.5
+   },
+   "outputs": {
+    "luxury_furniture": 0.3
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "steel_mill",
+   "name": "Fundición de acero",
+   "inputs": {
+    "iron": 1.0,
+    "coal": 1.0
+   },
+   "outputs": {
+    "steel": 0.8
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "cement_factory",
+   "name": "Fábrica de cemento",
+   "inputs": {
+    "coal": 1.0
+   },
+   "outputs": {
+    "cement": 0.2
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "glass_factory",
+   "name": "Vidriería",
+   "inputs": {
+    "coal": 0.6
+   },
+   "outputs": {
+    "glass": 1.0
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "paper_mill",
+   "name": "Papelera",
+   "inputs": {
+    "timber": 1.2
+   },
+   "outputs": {
+    "paper": 0.6
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "liquor_distillery",
+   "name": "Destilería",
+   "inputs": {
+    "grain": 1.0,
+    "sugar": 0.3
+   },
+   "outputs": {
+    "liquor": 0.6
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "winery",
+   "name": "Bodega",
+   "inputs": {
+    "fruit": 1.2
+   },
+   "outputs": {
+    "wine": 0.4
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "canned_food_factory",
+   "name": "Conservera",
+   "inputs": {
+    "fish": 0.6,
+    "cattle": 0.4,
+    "grain": 0.4
+   },
+   "outputs": {
+    "canned_food": 0.2
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "explosives_factory",
+   "name": "Polvorería",
+   "inputs": {
+    "sulphur": 0.6,
+    "coal": 0.4
+   },
+   "outputs": {
+    "explosives": 0.25
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "ammunition_factory",
+   "name": "Fábrica de munición",
+   "inputs": {
+    "explosives": 0.2,
+    "iron": 0.4
+   },
+   "outputs": {
+    "ammunition": 0.5
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "small_arms_factory",
+   "name": "Armería",
+   "inputs": {
+    "steel": 0.4,
+    "lumber": 0.4
+   },
+   "outputs": {
+    "small_arms": 0.3
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "artillery_factory",
+   "name": "Fundición de cañones",
+   "inputs": {
+    "steel": 0.8,
+    "explosives": 0.2
+   },
+   "outputs": {
+    "artillery": 0.15
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "shipyard",
+   "name": "Astillero",
+   "inputs": {
+    "lumber": 1.0,
+    "fabric": 0.5
+   },
+   "outputs": {
+    "sailing_ships": 0.1
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "fertilizer_factory",
+   "name": "Fábrica de abonos",
+   "inputs": {
+    "sulphur": 0.4,
+    "cattle": 0.3
+   },
+   "outputs": {
+    "fertilizer": 0.15
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  },
+  {
+   "id": "machine_parts_factory",
+   "name": "Taller de maquinaria",
+   "inputs": {
+    "steel": 1.0,
+    "coal": 0.5
+   },
+   "outputs": {
+    "machine_parts": 0.1
+   },
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 20,
+    "cement": 10,
+    "machine_parts": 2
+   }
+  }
+ ]
+}

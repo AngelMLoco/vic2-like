@@ -1,0 +1,125 @@
+{
+ "_doc": "Terrenos. movement_cost multiplica el tiempo de marcha; defence: dados de defensa extra; rgo_efficiency multiplica la producción del RGO; supply_limit multiplica el límite de suministro.",
+ "terrain": [
+  {
+   "id": "plains",
+   "name": "Llanura",
+   "color": "b8c47a",
+   "movement_cost": 1.0,
+   "defence": 0,
+   "rgo_efficiency": 1.0,
+   "supply_limit": 1.0,
+   "attrition": 0
+  },
+  {
+   "id": "farmlands",
+   "name": "Tierras de labor",
+   "color": "d8d47a",
+   "movement_cost": 1.0,
+   "defence": 0,
+   "rgo_efficiency": 1.15,
+   "supply_limit": 1.15,
+   "attrition": 0
+  },
+  {
+   "id": "woods",
+   "name": "Bosque claro",
+   "color": "6f9a4a",
+   "movement_cost": 1.2,
+   "defence": 1,
+   "rgo_efficiency": 1.0,
+   "supply_limit": 1.0,
+   "attrition": 0
+  },
+  {
+   "id": "forest",
+   "name": "Bosque",
+   "color": "3f6a3a",
+   "movement_cost": 1.4,
+   "defence": 1,
+   "rgo_efficiency": 0.9,
+   "supply_limit": 0.9,
+   "attrition": 1
+  },
+  {
+   "id": "hills",
+   "name": "Colinas",
+   "color": "a8955a",
+   "movement_cost": 1.4,
+   "defence": 1,
+   "rgo_efficiency": 0.95,
+   "supply_limit": 0.95,
+   "attrition": 1
+  },
+  {
+   "id": "mountains",
+   "name": "Montañas",
+   "color": "7a6a5a",
+   "movement_cost": 1.8,
+   "defence": 2,
+   "rgo_efficiency": 0.8,
+   "supply_limit": 0.8,
+   "attrition": 1
+  },
+  {
+   "id": "steppe",
+   "name": "Estepa",
+   "color": "c8b46a",
+   "movement_cost": 1.0,
+   "defence": 0,
+   "rgo_efficiency": 0.9,
+   "supply_limit": 0.9,
+   "attrition": 0
+  },
+  {
+   "id": "desert",
+   "name": "Desierto",
+   "color": "e8d49a",
+   "movement_cost": 1.3,
+   "defence": 0,
+   "rgo_efficiency": 0.6,
+   "supply_limit": 0.6,
+   "attrition": 0
+  },
+  {
+   "id": "jungle",
+   "name": "Selva",
+   "color": "2f7a3f",
+   "movement_cost": 1.6,
+   "defence": 1,
+   "rgo_efficiency": 0.85,
+   "supply_limit": 0.85,
+   "attrition": 1
+  },
+  {
+   "id": "marsh",
+   "name": "Marisma",
+   "color": "6a8a6a",
+   "movement_cost": 1.5,
+   "defence": 1,
+   "rgo_efficiency": 0.9,
+   "supply_limit": 0.9,
+   "attrition": 1
+  },
+  {
+   "id": "tundra",
+   "name": "Tundra",
+   "color": "a8b4b0",
+   "movement_cost": 1.4,
+   "defence": 0,
+   "rgo_efficiency": 0.6,
+   "supply_limit": 0.6,
+   "attrition": 1
+  },
+  {
+   "id": "arctic",
+   "name": "Ártico",
+   "color": "e8eef0",
+   "movement_cost": 1.8,
+   "defence": 0,
+   "rgo_efficiency": 0.4,
+   "supply_limit": 0.4,
+   "attrition": 1
+  }
+ ]
+}
