@@ -17,10 +17,11 @@ de GFM), con código, datos, gráficos y geografía propios (Natural Earth, domi
 | 6 | Economía: RGO, 49 bienes, fábricas por partición de estado, artesanos, capitalistas, mercado interno→esfera(API)→mundial, presupuesto completo, deuda, banco, aranceles, stockpile | ✅ (M2) |
 | 7 | Política: partidos por plantilla, restricciones de gobierno, elecciones con POPs, cámara alta, 12 reformas por niveles, movimientos (organización/radicalismo) | ✅ (M2) · rebeldes armados ⏳ M3 |
 | 8 | Tecnología: 26 tecnologías en 5 ramas, investigación, 16 inventos, `magic_unlocked` | ✅ (M2) · magia ⏳ M4 |
-| 9 | Diplomacia: relaciones, alianzas (datos ✅), influencia, esferas, crisis | ⏳ |
-| 10 | Ejército físico: brigadas, Soldier POP, movimiento, supply, attrition, generales | ⏳ |
-| 11 | Guerra: CB data-driven, justificación, ocupación, warscore, wargoals, paz | ⏳ |
-| 12 | Armada: flotas, transporte naval real, bloqueos, combate naval | ⏳ |
+| 9 | Diplomacia: relaciones, alianzas, garantías, acceso militar, treguas, influencia, esferas (conectadas al mercado) | ✅ (M3) · crisis ⏳ |
+| 10 | Ejército físico: brigadas ← Soldier POP, movimiento por adyacencia, supply real, attrition, generales | ✅ (M3) |
+| 11 | Guerra: CB data-driven sobre estados, justificación, ocupación, warscore con desglose, wargoals, paz | ✅ (M3) |
+| 12 | Armada: flotas en zonas marítimas, transporte real, bloqueos (mercado), combate naval | ✅ (M3) |
+| — | Rebeldes armados a partir de movimientos políticos | ✅ (M3) |
 | 13 | Eventos/decisiones GFM-like (scripted + condicionales, cadenas, flags) | ⏳ |
 | 14 | Pulido: tooltips, ledger, rendimiento, saves | ⏳ |
 
@@ -46,7 +47,26 @@ Placeholders que quedan: esferas sin miembros (la API de mercado de esfera exist
 (los movimientos marcan `rebel_risk`), mantenimiento militar real (solo salarios y reserva de bienes),
 bancarrota, IA política/económica mínima, contenido y nombres de partidos genéricos.
 
-## Siguiente paso (milestone 3)
+## M2.11 y Milestone 3 — completados
+
+* M2.11: rendimiento (agregados por cubos, escalonado), control de la industrialización, auditoría monetaria,
+  apoyo conservador a reformas según militancia.
+* M3: diplomacia, influencia y esferas, ejércitos y brigadas vinculadas a Soldier POPs, suministro y desgaste,
+  líderes, combate con resolver sustituible, guerra/CB/justificación/ocupación/warscore/paz, armada con
+  transporte y bloqueo, rebeldes armados, IA diplomática/militar/naval, UI de Diplomacia y Militar, ventana de
+  guerra y paz, contadores en el mapa, mapmodes militar/esferas/rebelión/suministro, guardado v3.
+
+Placeholders conscientes: sin cartas (solo la interfaz VBattleResolver), sin crisis diplomáticas profundas,
+sin sistema colonial, IA sencilla (sin frentes), selección rectangular de ejércitos no implementada (Mayús+clic
+añade a la selección), ríos sin datos (el resolver ya admite battle.river), naciones liberables solo si existe
+una nación latente sin provincias.
+
+## Siguiente paso (milestone 4)
+
+Eventos y decisiones GFM-like (scripted + condicionales, cadenas, flags), contenido de fantasía en capas y el
+despertar mágico (GLOBAL_MAGIC_ACTIVATED con ramas por nación).
+
+## (histórico) Previsto para el milestone 3
 
 Diplomacia (relaciones, alianzas, Grandes Potencias, influencia, esferas reales que usen la capa de mercado),
 ejércitos físicos con Soldier POPs, movimiento, supply/attrition, generales, guerra (CB, justificación,

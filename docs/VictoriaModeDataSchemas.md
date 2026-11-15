@@ -101,3 +101,29 @@ Si `save_version` no coincide y `_migrate()` no lo convierte, la carga se rechaz
 Guardado: `save_version` = 2. Añade economía (mercado, fábricas con stock y caja, RGO), presupuesto, deuda, banco,
 proyectos, tecnologías, inventos, investigación, partidos, elecciones, cámara alta, movimientos y registro.
 Las partidas v1 se rechazan con un mensaje claro.
+
+## Milestone 3
+
+| Archivo | Esquema |
+|---|---|
+| `military/unit_types.json` | `manpower`, `base_combat_width`, `units[{id,name,attack,defence,organisation,morale,discipline,recon,siege,speed,width,support,supply{good: qty por brigada y mes},requires_tech,build_cost{}}]` |
+| `military/ship_types.json` | `ships[{id,name,attack,defence,hull,speed,range,transport,supply{},requires_tech,build_cost{},days}]` |
+| `military/leader_traits.json` | `personalities[]`, `backgrounds[]` (modificadores attack/defence/morale/organisation/speed/recon), `names[]`, `surnames[]`, `leadership_cost_general/admiral` |
+| `war/casus_belli.json` | `casus_belli[{id,name,scope: state/country/province,warscore_cost,infamy,prestige,justify_months,duration_months,conditions[],peace_effect}]`, `max_infamy`, `infamy_decay_per_month`, `truce_months`, `justify_discovery_chance`. Condiciones: target_not_gp, target_gp, actor_gp, target_neighbor, target_has_actor_core, target_in_other_sphere, target_uncivilized, actor_civilized. Efectos: annex_state, conquest, restore_core, humiliate, cut_down, reparations, release_nation, liberate_country, place_in_sphere, free_from_sphere. |
+| `diplomacy/diplomacy_rules.json` | puntos diplomáticos, `costs{acción: puntos}`, `relation_change`, `relation_drift_per_month`, `alliance_min_relations`, `influence{base_per_month, prestige_factor, max_targets, points_cap, costs{}, discredit_months, ban_months, gp_grace_months, opinion_levels[], opinion_names{}}` |
+| `rebels/rebel_types.json` | `types[{id,name,from_reforms[],demand: raise_reform/lower_reform/change_ruling_ideology,ideology,color}]`; umbrales `min_radicalism`, `min_organisation`, `min_supporter_militancy`, `spawn_share`, `max_brigades`, `victory_months`, `victory_province_share` |
+
+Entidades nuevas del estado (serializadas en el guardado v3, bloque `military`):
+
+* `armies{id: {id,country,name,province,brigades[],leader,morale,path[],move_progress,retreating,dig_in,supply,battle,embarked,rebel_faction}}`
+* `brigades{id: {id,type,strength,organisation,experience,source_pop_id,source_province_id,army}}`
+* `leaders{id: {id,country,kind,name,traits[],attack,defence,morale,organisation,speed,recon,army,fleet}}`
+* `fleets{id: {id,country,name,location,ships[{id,type,hull,organisation}],admiral,path[],mission,transported_armies[]}}`
+* `wars{id: {id,name,start,attackers[],defenders[],primary_attacker,primary_defender,war_goals[{id,type,actor,target,state_id}],battle_ws,occupation_ws,blockade_ws,ticking_ws,total_ws,offer}}`
+* `battles`, `casus_belli[{id,owner,target,type,state_id,expires}]`, `justifications[{owner,target,type,state_id,progress,months,discovered}]`
+* `rebel_factions{id: {id,type,country,movement,demand,supporting_pops[],strength,organisation,risen,controlled_provinces[],armies[],months_holding}}`
+
+País: `diplo_points, military_access[], guarantees[], truces{tag: mes}, wars[ids], influence{target: {points,opinion,priority,banned_until,discredited_until}}, sphere_leader, leadership, casualties, war_exhaustion, infamy, reparations[], ship_queue[], blockade_ratio`.
+Provincia: `controller` (puede ser `REB`), `occupation`, `occupation_by`, `blockaded_by`, `rebel_faction`.
+
+`save_version` = 3; las partidas v2 se rechazan con un mensaje.

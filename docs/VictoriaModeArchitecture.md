@@ -150,3 +150,105 @@ presupuestaria mantiene el tesoro cerca de 8 meses de gasto (baja impuestos o su
 ocurre antes del primer día del mes siguiente (`VTimeController` emite `month_passed` antes de `day_passed`).
 Nada se ejecuta por frame. Durante los 12 primeros meses del escenario la productividad de cada RGO se
 recalibra suavemente hacia la demanda observada (el mapa de prueba reparte recursos al azar).
+
+## M2.11 — Estabilización
+
+* **Agregados por cubos**: los agregados nacionales (población, estratos, alfabetización, votantes,
+  capitalistas…) se acumulan durante el recorrido diario por cubos; el cierre de mes ya no recorre
+  todos los POPs otra vez (salvo tras cargar o cambios de territorio).
+* **Escalonado**: consecuencias lentas de los POPs y movilidad cada 2 meses, deriva ideológica e issues
+  cada 3, todas escalonadas por provincia y con pasos proporcionales (mismo ritmo medio).
+* **Inversión**: solo invierten los capitalistas; exige demanda real del producto, margen con precios
+  medios de 6 meses, insumos disponibles, mano de obra libre, tecnología, historial de beneficios (para
+  ampliar) y respeta un tiempo de espera y un máximo de proyectos simultáneos.
+* **Auditoría monetaria** (`core/VMoney.gd`): cada fuente o sumidero explícito de dinero (ventas y compras
+  al mercado, préstamos, intereses, amortización, construcción, reserva, aranceles, inversión, pérdidas
+  perdonadas) se registra; periódicamente se compara la variación de los activos (efectivo y depósitos
+  de POPs, caja de fábricas, tesoros) con lo registrado. Residuo medido ≈ 0,001 %.
+
+## Milestone 3 — diplomacia, ejército, guerra, armada y rebeldes
+
+```
+src/victoria_mode/
+  diplomacy/VDiplomacySystem.gd   relaciones, alianzas, garantías, acceso militar, treguas, puntos diplomáticos
+  diplomacy/VInfluenceSystem.gd   influencia de las Grandes Potencias, opinión, esferas
+  military/VArmySystem.gd         ejércitos, brigadas <- Soldier POP, reclutamiento, rutas, retirada
+  military/VSupplySystem.gd       consumo real de la reserva militar, límite de suministro, desgaste, org/moral
+  military/VLeaderSystem.gd       liderazgo de los oficiales, generales y almirantes con rasgos
+  military/VBattleResolver.gd     INTERFAZ del combate (resolve_tick)
+  military/VBattleResolverVictoria.gd   implementación provisional
+  military/VCombatSystem.gd       batallas: inicio, refuerzos, fin, retirada (independiente del resolver)
+  military/VMilitaryAI.gd         IA terrestre y naval
+  war/VCasusBelliSystem.gd        CB data-driven sobre particiones de estado, justificación
+  war/VWarSystem.gd               guerras, aliados, warscore con desglose, asedios, cansancio, IA bélica
+  war/VPeaceSystem.gd             coste de objetivos, aceptación de la IA, efectos de paz
+  navy/VNavySystem.gd             flotas en zonas marítimas, puertos, transporte, bloqueo, astilleros
+  navy/VNavalBattleResolver.gd    combate naval provisional
+  rebels/VRebelSystem.gd          facciones rebeldes a partir de los movimientos políticos
+  map/VMapUnits.gd                contadores de ejércitos y flotas (dibujo por lotes)
+  ui/VUnitPanel.gd, ui/VPeaceWindow.gd
+```
+
+### Army -> Brigades -> Soldier POP
+
+Una brigada (3.000 hombres) guarda `source_pop_id` y `source_province_id`. Solo se crea si el POP de
+soldados tiene hombres para otra brigada (tamaño >= (brigadas vinculadas + 1) x 3.000). Las bajas de
+batalla y de desgaste restan personas al POP (`VArmySystem.apply_casualties`). El refuerzo devuelve a la
+brigada como máximo lo que el POP puede sostener (tamaño / brigadas vinculadas). Un stack wipe mata a
+todos sus hombres. No hay reserva abstracta de manpower.
+
+### Combate sustituible
+
+`VCombatSystem` crea las batallas cuando un ejército entra en una provincia con enemigos, incorpora a
+los que llegan, termina la batalla, ordena retiradas (o stack wipe) y comunica el resultado a
+`VWarSystem`. Cada día delega en `VCombatSystem.resolver().resolve_tick(battle, gs)`, que solo aplica daño
+mediante `VCombatSystem.damage_brigade()`. El futuro `VBattleResolverCards` se instala con
+`VCombatSystem.set_resolver(...)` sin tocar ejército, movimiento, ocupación ni warscore.
+
+### War -> Wargoals
+
+Una guerra tiene bandos reales (los aliados deciden si se unen), objetivos (CB sobre particiones de
+estado o sobre el país) y un warscore con cuatro componentes: batallas (+-40), ocupación (valor de las
+provincias ocupadas; la capital vale el triple), bloqueo y *ticking* (objetivos controlados; el defensor
+gana warscore si resiste más de un año). La ocupación cambia `controller`, nunca `owner`; la propiedad
+solo cambia en `VPeaceSystem.apply` -> `gs.change_owner` -> la simulación y el mapa se actualizan por la
+señal `ownership_changed`. Tras la paz: treguas, control restaurado y ejércitos de vuelta a casa.
+
+### Fleet -> Ships -> transported armies
+
+Las flotas están en una zona marítima o atracadas en una provincia costera (puerto). Navegan zona a zona
+y solo atracan en puertos propios, aliados o con acceso. Un ejército embarca en una provincia costera
+con la flota atracada allí o en una zona vecina; la capacidad de transporte (suma de `transport`) limita
+las brigadas; el ejército viaja en `fleet.transported_armies` y desembarca en una costa vecina accesible.
+
+### Influence -> Sphere -> Market
+
+Las Grandes Potencias del ranking existente generan influencia mensual repartida por prioridades; con
+opinión «amistoso» pueden meter a un país en su esfera (`sphere_leader`). `VMarketSystem.clear_month` ya
+agrupa a los países de cada esfera y casa su comercio antes del mercado mundial (comprobado: un miembro
+importa antes que un país mejor clasificado). Si una GP pierde el rango, tras un periodo de gracia pierde
+su esfera y deja de generar influencia.
+
+### Movement -> RebelFaction
+
+Los movimientos de `VPoliticsSystem` (apoyo, organización, radicalismo) son la única fuente de rebeldes:
+con `rebel_risk`, organización y radicalismo altos y POPs muy militantes se forma una facción; al
+organizarse se alza con brigadas formadas por personas reales de esos POPs. Ocupan provincias
+(controlador `REB`), combaten al ejército nacional y, si mantienen la capital o el 30 % de las provincias
+3 meses, imponen su demanda (subir la reforma o cambiar el partido gobernante). Si se disuelven, los
+supervivientes vuelven a sus POPs.
+
+### Guerra y economía
+
+La ocupación reduce la producción del RGO (x0,4), impide al propietario cobrar impuestos allí y reduce
+la producción de las fábricas del estado; la migración evita las provincias ocupadas. El bloqueo recorta
+el acceso del país al mercado mundial (exportaciones e importaciones, y con ello los aranceles). El
+suministro de los ejércitos consume la reserva militar, que se compra al mercado según el slider. Las
+bajas reducen la población; el cansancio bélico eleva la militancia y reduce la producción industrial.
+
+### Ticks
+
+Diario (`VWorldSimulation.military_day`): movimiento, combate, suministro/desgaste/organización
+(escalonado cada 3 días por ejército), refuerzo, asedios y warscore, armada y bloqueos, IA militar (cada
+5 días por nación). Mensual: diplomacia, influencia, CB/justificaciones, cansancio, IA bélica y de paz,
+líderes, rebeldes.

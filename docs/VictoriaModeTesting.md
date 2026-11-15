@@ -104,3 +104,57 @@ Rendimiento (Godot 4.4.1, equipo de desarrollo con GPU AMD RX 6800, headless):
 
 Pendiente: el cierre de mes (~0,27 s) se nota como un pequeño tirón a velocidad 5; repartir también los
 sistemas nacionales entre días es la siguiente optimización.
+
+## M2.11 y Milestone 3
+
+```bash
+# Suite de M3: diplomacia, influencia/esferas (incluido el mercado de esfera), ejército, armada, rebeldes
+# e integración determinista Frankia contra Liga Renana (IA desactivada con gs.flags["ai_disabled"])
+"$GODOT" --headless --path . res://tests/VictoriaM3Test.tscn
+# Balance de 20 años con guerras, esferas, rebeldes y auditoría monetaria
+"$GODOT" --headless --path . res://tests/VictoriaBalanceTest.tscn -- 20
+# Sonda de rendimiento por secciones
+"$GODOT" --headless --path . -s tests/VictoriaPerfProbe.gd
+```
+
+`VictoriaM3Test` comprueba, entre otras cosas: relaciones limitadas a −200…200, costes y tiempos de espera
+de las acciones, aceptación de alianzas por la IA, treguas que bloquean declaraciones, influencia solo para GP,
+entrada en esfera y comercio por el nivel de esfera de `VMarketSystem` (`sphere_key`/`market_chain`),
+brigadas de 3.000 vinculadas a `source_pop_id`/`source_province_id`, bajas que reducen el Soldier POP,
+refuerzo limitado por el POP, movimiento por adyacencias con acceso militar, suministro desde el stockpile,
+desgaste, combate con `VBattleResolver` sustituible, retirada y aniquilación, ocupación que cambia solo el
+controlador, warscore con componentes y limitado a ±100, wargoals y CB por particiones de estado, paz
+(propiedad cambia solo en la paz), flotas en zonas marítimas, transporte, bloqueo que reduce el comercio
+mundial, combate naval, facciones rebeldes con brigadas de POPs reales y guardado v3 (rechazo limpio de v2).
+**Último resultado: 0 fallos.** La prueba de humo sigue en **0 fallos**.
+
+`VictoriaBalanceTest` (20 años, sin jugador, IA activa, determinista) — último resultado: **0 problemas**,
+auditoría monetaria con residuo ≈ 0 en todos los meses.
+
+| Año | Pobl. (M) | Vida | Diario | Lujo | Paro | Milit. | Fábricas abiertas/cerradas | Guerras (total) | Brigadas media/máx | Esferas (miembros) | Rebeldes |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 711 | 1.00 | 0.50 | 0.10 | 0.00 | 1.00 | 119/0 | 0 | — | 0 | 0 |
+| 1 | 715 | 0.76 | 0.39 | 0.08 | 0.00 | 0.93 | 98/31 | 1 | 10.8 / 39 | 0 | 0 |
+| 5 | 723 | 0.79 | 0.37 | 0.05 | 0.01 | 0.82 | 159/33 | 26 | 17.9 / 85 | 1 | 0 |
+| 10 | 738 | 0.81 | 0.37 | 0.04 | 0.03 | 0.76 | 246/37 | 34 | 21.6 / 132 | 19 | 0 |
+| 15 | 765 | 0.87 | 0.40 | 0.06 | 0.04 | 0.63 | 303/45 | 43 | 20.4 / 89 | 16 | 0 |
+| 20 | 789 | 0.83 | 0.40 | 0.08 | 0.05 | 0.71 | 345/37 | 54 | 21.4 / 90 | 14 | 14 |
+
+Necesidades de vida a 20 años: estables en ≈0,80–0,88 (sin deriva deflacionaria tras M2.11; la ejecución de 30 años queda pendiente).
+Industrialización controlada: 119 → ≈250 fábricas en 10 años (antes de M2.11 eran ≈920).
+
+Rendimiento (mismo equipo, headless, 20 años):
+
+| Sección | Media | Máx. |
+|---|---|---|
+| Tick diario total | 31 ms | 351 ms |
+| · día militar (IA, movimiento/combate, armada, suministro, guerra) | 11,6 ms | 318 ms |
+| ·· suministro | 7,5 ms | 20 ms |
+| ·· IA militar | 1,4 ms | 305 ms (picos raros de búsqueda de rutas) |
+| Cierre de mes | 211 ms | 258 ms |
+| · auditoría monetaria | 14 ms | 17 ms |
+| Un año simulado sin interfaz | 15–23 s (≈17 s típico) | — |
+
+**Objetivo no cumplido:** el año headless sigue por encima de 8 s (≈9,6 s tras M2.11 sin guerra; ≈17 s con
+M3). El cierre de mes sí está cerca del objetivo (≈210 ms frente a 150 ms). Siguientes optimizaciones:
+repartir los sistemas nacionales y el suministro entre días, y cachear rutas de la IA entre ticks.
