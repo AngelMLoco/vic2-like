@@ -1,4 +1,23 @@
-# Chronicles of Aether — Victoria 2-like Fantasy Prototype
+# Chronicles of Aether
+
+El proyecto tiene **dos modos**, elegibles desde el menú principal (Nuevo juego → Elige modo):
+
+| Modo | Descripción | Código / datos |
+|---|---|---|
+| **A · Prototipo actual** | El prototipo original (30 provincias abstractas), congelado como referencia. Documentado más abajo. | `src/legacy/`, `data/legacy/` |
+| **B · Segunda versión** | Reconstrucción con Victoria II como esqueleto: mapamundi real (Natural Earth) con ~2.900 provincias, ~1.060 estados y 89 naciones en el año 136. | `src/victoria_mode/`, `data/victoria_mode/` |
+
+Documentación de la Segunda versión: [Arquitectura](docs/VictoriaModeArchitecture.md) ·
+[Hoja de ruta](docs/VictoriaModeRoadmap.md) · [Esquemas de datos](docs/VictoriaModeDataSchemas.md) ·
+[Pruebas](docs/VictoriaModeTesting.md).
+
+Motor: Godot 4.4. Escena principal: `src/app/MainMenu.tscn` (autoload `App` en `src/app/App.gd`).
+
+---
+
+# Modo A — Prototipo actual (documentación original)
+
+## Chronicles of Aether — Victoria 2-like Fantasy Prototype
 
 Early simulation prototype for a future fantasy grand-strategy game inspired by the systemic side of Victoria 2/GFM.
 
@@ -351,7 +370,7 @@ POPs can migrate internally from weak provinces toward provinces with better:
 
 ### Technology
 
-Technology definitions live in `data/techs.json`.
+Technology definitions live in `data/legacy/techs.json`.
 
 Countries generate research points from literacy, mages and bureaucrats, automatically choose available technologies and unlock bonuses for:
 - agriculture,
@@ -392,7 +411,7 @@ Technology can also improve logistics and therefore combat effectiveness.
 
 ### Data-driven events
 
-Generic events now live in `data/events.json`.
+Generic events now live in `data/legacy/events.json`.
 
 The event engine currently supports triggers such as:
 - year,
@@ -540,7 +559,7 @@ Warscore is signed from the attacker's perspective and is displayed in the diplo
 
 ### Casus Belli and war goals
 
-CB definitions live in `data/casus_belli.json`.
+CB definitions live in `data/legacy/casus_belli.json`.
 
 Current goals:
 - acquire province,
