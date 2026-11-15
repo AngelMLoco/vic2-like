@@ -1,0 +1,122 @@
+{
+ "_doc": "PROTOTYPE / narrativa provisional: el lore del despertar NO está fijado (quién lo causó, por qué, quién es el elegido). El trigger del despertar es configurable aquí (año y bandera), sin código.",
+ "events": [
+  {
+   "id": "magic.awakening", "scope": "global", "type": "major", "art": "awakening",
+   "title": "El mundo despierta",
+   "desc": "Una noche, en todos los rincones del mundo a la vez, los cristales de las minas empezaron a brillar, las agujas de las brújulas giraron enloquecidas y en mil aldeas alguien pronunció una palabra que nunca había aprendido. Nadie sabe por qué. Pero desde esa noche, nada volverá a ser igual.",
+   "trigger": {"year": 140, "not_flag": "GLOBAL_MAGIC_ACTIVATED"},
+   "mtth": {"months": 6},
+   "once": true, "important": true,
+   "immediate": {"activate_magic": true},
+   "options": [{"name": "Algo ha cambiado en el mundo", "effects": {}}]
+  },
+  {
+   "id": "magic.arcane_research", "scope": "country", "type": "normal", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "art": "laboratory",
+   "title": "Los fenómenos arcanos",
+   "desc": "Nuestros sabios piden fondos para estudiar los fenómenos que se multiplican desde el Despertar.",
+   "trigger": {"magic_branch": {"technology": 1}},
+   "mtth": {"months": 3},
+   "once": true, "important": true,
+   "options": [
+    {"name": "Financiar la investigación", "effects": {"set_country_flag": "ARCANE_RESEARCH_FUNDED", "add_treasury_ratio": -0.05, "start_research": "arcane_theory", "add_research_points": 400},
+     "ai_weight": {"base": 7, "modifiers": [{"factor": 0.3, "treasury_below": 300}]}},
+    {"name": "Esperar a ver qué hacen los demás", "effects": {"add_prestige": -1}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.first_mage", "scope": "country", "type": "normal", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "art": "mage",
+   "title": "El primer mago documentado",
+   "desc": "Un registro parroquial anota, con letra temblorosa, que un hombre del lugar hizo arder una vela sin tocarla ante testigos.",
+   "trigger": {"magi": 1},
+   "once": true, "important": true,
+   "options": [
+    {"name": "Que lo estudien en la universidad", "effects": {"add_prestige": 3, "add_research_points": 200}, "ai_weight": 6},
+    {"name": "Que lo examine el clero", "effects": {"add_militancy": -0.1}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "magic.ley_discovery", "scope": "province", "type": "normal", "province_candidates": "magic", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "art": "ley",
+   "title": "Un nexo de líneas ley",
+   "desc": "Los agrimensores detectan una convergencia de corrientes arcanas bajo esta provincia.",
+   "trigger": {"has_magic_deposit": true, "not_province_flag": "LEY_NEXUS_DISCOVERED"},
+   "mtth": {"months": 24},
+   "once": true,
+   "options": [
+    {"name": "Explotar el nexo", "effects": {"set_province_flag": "LEY_NEXUS_DISCOVERED", "add_province_modifier": {"id": "ley_nexus", "months": 0}, "add_magic_deposit": 0.5}, "ai_weight": 7},
+    {"name": "Declararlo lugar protegido", "effects": {"set_province_flag": "LEY_NEXUS_DISCOVERED", "add_prestige": 2}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.arcane_accident", "scope": "province", "type": "normal", "province_candidates": "magic", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "art": "accident",
+   "title": "Accidente arcano",
+   "desc": "Una explosión de luz violeta ha arrasado un taller de experimentación. Los supervivientes no recuerdan qué intentaban hacer.",
+   "trigger": {"has_magic_deposit": true, "owner": {"magi": 200}},
+   "mtth": {"months": 60},
+   "cooldown": 60,
+   "options": [
+    {"name": "Atender a las víctimas", "effects": {"kill_population": 0.003, "add_province_modifier": {"id": "arcane_accident", "months": 12}, "add_treasury_ratio": -0.02}, "ai_weight": 6},
+    {"name": "Ocultar lo sucedido", "effects": {"kill_population": 0.003, "add_province_modifier": {"id": "arcane_accident", "months": 18}, "add_consciousness": 0.1}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "magic.crystal_black_market", "scope": "country", "type": "normal", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "art": "smugglers",
+   "title": "Mercado negro de cristales",
+   "desc": "El cristal de maná vale su peso en oro y los contrabandistas lo saben.",
+   "trigger": {"good_available": "mana_crystal", "good_price": {"mana_crystal": 1.4}},
+   "mtth": {"months": 36},
+   "cooldown": 60,
+   "options": [
+    {"name": "Regular el comercio de cristal", "effects": {"add_country_modifier": {"id": "magic_licensed", "months": 24}, "add_prestige": 1}, "ai_weight": 5},
+    {"name": "Hacer la vista gorda", "effects": {"add_treasury_ratio": 0.02, "add_militancy": 0.1}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "magic.religious_fear", "scope": "country", "type": "normal", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "art": "church",
+   "title": "Miedo religioso a la magia",
+   "desc": "Desde los púlpitos se clama contra la hechicería. Las multitudes rodean las casas de los magos.",
+   "trigger": {"magi": 300, "not_country_flag": "MAGIC_POLICY_ENCOURAGE"},
+   "mtth": {"months": 36, "modifiers": [{"factor": 0.5, "ruling_ideology": "tradicionalista"}]},
+   "cooldown": 72,
+   "options": [
+    {"name": "Proteger a los magos", "effects": {"add_country_modifier": {"id": "religious_tolerance", "months": 24}, "add_militancy": {"value": 0.3, "strata": "poor"}}, "ai_weight": 4},
+    {"name": "Escuchar a la Iglesia", "effects": {"add_country_modifier": {"id": "religious_fear", "months": 24}}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "magic.military_experiment", "scope": "country", "type": "normal", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "art": "battle_magic",
+   "title": "Uso militar experimental",
+   "desc": "En el frente, un capitán ha usado a un mago para cegar a una batería enemiga. El Estado Mayor quiere más.",
+   "trigger": {"at_war": true, "magic_branch": {"military": 1}},
+   "mtth": {"months": 12},
+   "cooldown": 48,
+   "options": [
+    {"name": "Crear un programa de taumaturgia", "effects": {"add_country_modifier": {"id": "thaumaturgy_program", "months": 24}, "add_treasury_ratio": -0.03}, "ai_weight": 6},
+    {"name": "La guerra no es lugar para trucos", "effects": {"add_prestige": 1}, "ai_weight": 2}
+   ]
+  },
+  {
+   "id": "magic.arcane_boom", "scope": "country", "type": "notification", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "cadence": "yearly", "art": "arcane_factory",
+   "title": "Auge arcano",
+   "desc": "Las refinerías de maná trabajan a pleno rendimiento.",
+   "trigger": {"factory_type_count": {"mana_refinery": 1}},
+   "mtth": {"months": 12},
+   "cooldown": 60,
+   "options": [{"name": "Prosperidad", "effects": {"add_country_modifier": {"id": "arcane_boom", "months": 24}}}]
+  },
+  {
+   "id": "magic.regulation_debate", "scope": "country", "type": "normal", "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "cadence": "quarterly", "art": "parliament",
+   "title": "¿Qué hacer con la magia?",
+   "desc": "El gobierno debe decidir el estatuto legal de la práctica mágica: hay quien la teme, quien la quiere libre y quien la quiere al servicio del Estado.",
+   "trigger": {"or": [{"magi": 50}, {"magic_branch": {"politics": 1}}], "not_country_flag": "MAGIC_POLICY_SET"},
+   "mtth": {"months": 18},
+   "important": true,
+   "options": [
+    {"name": "Prohibir la magia", "effects": {"set_country_flag": ["MAGIC_POLICY_SET", "MAGIC_POLICY_BAN"], "add_country_modifier": {"id": "magic_banned", "months": 0}}, "ai_weight": {"base": 3, "modifiers": [{"factor": 3.0, "ruling_ideology": "tradicionalista"}]}},
+    {"name": "Licencias para practicar", "effects": {"set_country_flag": "MAGIC_POLICY_SET", "add_country_modifier": {"id": "magic_licensed", "months": 0}}, "ai_weight": 5},
+    {"name": "Fomentar la magia", "effects": {"set_country_flag": ["MAGIC_POLICY_SET", "MAGIC_POLICY_ENCOURAGE"], "add_country_modifier": {"id": "magic_encouraged", "months": 0}}, "ai_weight": {"base": 3, "modifiers": [{"factor": 2.0, "ruling_ideology": "liberal"}]}},
+    {"name": "Monopolio arcano del Estado", "trigger": {"magic_branch": {"politics": 1}}, "effects": {"set_country_flag": "MAGIC_POLICY_SET", "add_country_modifier": {"id": "magic_monopoly", "months": 0}}, "ai_weight": {"base": 3, "modifiers": [{"factor": 2.0, "government": "monarquia_absoluta"}]}}
+   ]
+  }
+ ]
+}

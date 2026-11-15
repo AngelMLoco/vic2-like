@@ -212,11 +212,12 @@ static func process_province(gs: VGameState, id: int) -> void:
 		elif t0 == t_aristo:
 			aristos.append(s0)
 			aristo_size += a_size[s0]
-	var size := float(rd["base_size"]) * float(cx["rgo_size"])
+	var pm: Dictionary = p.get("pmods", {})
+	var size := float(rd["base_size"]) * (float(cx["rgo_size"]) + float(pm.get("rgo_size", 0.0)))
 	var max_workers := int(size * UNIT)
 	var employed: int = mini(workers, max_workers)
 	var ratio := float(employed) / float(workers) if workers > 0 else 0.0
-	var eff := float(gs.terrain_types.get(p["terrain"], {}).get("rgo_efficiency", 1.0)) * float(cx["rgo_eff"]) * (1.0 + 0.05 * int(p["infrastructure"]))
+	var eff := float(gs.terrain_types.get(p["terrain"], {}).get("rgo_efficiency", 1.0)) * (float(cx["rgo_eff"]) + float(pm.get("rgo_efficiency", 0.0))) * (1.0 + 0.05 * int(p["infrastructure"]))
 	var output := float(employed) / UNIT * float(gs.market["rgo_output"].get(good, 1.0)) * eff
 	# ocupación enemiga: la producción cae y el propietario no recauda impuestos aquí
 	var occupied: bool = p["controller"] != tag
@@ -552,6 +553,7 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 				f["open"] = false
 				f["unstaffed_months"] = 0
 				gs.log_event(tag, "Cierra %s en %s: no encuentra obreros" % [ft.get("name", f["type"]), gs.states[si["state"]]["name"]])
+				VEventSystem.notify(gs, "factory_closed", {"tag": tag})
 				continue
 		else:
 			f["unstaffed_months"] = 0
@@ -625,6 +627,7 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 					if int(f["loss_months"]) >= int(rules.get("factory_close_months", 6)) and float(f["hiring"]) <= 0.15:
 						f["open"] = false
 						gs.log_event(tag, "Cierra %s en %s por pérdidas" % [ft.get("name", f["type"]), gs.states[si["state"]]["name"]])
+						VEventSystem.notify(gs, "factory_closed", {"tag": tag})
 	# salarios a los POPs (proporcional a su tamaño y al empleo de la partición)
 	var cr_emp_frac := minf(1.0, cr_slots / float(cr_total)) if cr_total > 0 else 0.0
 	var cl_emp_frac := minf(1.0, cl_slots / float(cl_total)) if cl_total > 0 else 0.0
@@ -732,7 +735,19 @@ static func expected_margin(gs: VGameState, tag: String, ftype: String, smoothed
 
 static func can_build_type(gs: VGameState, tag: String, ftype: String) -> bool:
 	var req: String = gs.factory_types.get(ftype, {}).get("requires_tech", "")
-	return req == "" or req in gs.countries[tag].get("technologies", [])
+	return (req == "" or req in gs.countries[tag].get("technologies", [])) and goods_unlocked(gs, ftype)
+
+
+## ¿Están disponibles en el mercado todos los bienes de la receta? (los mágicos esperan al Despertar)
+static func goods_unlocked(gs: VGameState, ftype: String) -> bool:
+	var ft: Dictionary = gs.factory_types.get(ftype, {})
+	for g in ft.get("inputs", {}):
+		if not VMarketSystem.is_available(gs, g):
+			return false
+	for g in ft.get("outputs", {}):
+		if not VMarketSystem.is_available(gs, g):
+			return false
+	return true
 
 
 static func build_cost(gs: VGameState, tag: String, ftype: String, expand: bool) -> float:
@@ -912,6 +927,7 @@ static func _complete_project(gs: VGameState, tag: String, pr: Dictionary) -> vo
 	var si: Dictionary = gs.state_instances.get(pr["state_key"], {})
 	if si.is_empty() or si["owner"] != tag:
 		return
+	VEventSystem.notify(gs, "factory_built", {"tag": tag, "factory_type": pr.get("type", "")})
 	if pr["expand"]:
 		for f in si["factories"]:
 			if int(f["id"]) == int(pr["factory_id"]):

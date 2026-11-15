@@ -125,6 +125,31 @@
     "small_arms": 2.0,
     "ammunition": 2.0
    }
+  },
+  {
+   "id": "arcane_support",
+   "name": "Apoyo arcano",
+   "attack": 3.0,
+   "defence": 2.5,
+   "organisation": 1.0,
+   "morale": 1.0,
+   "discipline": 1.0,
+   "recon": 1.0,
+   "siege": 0.5,
+   "speed": 1.0,
+   "width": 1,
+   "support": true,
+   "supply": {
+    "grain": 0.6,
+    "regular_clothes": 0.05,
+    "enchanted_components": 0.01
+   },
+   "requires_tech": "battle_thaumaturgy",
+   "build_cost": {
+    "enchanted_components": 2.0,
+    "small_arms": 1.0
+   },
+   "_prototype": true
   }
  ]
 }

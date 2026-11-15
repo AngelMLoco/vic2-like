@@ -7,8 +7,9 @@ extends RefCounted
 ## Una tecnología necesita sus prerrequisitos; al completarse aplica sus efectos, desbloquea fábricas
 ## y añade sus inventos al bote. Cada mes cada invento del bote puede activarse según su probabilidad
 ## y sus condiciones (separado de la tecnología, como en Victoria II).
-## Magia: magic_unlocked = false hasta GLOBAL_MAGIC_ACTIVATED; las ramas nacionales vendrán de
-## country.magic_branches (no implementado en este milestone).
+## Magia: magic_unlocked = false hasta GLOBAL_MAGIC_ACTIVATED (VMagicSystem.activate lo pone a true). Las
+## tecnologías mágicas (data/victoria_mode/magic/technologies.json) exigen la bandera y el nivel de la rama de
+## country.magic_branches que declaran (VMagicSystem.tech_allowed).
 
 
 static func setup_new_game(gs: VGameState) -> void:
@@ -41,6 +42,8 @@ static func can_research(gs: VGameState, tag: String, tech_id: String) -> bool:
 	var c: Dictionary = gs.countries[tag]
 	var t: Dictionary = gs.technologies.get(tech_id, {})
 	if t.is_empty() or tech_id in c["technologies"]:
+		return false
+	if not VMagicSystem.tech_allowed(gs, tag, t):
 		return false
 	for pre in t.get("prerequisites", []):
 		if not (pre in c["technologies"]):
@@ -96,6 +99,7 @@ static func complete(gs: VGameState, tag: String, tech_id: String) -> void:
 		c["research"] = ""
 	VModifiers.recompute(gs, tag)
 	gs.log_event(tag, "Tecnología investigada: %s" % gs.technologies[tech_id]["name"])
+	VEventSystem.notify(gs, "technology_researched", {"tag": tag, "tech": tech_id})
 
 
 static func invention_pool(gs: VGameState, tag: String) -> Array:
@@ -128,3 +132,4 @@ static func activate_invention(gs: VGameState, tag: String, inv_id: String) -> v
 	c["inventions"].append(inv_id)
 	VModifiers.recompute(gs, tag)
 	gs.log_event(tag, "Invento: %s" % gs.inventions[inv_id]["name"])
+	VEventSystem.notify(gs, "invention_discovered", {"tag": tag, "invention": inv_id})

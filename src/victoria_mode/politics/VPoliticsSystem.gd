@@ -238,6 +238,9 @@ static func hold_election(gs: VGameState, tag: String) -> Dictionary:
 	var changed := winner != int(c["ruling_party_index"])
 	c["ruling_party_index"] = winner
 	_sync_ruling_party(gs, tag)
+	VEventSystem.notify(gs, "election_finished", {"tag": tag})
+	if changed:
+		VEventSystem.notify(gs, "government_changed", {"tag": tag})
 	c["next_election_month"] = gs.month_index + int(gov.get("election_interval_months", 48))
 	# la cámara alta se renueva parcialmente con los votantes
 	_update_upper_house(gs, tag, _voter_mix(gs, tag), 0.3)
@@ -314,6 +317,7 @@ static func change_reform(gs: VGameState, tag: String, rid: String, direction: i
 		mv["organisation"] = float(mv.get("organisation", 0.0)) * 0.5
 	# consciencia satisfecha: baja algo la militancia de los partidarios
 	gs.log_event(tag, "Reforma: %s → %s" % [r["name"], r["levels"][old + direction]["name"]])
+	VEventSystem.notify(gs, "reform_passed", {"tag": tag, "reform": rid, "direction": direction})
 	if rid == "slavery" and old + direction >= 1:
 		gs.log_event(tag, "Abolición de la esclavitud: los esclavos pasan a ser campesinos libres")
 	return ""

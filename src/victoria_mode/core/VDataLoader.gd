@@ -16,6 +16,11 @@ static func new_game() -> VGameState:
 	_load_countries(gs)
 	gs.rebuild_territory()
 	_apply_history(gs)
+	VMagicSystem.apply_prototype_branches(gs, ROOT)
+	VEventSystem.load_definitions(gs, ROOT)
+	VDecisionSystem.load_definitions(gs, ROOT)
+	for e in gs.data_errors:
+		push_error("[datos] " + str(e))
 	gs.pops.setup(gs)
 	VPopulationSystem.generate_initial(gs)
 	VPoliticsSystem.setup_new_game(gs)
@@ -84,7 +89,14 @@ static func _load_definitions(gs: VGameState) -> void:
 	var tech := VJson.load_dict(ROOT + "technologies/technologies.json")
 	gs.technologies = _index(tech.get("technologies", []))
 	gs.tech_categories = tech.get("categories", [])
+	gs.tech_categories.append_array(VJson.load_dict(ROOT + "magic/technologies.json").get("categories", []))
 	gs.inventions = _index(VJson.load_array(ROOT + "technologies/inventions.json", "inventions"))
+	# M4: tecnologías e inventos mágicos (data/victoria_mode/magic/technologies.json) en las mismas tablas
+	var mtech := VJson.load_dict(ROOT + "magic/technologies.json")
+	for t in mtech.get("technologies", []):
+		gs.technologies[t["id"]] = t
+	for i in mtech.get("inventions", []):
+		gs.inventions[i["id"]] = i
 	var units := VJson.load_dict(ROOT + "military/unit_types.json")
 	gs.unit_types = _index(units.get("units", []))
 	gs.unit_manpower = int(units.get("manpower", 3000))
@@ -243,7 +255,10 @@ static func _apply_history(gs: VGameState) -> void:
 	# las guerras históricas se crean como entidades War tras generar ejércitos (VWarSystem.setup_new_game)
 	_history_wars = hist.get("wars", [])
 	# ejército, flota e industria inicial
-	var ftypes: Array = gs.factory_types.keys()
+	var ftypes: Array = []
+	for ft in gs.factory_types:
+		if VProductionSystem.goods_unlocked(gs, ft):
+			ftypes.append(ft)
 	ftypes.sort()
 	var per_country: Dictionary = hist.get("countries", {})
 	for tag in per_country:

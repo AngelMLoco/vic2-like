@@ -1,6 +1,7 @@
 class_name VModifiers
 extends RefCounted
-## Modificadores nacionales agregados: suma de efectos de tecnologías, inventos y niveles de reforma.
+## Modificadores nacionales agregados: suma de efectos de tecnologías, inventos, niveles de reforma y
+## modificadores de eventos/decisiones/magia (VScopedState).
 ## Se recalculan solo cuando cambia alguna de esas fuentes (no cada tick).
 ## Claves usadas por los sistemas: rgo_efficiency, rgo_size, factory_efficiency, factory_throughput,
 ## factory_wage, artisan_efficiency, research, literacy_growth, pop_growth, tax_efficiency,
@@ -23,6 +24,9 @@ static func recompute(gs: VGameState, tag: String) -> void:
 		var lvl := int(reforms[rid])
 		if lvl >= 0 and lvl < levels.size():
 			_add(mods, levels[lvl].get("effects", {}))
+	# M4: modificadores de eventos, decisiones y magia (temporales o permanentes)
+	for m in VScopedState.country_modifiers(gs, tag):
+		_add(mods, VScopedState.modifier_effects(gs, m))
 	c["mods"] = mods
 
 

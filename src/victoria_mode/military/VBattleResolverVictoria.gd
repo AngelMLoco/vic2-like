@@ -98,7 +98,7 @@ func _fire(gs: VGameState, battle: Dictionary, shooter: Dictionary, target: Dict
 		i += 1
 		var tb: Dictionary = t_entry[0]
 		var tut: Dictionary = gs.unit_types.get(tb["type"], {})
-		var tech := 1.0 + gs.mod(a["country"], "military_strength") if gs.countries.has(a["country"]) else 1.0
+		var tech := 1.0 + gs.mod(a["country"], "military_strength") + gs.mod(a["country"], "battle_magic") if gs.countries.has(a["country"]) else 1.0
 		var factor := float(ut.get("attack", 2.0)) * (1.0 + roll) / 5.0 * float(s[1]) * tech
 		factor *= float(b["strength"]) / float(gs.unit_manpower) * (0.5 + 0.5 * float(b["organisation"]))
 		factor *= (0.5 + 0.5 * float(a.get("supply", 1.0))) * clampf(float(a.get("morale", 1.0)), 0.3, 1.5) * (1.0 + float(b.get("experience", 0.0)) * 0.5)

@@ -1,0 +1,85 @@
+{
+ "_doc": "Cadenas nacionales temporales (reinos ficticios sobre la geografía de pruebas; no historia real).",
+ "events": [
+  {
+   "id": "national.bri_parliament_crisis", "scope": "country", "type": "normal", "tags": ["BRI"], "art": "parliament",
+   "title": "Britannia: el Parlamento contra la Corona",
+   "desc": "Los comunes niegan los subsidios a la Corona hasta que se amplíen sus prerrogativas.",
+   "trigger": {"year": 137},
+   "mtth": {"months": 18},
+   "once": true, "important": true,
+   "options": [
+    {"name": "Ceder ante los comunes", "effects": {"change_reform": {"voting": 1}, "add_country_modifier": {"id": "reform_euphoria", "months": 12}}, "follow_up": {"id": "national.bri_naval_ambitions", "months": 12}, "ai_weight": 6},
+    {"name": "Disolver el Parlamento", "effects": {"add_country_modifier": {"id": "political_turmoil", "months": 12}, "add_prestige": 3}, "follow_up": {"id": "national.bri_naval_ambitions", "months": 12}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "national.bri_naval_ambitions", "scope": "country", "type": "normal", "cadence": "follow_up", "tags": ["BRI"], "art": "fleet",
+   "title": "Britannia: el dominio de los mares",
+   "desc": "Los astilleros reclaman encargos y los armadores, rutas protegidas.",
+   "important": true,
+   "options": [
+    {"name": "Una flota que no tenga rival", "effects": {"add_country_modifier": {"id": "naval_tradition", "months": 0}, "change_budget": {"military": 0.05}}, "ai_weight": 6},
+    {"name": "El comercio es nuestra armada", "effects": {"add_country_modifier": {"id": "customs_union", "months": 60}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "national.frk_salons", "scope": "country", "type": "normal", "tags": ["FRK"], "art": "salon",
+   "title": "Frankia: los salones de la capital",
+   "desc": "En los salones de la capital se discute de filosofía natural, constituciones y del derecho de los pueblos.",
+   "trigger": {"literacy": 0.12},
+   "mtth": {"months": 12},
+   "once": true, "important": true,
+   "options": [
+    {"name": "Proteger a los ilustrados", "effects": {"add_country_modifier": {"id": "salon_culture", "months": 60}, "add_consciousness": {"value": 0.3, "strata": "middle"}}, "follow_up": {"id": "national.frk_constitution_debate", "months": 24}, "ai_weight": 6},
+    {"name": "Vigilar los salones", "effects": {"add_militancy": {"value": 0.3, "strata": "middle"}, "add_country_modifier": {"id": "seclusion", "months": 24}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "national.frk_constitution_debate", "scope": "country", "type": "normal", "cadence": "follow_up", "tags": ["FRK"], "art": "parliament",
+   "title": "Frankia: el debate constitucional",
+   "desc": "Los ilustrados piden una carta constitucional. El rey duda.",
+   "important": true,
+   "options": [
+    {"name": "Otorgar una carta", "effects": {"change_reform": {"press": 1}, "add_prestige": 3, "add_militancy": -0.3}, "ai_weight": 5},
+    {"name": "El trono no se discute", "effects": {"add_militancy": {"value": 0.6, "strata": "middle"}}, "follow_up": {"id": "political.protests", "months": 3}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "national.rhe_customs_union", "scope": "country", "type": "normal", "tags": ["RHE", "BAY"], "target": "highest_relation_neighbor", "art": "customs",
+   "title": "Una unión aduanera germánica",
+   "desc": "Los mercaderes renanos y bávaros sueñan con un mercado sin peajes de los Alpes al mar.",
+   "trigger": {"at_war": false, "target_relation": 0},
+   "mtth": {"months": 24},
+   "once": true, "important": true,
+   "options": [
+    {"name": "Proponer la unión aduanera", "effects": {"add_country_modifier": {"id": "customs_union", "months": 0}, "change_relation": 40}, "ai_weight": 6},
+    {"name": "Nuestras aduanas son nuestras", "effects": {"add_prestige": 1}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "national.yam_foreign_ships", "scope": "country", "type": "normal", "tags": ["YAM", "KOR"], "art": "ships",
+   "title": "Barcos extranjeros en la bahía",
+   "desc": "Navíos de casco negro fondean ante el puerto y exigen abrir el país al comercio.",
+   "trigger": {"year": 138},
+   "mtth": {"months": 24},
+   "once": true, "important": true,
+   "options": [
+    {"name": "Abrir los puertos", "effects": {"add_country_modifier": {"id": "open_ports", "months": 0}, "add_militancy": {"value": 0.4, "strata": "rich"}}, "ai_weight": 5},
+    {"name": "Mantener el aislamiento", "effects": {"add_country_modifier": {"id": "seclusion", "months": 120}, "add_prestige": 2}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "national.anh_frontier", "scope": "country", "type": "normal", "tags": ["ANH", "MAY"], "art": "frontier",
+   "title": "La frontera del norte",
+   "desc": "Colonos y mercaderes se aventuran en las tierras áridas del norte.",
+   "trigger": {"year": 137, "at_war": false},
+   "mtth": {"months": 30},
+   "once": true,
+   "options": [
+    {"name": "Fomentar la colonización", "effects": {"add_treasury_ratio": -0.05, "add_country_modifier": {"id": "frontier_settlement", "months": 120}}, "ai_weight": 6},
+    {"name": "Consolidar el corazón del imperio", "effects": {"add_prestige": 1}, "ai_weight": 3}
+   ]
+  }
+ ]
+}

@@ -82,6 +82,7 @@ func military_day() -> void:
 	VNavySystem.daily(gs)
 	VProfiler.end(gs, "navy", t)
 	VMilitaryAI.daily(gs)  # mide «military_ai_land» y «military_ai_navy» por dentro
+	VEventSystem.daily(gs)  # eventos, decisiones de la IA y capa mágica (cubo de naciones del día)
 
 
 func process_bucket(b: int) -> void:
@@ -182,6 +183,9 @@ func on_month() -> void:
 		tt = VProfiler.begin()
 		VPopulationSystem.merge_similar(gs)
 		VProfiler.end(gs, "m_pop_merge", tt)
+	tt = VProfiler.begin()
+	VEventSystem.monthly(gs)
+	VProfiler.end(gs, "m_events", tt)
 	tt = VProfiler.begin()
 	VPopulationSystem.prepare_month(gs)
 	VProfiler.end(gs, "m_population_prepare", tt)

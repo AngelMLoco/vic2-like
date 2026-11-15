@@ -9,7 +9,9 @@ extends RefCounted
 const SAVE_DIR := "user://victoria_mode/saves/"
 ## v3 (milestone 3): diplomacia, influencia, ejércitos, flotas, guerras, CB y rebeldes.
 ## v4 (M3.2): POPs en formato columnar (VPopStore.to_save); las provincias ya no guardan POPs.
-const SAVE_VERSION := 4
+## v5 (M4): estado de eventos (banderas con ámbito, variables, modificadores temporales, historial, cola,
+## eventos programados, decisiones tomadas) y capa mágica de provincia (p["magic"]).
+const SAVE_VERSION := 5
 const MODE_ID := "victoria_mode"
 
 ## v2 (milestone 2): economía, política y tecnología. Las partidas v1 se rechazan con un mensaje.
@@ -27,7 +29,7 @@ const COUNTRY_FIELDS := ["prestige", "treasury", "literacy", "infamy", "war_exha
 	"blockade_ratio", "status", "rank"]
 const PROVINCE_FIELDS := ["owner", "controller", "cores", "occupation", "fort", "naval_base", "infrastructure",
 	"life_rating", "rgo", "culture", "religion", "rgo_data", "avg_life", "unemployment", "rgo_free",
-	"occupation_by", "blockaded_by", "rebel_faction"]
+	"occupation_by", "blockaded_by", "rebel_faction", "magic"]
 
 
 static func list_saves() -> Array:
@@ -102,6 +104,7 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 		"player_tag": gs.player_tag,
 		"flags": gs.flags,
 		"pops": gs.pops.to_save(),
+		"events": gs.event_state,
 		"countries": countries,
 		"provinces": provinces,
 		"state_factories": factories,
@@ -201,6 +204,8 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 			p[k] = provinces[key][k]
 		_fix_pop_numbers(p)
 	gs.pops.from_save(gs, data.get("pops", {}))
+	gs.event_state = data.get("events", {})
+	VScopedState.es(gs)
 	gs.rebuild_territory()
 	for key in gs.state_instances:
 		gs.state_instances[key]["factories"] = []
@@ -233,6 +238,7 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 			c2["truces"][k] = int(c2["truces"][k])
 	VArmySystem.update_counts(gs)
 	VNavySystem.update_counts(gs)
+	VScopedState.rebuild_after_load(gs)
 	VPopulationSystem.refresh_country_caches(gs)
 	VRankingSystem.recalculate(gs)
 	return gs

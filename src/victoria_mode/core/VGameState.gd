@@ -143,6 +143,15 @@ func mod(tag: String, key: String) -> float:
 ## Instancias de estado: "sid:TAG" -> {state, owner, provinces[], factories[]}
 var state_instances := {}
 
+## M4: eventos, decisiones y magia. *_defs/_index/modifiers/magic_rules se cargan de datos (no se guardan);
+## event_state se guarda (banderas con ámbito, variables, modificadores temporales, historial, cola…).
+var event_defs := {}
+var event_index := {}
+var event_modifiers := {}
+var decision_defs := {}
+var magic_rules := {}
+var data_errors: Array = []
+var event_state := {}
 ## POPs: almacén en estructura de arrays (VPopStore). Las provincias guardan p["pop_slots"].
 var pops := VPopStore.new()
 

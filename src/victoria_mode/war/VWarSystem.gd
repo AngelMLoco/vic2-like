@@ -157,6 +157,8 @@ static func declare_war(gs: VGameState, actor: String, cb: Dictionary) -> Dictio
 	gs.set_relation(actor, target, gs.relation(actor, target) - 100)
 	gs.log_event(actor, "Declaramos la guerra a %s (%s)" % [gs.country_name(target), VCasusBelliSystem.cb_def(gs, cb["type"]).get("name", "")])
 	gs.log_event(target, "¡%s nos declara la guerra!" % gs.country_name(actor))
+	VEventSystem.notify(gs, "war_declared", {"tag": actor, "target": target, "war": int(w["id"])})
+	VEventSystem.notify(gs, "war_declared", {"tag": target, "target": actor, "from": actor, "war": int(w["id"])})
 	# defensores: aliados y garantes del objetivo
 	for t in gs.country_order:
 		if t == target or t == actor or gs.countries[t]["provinces"].is_empty():
@@ -294,6 +296,9 @@ static func on_battle_end(gs: VGameState, bt: Dictionary, winner: String) -> voi
 	var winner_tag: String = bt["att_tag"] if winner == "attacker" else bt["def_tag"]
 	var sign := 1.0 if side_of(w, winner_tag) == "attackers" else -1.0
 	w["battle_ws"] = clampf(float(w["battle_ws"]) + delta * sign, -40.0, 40.0)
+	var loser_tag: String = bt["def_tag"] if winner == "attacker" else bt["att_tag"]
+	VEventSystem.notify(gs, "battle_won", {"tag": winner_tag, "target": loser_tag, "prov": int(bt["province"])})
+	VEventSystem.notify(gs, "battle_lost", {"tag": loser_tag, "target": winner_tag, "prov": int(bt["province"])})
 
 
 ## Cambio de controlador (único punto): mantiene la ocupación agregada por nación y la versión.
@@ -496,6 +501,7 @@ static func _daily_sieges(gs: VGameState) -> void:
 				gs.log_event(p["owner"], "Liberada %s" % p["name"])
 			else:
 				gs.log_event(p["owner"], "%s ocupada por %s" % [p["name"], gs.country_name(e["ctrl"])])
+				VEventSystem.notify(gs, "province_occupied", {"tag": p["owner"], "target": e["ctrl"], "prov": int(prov)})
 				if gs.countries.has(e["ctrl"]):
 					gs.log_event(e["ctrl"], "Ocupamos %s (de %s)" % [p["name"], gs.country_name(old)])
 	# los asedios sin ejército se pierden
@@ -593,6 +599,9 @@ static func end_war(gs: VGameState, w: Dictionary, text: String) -> void:
 				if VArmySystem.order_move(gs, a, cap) != "":
 					VUnitIndex.move_army(gs, a, cap)
 	gs.wars.erase(int(w["id"]))
+	for t2 in parts:
+		if gs.countries.has(t2) and not gs.countries[t2]["provinces"].is_empty():
+			VEventSystem.notify(gs, "war_ended", {"tag": t2})
 	VUnitIndex.bump_access(gs)
 	gs.flags["_overlay_dirty"] = true
 

@@ -1,0 +1,99 @@
+{
+ "_doc": "PROTOTYPE / replace later. Perfiles TEMPORALES de country.magic_branches para probar el sistema sobre la geografía de pruebas; no son lore. Se aplican sobre el campo existente magic_branches (no es un sistema paralelo). rules: parámetros de la capa mágica (despertar, yacimientos, magos).",
+ "branches": {
+  "BRI": {
+   "technology": 1,
+   "economy": 1,
+   "military": 0,
+   "politics": 0
+  },
+  "FRK": {
+   "technology": 1,
+   "economy": 0,
+   "military": 1,
+   "politics": 1
+  },
+  "RHE": {
+   "technology": 2,
+   "economy": 1,
+   "military": 0,
+   "politics": 0
+  },
+  "BAY": {
+   "technology": 1,
+   "economy": 0,
+   "military": 0,
+   "politics": 1
+  },
+  "RUT": {
+   "technology": 0,
+   "economy": 1,
+   "military": 2,
+   "politics": 0
+  },
+  "PRS": {
+   "technology": 1,
+   "economy": 1,
+   "military": 1,
+   "politics": 1
+  },
+  "KEM": {
+   "technology": 2,
+   "economy": 1,
+   "military": 0,
+   "politics": 1
+  },
+  "TIA": {
+   "technology": 1,
+   "economy": 2,
+   "military": 1,
+   "politics": 0
+  },
+  "YAM": {
+   "technology": 0,
+   "economy": 0,
+   "military": 2,
+   "politics": 1
+  },
+  "ANH": {
+   "technology": 1,
+   "economy": 1,
+   "military": 1,
+   "politics": 0
+  },
+  "TAW": {
+   "technology": 0,
+   "economy": 2,
+   "military": 0,
+   "politics": 1
+  }
+ },
+ "rules": {
+  "deposit_good": "mana_crystal",
+  "deposit_chance": 0.02,
+  "deposit_output": 1.0,
+  "terrain_weight": {
+   "mountains": 2.5,
+   "hills": 1.6,
+   "forest": 1.3,
+   "jungle": 1.4,
+   "marsh": 1.5,
+   "desert": 1.2,
+   "tundra": 1.1,
+   "arctic": 1.0,
+   "woods": 1.1,
+   "steppe": 0.9,
+   "plains": 0.6,
+   "farmlands": 0.5
+  },
+  "mage_type": "magi",
+  "mage_sources": [
+   "clergy",
+   "clerks",
+   "aristocrats"
+  ],
+  "mage_min_literacy": 0.25,
+  "mage_rate": 0.0004,
+  "mage_min_branch": 1
+ }
+}

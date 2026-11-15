@@ -13,6 +13,7 @@ extends RefCounted
 
 const TIERS := ["life", "everyday", "luxury"]
 const POP_UNIT := 10000.0
+const EMPTY_D := {}
 ## Componentes de la militancia que se acumulan en el diagnóstico (gs.market["mil_diag"]).
 const MIL_PARTS := ["life", "everyday", "unemployment", "luxury", "base_decay", "relaxation", "movement",
 	"war_exhaustion", "modifiers", "reforms"]
@@ -295,6 +296,13 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var growth_mod := float(mods.get("pop_growth", 0.0))
 	# cansancio bélico → militancia (hook del milestone 3)
 	var war_mil := float(c.get("war_exhaustion", 0.0)) / 100.0 * 0.05
+	# modificadores temporales de provincia (eventos): crecimiento, militancia, alfabetización, conciencia
+	var pmods: Dictionary = p.get("pmods", EMPTY_D)
+	if not pmods.is_empty():
+		growth_mod += float(pmods.get("pop_growth", 0.0))
+		war_mil += float(pmods.get("militancy", 0.0))
+		lit_rate *= 1.0 + float(pmods.get("literacy_growth", 0.0))
+		con_mod += float(pmods.get("consciousness_growth", 0.0))
 	# reformas sociales: el subsidio de paro cubre parte del descontento causado por el paro
 	var unemp_relief := clampf(gs.mod(owner, "unemployment_benefit") * float(budget.get("social", 0.0)) * float(c.get("pay_ratio", 1.0)) * float(gs.economy_rules.get("unemployment_relief_factor", 0.0)), 0.0, 0.8)
 	var mil_relax := float(gs.economy_rules.get("militancy_relaxation", 0.0))
@@ -334,6 +342,7 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var s_con := 0.0
 	var s_unemp := 0.0
 	var s_life := 0.0
+	var s_every := 0.0
 	# diagnóstico de militancia (contribuciones × tamaño, solo en los pasos lentos)
 	var d_life := 0.0
 	var d_every := 0.0
@@ -531,6 +540,7 @@ static func process_province(gs: VGameState, id: int) -> void:
 		s_con += a_con[s] * fs
 		s_unemp += unemp * fs
 		s_life += life * fs
+		s_every += every * fs
 		if strata == 0:
 			life_sum += life * fs
 			unemp_sum += unemp * fs
@@ -541,6 +551,7 @@ static func process_province(gs: VGameState, id: int) -> void:
 	agg["con"] = float(agg["con"]) + s_con
 	agg["unemp"] = float(agg["unemp"]) + s_unemp
 	agg["life"] = float(agg["life"]) + s_life
+	agg["every"] = float(agg.get("every", 0.0)) + s_every
 	if d_w > 0.0:
 		var diag: Array[float] = gs.market.get("mil_diag_acc", [] as Array[float])
 		if diag.size() != MIL_PARTS.size() + 1:
@@ -805,6 +816,7 @@ static func refresh_country_caches(gs: VGameState, force_full: bool = false) -> 
 				full["con"] = float(full["con"]) + ps.consciousness[s] * fs
 				full["unemp"] = float(full["unemp"]) + (1.0 - ps.employment[s]) * fs
 				full["life"] = float(full["life"]) + ps.life[s] * fs
+				full["every"] = float(full.get("every", 0.0)) + ps.everyday[s] * fs
 		_apply_agg(gs, c, full, rule != "")
 
 
@@ -835,6 +847,7 @@ static func _apply_agg(gs: VGameState, c: Dictionary, agg: Dictionary, has_votes
 		c["avg_consciousness"] = float(agg["con"]) / total
 		c["unemployment"] = float(agg["unemp"]) / total
 		c["avg_life"] = float(agg["life"]) / total
+		c["avg_everyday"] = float(agg.get("every", 0.0)) / total
 
 
 # ------------------------------------------------------- consultas para UI

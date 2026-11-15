@@ -602,6 +602,61 @@
      "sulphur": 0.14
     }
    }
+  },
+  {
+   "id": "magi",
+   "name": "Magos",
+   "strata": "middle",
+   "color": "9a6af0",
+   "literacy_mult": 3.0,
+   "job": "education",
+   "gov_wage": 140,
+   "spend_fraction": 0.9,
+   "vote_weight": 2,
+   "issue_bias": {},
+   "needs": {
+    "life": {
+     "grain": 5.76,
+     "fish": 1.2,
+     "cattle": 1.48,
+     "fruit": 1.26,
+     "wool": 2.64,
+     "timber": 1.44
+    },
+    "everyday": {
+     "liquor": 0.98,
+     "furniture": 0.616,
+     "regular_clothes": 1.12,
+     "tea": 0.56,
+     "coffee": 0.56,
+     "tobacco": 1.12,
+     "sugar": 0.84,
+     "coal": 0.98,
+     "glass": 0.28,
+     "paper": 0.4,
+     "furs": 0.1,
+     "iron": 0.14,
+     "cotton": 0.336,
+     "dye": 0.014,
+     "arcane_reagents": 0.5
+    },
+    "luxury": {
+     "wine": 0.9,
+     "luxury_clothes": 0.09,
+     "luxury_furniture": 0.09,
+     "spices": 0.6,
+     "canned_food": 0.3,
+     "paper": 0.6,
+     "opium": 0.3,
+     "precious_metal": 0.05,
+     "silk": 0.05,
+     "furs": 0.1,
+     "sulphur": 0.056,
+     "alchemical_elixir": 0.3,
+     "enchanted_components": 0.05
+    }
+   },
+   "_prototype": "PROTOTYPE: primer tipo de POP mágico; funciones especiales pendientes"
   }
  ],
  "initial_distribution": {

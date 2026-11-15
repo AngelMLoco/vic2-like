@@ -437,6 +437,77 @@
     "cement": 6,
     "glass": 10
    }
+  },
+  {
+   "id": "mana_refinery",
+   "name": "Refinería de maná",
+   "inputs": {
+    "mana_crystal": 1.0,
+    "sulphur": 0.3
+   },
+   "outputs": {
+    "arcane_reagents": 2.4
+   },
+   "requires_tech": "mana_refinement",
+   "artisan": false,
+   "workforce": {
+    "craftsmen": 9000,
+    "clerks": 1000
+   },
+   "build_cost": {
+    "lumber": 30,
+    "cement": 10,
+    "glass": 12
+   },
+   "_prototype": true
+  },
+  {
+   "id": "arcane_workshop",
+   "name": "Taller arcano",
+   "inputs": {
+    "arcane_reagents": 1.5,
+    "machine_parts": 0.3,
+    "glass": 0.5
+   },
+   "outputs": {
+    "enchanted_components": 1.6
+   },
+   "requires_tech": "arcane_engineering",
+   "artisan": false,
+   "workforce": {
+    "craftsmen": 8000,
+    "clerks": 2000
+   },
+   "build_cost": {
+    "lumber": 30,
+    "cement": 12,
+    "machine_parts": 6
+   },
+   "_prototype": true
+  },
+  {
+   "id": "alchemy_lab",
+   "name": "Laboratorio alquímico",
+   "inputs": {
+    "arcane_reagents": 0.8,
+    "sugar": 1.0,
+    "glass": 0.3
+   },
+   "outputs": {
+    "alchemical_elixir": 1.4
+   },
+   "requires_tech": "alchemical_medicine",
+   "artisan": false,
+   "workforce": {
+    "craftsmen": 8000,
+    "clerks": 2000
+   },
+   "build_cost": {
+    "lumber": 30,
+    "cement": 8,
+    "glass": 12
+   },
+   "_prototype": true
   }
  ]
 }

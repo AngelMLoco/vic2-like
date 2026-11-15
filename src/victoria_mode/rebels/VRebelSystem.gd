@@ -118,6 +118,7 @@ static func rise(gs: VGameState, f: Dictionary) -> void:
 			VArmySystem.attach_brigade(gs, by_prov[prov], b)
 			made += 1
 	f["risen"] = true
+	VEventSystem.notify(gs, "rebellion_started", {"tag": f["country"]})
 	f["strength"] = made * gs.unit_manpower
 	gs.log_event(tag, "¡Levantamiento! %s: %d brigadas en armas" % [gs.rebel_types.get(f["type"], {}).get("name", "Rebeldes"), made])
 	for army in by_prov.values():
@@ -166,6 +167,7 @@ static func _update_faction(gs: VGameState, f: Dictionary) -> void:
 ## Victoria rebelde: se impone la demanda y la facción se disuelve.
 static func enforce(gs: VGameState, f: Dictionary) -> void:
 	var tag: String = f["country"]
+	VEventSystem.notify(gs, "rebellion_won", {"tag": tag})
 	var c: Dictionary = gs.countries[tag]
 	var t: Dictionary = gs.rebel_types.get(f["type"], {})
 	match t.get("demand", "raise_reform"):

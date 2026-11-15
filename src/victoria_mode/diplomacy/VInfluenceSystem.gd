@@ -222,9 +222,11 @@ static func perform(gs: VGameState, gp: String, action: String, target: String, 
 			e["opinion"] = 5
 			gs.log_event(gp, "%s entra en nuestra esfera de influencia" % gs.country_name(target))
 			gs.log_event(target, "Entramos en la esfera de %s" % gs.country_name(gp))
+			VEventSystem.notify(gs, "country_enters_sphere", {"tag": target, "target": gp})
 		"remove_from_sphere":
 			var old: String = gs.countries[target]["sphere_leader"]
 			gs.countries[target]["sphere_leader"] = ""
+			VEventSystem.notify(gs, "country_leaves_sphere", {"tag": target, "target": old})
 			if old != "" and gs.countries.has(old):
 				entry(gs, old, target)["opinion"] = 3
 				if old != gp:
