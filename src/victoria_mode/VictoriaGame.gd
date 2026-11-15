@@ -206,10 +206,11 @@ func _on_day() -> void:
 
 func _on_month() -> void:
 	sim.on_month()
-	if world_map.mode in ["population", "industry", "military", "literacy", "culture", "religion"]:
+	if world_map.mode in ["population", "industry", "military", "literacy", "culture", "religion", "needs", "migration", "rebels"]:
 		_recolor()
 	province_panel.refresh()
 	top_bar.refresh()
+	nation_window.refresh_month()
 
 
 func _on_clock_state(paused: bool, spd: int) -> void:
@@ -248,6 +249,7 @@ func _set_focus_tag(tag: String) -> void:
 
 
 func _on_ownership_changed() -> void:
+	sim.territory_changed()
 	world_map.refresh_all()
 	labels.rebuild()
 	mapmode_bar.minimap.recolor(world_map.colors)

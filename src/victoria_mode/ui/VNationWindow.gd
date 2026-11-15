@@ -84,16 +84,22 @@ func close() -> void:
 	visible = false
 
 
-## Refresco periódico (cada día/mes) sin perder el scroll.
+## Refresco diario ligero (solo etiquetas del presupuesto).
 func refresh_live() -> void:
+	if visible and tab == "budget":
+		_update_budget_labels()
+
+
+## Refresco mensual: reconstruye la pestaña (salvo presupuesto, para no interrumpir los sliders).
+func refresh_month() -> void:
 	if not visible:
 		return
 	if tab == "budget":
 		_update_budget_labels()
-	elif tab in ["diplomacy", "military", "alerts"]:
-		var sv := _scroll.scroll_vertical
-		rebuild()
-		_scroll.scroll_vertical = sv
+		return
+	var sv := _scroll.scroll_vertical
+	rebuild()
+	_scroll.scroll_vertical = sv
 
 
 func rebuild() -> void:
@@ -156,78 +162,218 @@ func _country() -> Dictionary:
 
 
 # ------------------------------------------------------------ producción
+var _build_type_opt: OptionButton
+var _build_state_opt: OptionButton
+var _build_msg: Label
+
+
+func _msg_label() -> Label:
+	var l := UiTheme.label("", 13, UiTheme.ACCENT)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
+
+
 func _build_production() -> void:
 	var tag := gs.player_tag
-	_section("Estados y fábricas")
-	_note("Las fábricas pertenecen al ESTADO. Un estado dividido entre naciones funciona como partes independientes para cada propietario.")
+	var c := _country()
+	var policy := VProductionSystem.economic_policy(gs, tag)
+	var open := 0
+	var closed := 0
+	var levels := 0
+	var emp := 0
+	var maxw := 0
+	var profit := 0.0
+	for si in gs.country_state_instances(tag):
+		for f in si["factories"]:
+			if f["open"]:
+				open += 1
+			else:
+				closed += 1
+			levels += int(f["level"])
+			emp += int(f["craftsmen_employed"]) + int(f["clerks_employed"])
+			maxw += int(f["max_workers"])
+			profit += float(f["profit"])
+	_section("Industria")
+	_table(["Concepto", "Valor"], [
+		["Fábricas abiertas / cerradas", "%d / %d (niveles: %d)" % [open, closed, levels]],
+		["Empleo industrial", "%s / %s plazas" % [UiTheme.fmt_int(emp), UiTheme.fmt_int(maxw)]],
+		["Beneficio total del último mes", "%+.1f" % profit],
+		["Política económica del gobierno", _policy_name(policy)],
+		["Inversión privada", "Permitida" if policy in gs.economy_rules.get("investment_policies", []) else "No permitida"],
+		["Construcción estatal / subvenciones", "%s / %s" % ["Sí" if policy in gs.economy_rules.get("government_build_policies", []) else "No", "Sí" if policy in gs.economy_rules.get("subsidy_policies", []) else "No"]],
+	], [320, 360])
+	# proyectos
+	if not c.get("projects", []).is_empty():
+		_section("Proyectos en construcción")
+		var prow := []
+		for pr in c["projects"]:
+			var pb := ProgressBar.new()
+			pb.value = float(pr["progress"]) * 100.0
+			pb.custom_minimum_size = Vector2(160, 14)
+			pb.show_percentage = false
+			prow.append([gs.factory_types[pr["type"]]["name"] + (" (ampliación)" if pr["expand"] else ""),
+				gs.states[int(str(pr["state_key"]).split(":")[0])]["name"], "Capitalistas" if pr["investor"] == "capitalists" else "Estado", pb])
+		_table(["Fábrica", "Estado", "Inversor", "Progreso"], prow, [260, 220, 110, 160])
+	# construir (Estado)
+	_section("Construir fábrica (Estado)")
+	var hb := HBoxContainer.new()
+	_build_type_opt = OptionButton.new()
+	var types: Array = gs.factory_types.keys()
+	types.sort()
+	for t in types:
+		var ok := VProductionSystem.can_build_type(gs, tag, t)
+		_build_type_opt.add_item("%s%s · margen %.0f/mes" % [gs.factory_types[t]["name"], "" if ok else " (requiere tecnología)", VProductionSystem.expected_margin(gs, tag, t)])
+		_build_type_opt.set_item_metadata(_build_type_opt.item_count - 1, t)
+		_build_type_opt.set_item_disabled(_build_type_opt.item_count - 1, not ok)
+	hb.add_child(_build_type_opt)
+	_build_state_opt = OptionButton.new()
+	for si in gs.country_state_instances(tag).slice(0, 40):
+		_build_state_opt.add_item(gs.states[si["state"]]["name"])
+		_build_state_opt.set_item_metadata(_build_state_opt.item_count - 1, si["key"])
+	hb.add_child(_build_state_opt)
+	hb.add_child(UiTheme.button("Construir", _on_build))
+	_content.add_child(hb)
+	_build_msg = _msg_label()
+	_content.add_child(_build_msg)
+	# fábricas
+	_section("Fábricas por estado")
 	var rows := []
 	for si in gs.country_state_instances(tag):
-		var st: Dictionary = gs.states[si["state"]]
-		var types := VPopulationSystem.sizes_by(gs, si["provinces"], "type")
-		var fac := []
 		for f in si["factories"]:
-			fac.append("%s n%d" % [gs.factory_types.get(f["type"], {}).get("name", f["type"]), int(f["level"])])
-		var infra := 0.0
-		for id in si["provinces"]:
-			infra += float(gs.provinces[id]["infrastructure"])
-		infra /= max(1, si["provinces"].size())
-		var st_name: String = st["name"] + (" (parte)" if gs.state_is_split(si["state"]) else "")
-		var btn := UiTheme.button(st_name, func(): province_focus.emit(si["provinces"][0]))
-		btn.flat = true
-		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		rows.append([btn, str(si["provinces"].size()), UiTheme.fmt_big(gs.instance_population(si)),
-			UiTheme.fmt_big(types.get("craftsmen", 0)), UiTheme.fmt_big(types.get("clerks", 0)), UiTheme.fmt_big(types.get("capitalists", 0)),
-			"%.1f" % infra, ", ".join(fac) if not fac.is_empty() else "—"])
-	_table(["Estado", "Prov.", "Población", "Obreros", "Oficinistas", "Capitalistas", "Infra.", "Fábricas"], rows, [220, 40, 80, 70, 80, 80, 40, 260])
-	_section("Producción primaria (RGO por provincia)")
+			var ft: Dictionary = gs.factory_types.get(f["type"], {})
+			var st_btn := UiTheme.button(gs.states[si["state"]]["name"], func(): province_focus.emit(si["provinces"][0]))
+			st_btn.flat = true
+			st_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			st_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var ins := []
+			for g in ft.get("inputs", {}):
+				ins.append(gs.good_name(g))
+			var outs := []
+			for g in ft.get("outputs", {}):
+				outs.append(gs.good_name(g))
+			var name_l := UiTheme.label("%s n%d" % [ft.get("name", f["type"]), int(f["level"])], 13)
+			name_l.tooltip_text = "Insumos: %s\nProduce: %s\nStock: %s\nCaja: %.1f" % [", ".join(ins), ", ".join(outs), _fmt_stock(f["stock"]), float(f["cash"])]
+			name_l.mouse_filter = Control.MOUSE_FILTER_PASS
+			var state_txt := "Cerrada" if not f["open"] else ("Subvencionada" if f["subsidized"] else ("Pérdidas" if float(f["profit"]) < 0.0 else "Rentable"))
+			var actions := HBoxContainer.new()
+			var exp_b := UiTheme.button("+", func(): _on_expand(si["key"], f), 26, "Ampliar un nivel (paga el Estado)")
+			actions.add_child(exp_b)
+			var sub_b := UiTheme.button("S" if not f["subsidized"] else "s", func(): _on_subsidy(f), 26, "Activar/desactivar subvención")
+			actions.add_child(sub_b)
+			rows.append([st_btn, name_l, "%s/%s" % [UiTheme.fmt_big(f["craftsmen_employed"]), UiTheme.fmt_big(int(f["max_workers"]) * 0.9)],
+				UiTheme.fmt_big(f["clerks_employed"]), "%.1f" % float(f["output"]), "%.1f" % float(f["revenue"]), "%.1f" % float(f["expenses"]),
+				_colored("%+.1f" % float(f["profit"]), float(f["profit"]) >= 0.0), state_txt, actions])
+	_table(["Estado", "Fábrica", "Obreros", "Oficin.", "Prod.", "Ingresos", "Gastos", "Beneficio", "Situación", ""], rows, [170, 190, 80, 55, 50, 65, 60, 70, 95, 60])
+	_section("Producción primaria (RGO)")
 	var by_good := {}
 	for id in gs.owned_provinces(tag):
-		var p: Dictionary = gs.provinces[id]
-		by_good[p["rgo"]] = by_good.get(p["rgo"], 0) + 1
-	var grows := []
+		var rd: Dictionary = gs.provinces[id].get("rgo_data", {})
+		var g: String = rd.get("good", gs.provinces[id]["rgo"])
+		var e: Array = by_good.get(g, [0, 0, 0, 0.0, 0.0])
+		e[0] += 1
+		e[1] += int(rd.get("workers", 0))
+		e[2] += int(rd.get("max_workers", 0))
+		e[3] += float(rd.get("output", 0.0))
+		e[4] += float(rd.get("revenue", 0.0))
+		by_good[g] = e
 	var keys := by_good.keys()
-	keys.sort_custom(func(a, b): return by_good[a] > by_good[b])
+	keys.sort_custom(func(a, b): return by_good[a][4] > by_good[b][4])
+	var grows := []
 	for g in keys:
-		grows.append([gs.good_name(g), str(by_good[g]), "%.1f" % float(gs.goods.get(g, {}).get("base_price", 0.0))])
-	_table(["Bien", "Provincias", "Precio base"], grows, [220, 90, 90])
+		var e: Array = by_good[g]
+		grows.append([gs.good_name(g), str(e[0]), "%s / %s" % [UiTheme.fmt_big(e[1]), UiTheme.fmt_big(e[2])], "%.1f" % e[3], "%.1f" % e[4],
+			"%.2f" % VMarketSystem.price(gs, g)])
+	_table(["Bien", "Prov.", "Trabajadores / máx.", "Producción/mes", "Ingresos/mes", "Precio"], grows, [200, 50, 170, 110, 110, 70])
+
+
+func _fmt_stock(stock: Dictionary) -> String:
+	var parts := []
+	for g in stock:
+		parts.append("%s %.1f" % [gs.good_name(g), float(stock[g])])
+	return ", ".join(parts) if not parts.is_empty() else "vacío"
+
+
+func _colored(text: String, good: bool) -> Label:
+	return UiTheme.label(text, 13, UiTheme.POSITIVE if good else UiTheme.NEGATIVE)
+
+
+func _policy_name(p: String) -> String:
+	for pos in gs.issues.get("economic_policy", {}).get("positions", []):
+		if pos["id"] == p:
+			return pos["name"]
+	return p
+
+
+func _on_build() -> void:
+	if _build_type_opt.selected < 0 or _build_state_opt.selected < 0:
+		return
+	var t: String = _build_type_opt.get_item_metadata(_build_type_opt.selected)
+	var key: String = _build_state_opt.get_item_metadata(_build_state_opt.selected)
+	var err := VProductionSystem.government_build(gs, gs.player_tag, key, t)
+	_build_msg.text = err if err != "" else "Proyecto iniciado: %s." % gs.factory_types[t]["name"]
+	if err == "":
+		rebuild()
+
+
+func _on_expand(key: String, f: Dictionary) -> void:
+	var err := VProductionSystem.government_build(gs, gs.player_tag, key, f["type"], int(f["id"]))
+	if _build_msg:
+		_build_msg.text = err if err != "" else "Ampliación iniciada."
+	if err == "":
+		rebuild()
+
+
+func _on_subsidy(f: Dictionary) -> void:
+	var err := VProductionSystem.set_subsidy(gs, gs.player_tag, f, not f["subsidized"])
+	if err != "" and _build_msg:
+		_build_msg.text = err
+	else:
+		rebuild()
 
 
 # ------------------------------------------------------------ presupuesto
 func _build_budget() -> void:
 	var c := _country()
 	var b: Dictionary = c["budget"]
-	_section("Ingresos")
+	_section("Ingresos (tipos)")
 	_slider("Impuestos a los pobres", "tax_poor", b)
 	_slider("Impuestos a la clase media", "tax_middle", b)
 	_slider("Impuestos a los ricos", "tax_rich", b)
-	_slider("Aranceles", "tariffs", b)
-	_section("Gastos")
-	_slider("Educación", "education", b)
-	_slider("Administración", "administration", b)
-	_slider("Gasto militar (mantenimiento)", "military", b)
-	_slider("Reserva militar (stockpile)", "stockpile", b)
-	_slider("Gasto social", "social", b)
-	_section("Balance")
-	for k in ["income", "expense", "balance", "treasury", "debt", "bank"]:
+	_slider("Aranceles (sobre importaciones)", "tariffs", b)
+	_section("Gastos (nivel de gasto)")
+	_slider("Educación (salario del clero → alfabetización)", "education", b)
+	_slider("Administración (burócratas → eficiencia fiscal)", "administration", b)
+	_slider("Ejército: salarios de soldados y oficiales", "military", b)
+	_slider("Reserva militar (compra de armas y munición)", "stockpile", b)
+	_slider("Gasto social (paro, pensiones, sanidad)", "social", b)
+	_section("Último mes")
+	for k in ["tax_poor", "tax_middle", "tax_rich", "tariffs", "other", "sep", "education", "administration", "military_wages", "stockpile", "social", "subsidies", "construction", "interest", "sep", "income", "expense", "balance", "treasury", "debt", "bank", "efficiency"]:
+		if k == "sep":
+			_content.add_child(UiTheme.separator())
+			continue
 		var hb := HBoxContainer.new()
-		var nm: String = {"income": "Ingresos diarios", "expense": "Gastos diarios", "balance": "Balance diario",
-			"treasury": "Tesoro", "debt": "Deuda", "bank": "Banco nacional"}[k]
+		var nm: String = {"tax_poor": "Impuestos pobres", "tax_middle": "Impuestos clase media", "tax_rich": "Impuestos ricos",
+			"tariffs": "Aranceles", "other": "Otros ingresos", "education": "Educación", "administration": "Administración",
+			"military_wages": "Salarios militares", "stockpile": "Reserva militar", "social": "Gasto social",
+			"subsidies": "Subvenciones", "construction": "Construcción", "interest": "Intereses de la deuda",
+			"income": "INGRESOS", "expense": "GASTOS", "balance": "BALANCE MENSUAL", "treasury": "Tesoro",
+			"debt": "Deuda (nacional / extranjera)", "bank": "Banco nacional (depósitos / prestado al Estado)",
+			"efficiency": "Eficiencia administrativa / fiscal"}[k]
 		var l := UiTheme.label(nm, 14, UiTheme.TEXT_DIM)
-		l.custom_minimum_size.x = 260
+		l.custom_minimum_size.x = 380
 		hb.add_child(l)
-		var val := UiTheme.label("", 15, UiTheme.TEXT)
+		var val := UiTheme.label("", 14, UiTheme.TEXT)
 		hb.add_child(val)
 		_budget_labels[k] = val
 		_content.add_child(hb)
-	_note("Los aranceles, la deuda y el banco nacional se activarán con el mercado (fase 6). Los impuestos se calculan por estrato a partir de los POPs reales.")
+	_note("Los impuestos se cobran sobre la renta real de los POPs al recibirla. Los aranceles encarecen la parte importada de cada bien para compradores y fábricas. Si el tesoro queda en negativo, el Estado se endeuda (primero con el banco nacional, después con prestamistas extranjeros a mayor interés). Los cambios se notan al cierre del mes.")
 	_update_budget_labels()
 
 
 func _slider(text: String, key: String, b: Dictionary) -> void:
 	var hb := HBoxContainer.new()
 	var l := UiTheme.label(text, 14)
-	l.custom_minimum_size.x = 260
+	l.custom_minimum_size.x = 380
 	hb.add_child(l)
 	var s := HSlider.new()
 	s.min_value = 0
@@ -250,86 +396,205 @@ func _update_budget_labels() -> void:
 	if _budget_labels.is_empty():
 		return
 	var c := _country()
-	var inc := float(c["income_daily"])
-	var expense := float(c["expense_daily"])
-	_budget_labels["income"].text = "%+.2f" % inc
-	_budget_labels["expense"].text = "%.2f" % expense
-	_budget_labels["balance"].text = "%+.2f" % (inc - expense)
+	var last: Dictionary = c.get("budget_last", {})
+	for k in VBudgetSystem.INCOME_KEYS + VBudgetSystem.EXPENSE_KEYS:
+		if _budget_labels.has(k):
+			_budget_labels[k].text = "%.1f" % float(last.get(k, 0.0))
+	var inc := float(c.get("monthly_income", 0.0))
+	var expense := float(c.get("monthly_expense", 0.0))
+	_budget_labels["income"].text = "%+.1f" % inc
+	_budget_labels["expense"].text = "%.1f" % expense
+	_budget_labels["balance"].text = "%+.1f" % (inc - expense)
 	_budget_labels["balance"].add_theme_color_override("font_color", UiTheme.POSITIVE if inc >= expense else UiTheme.NEGATIVE)
 	_budget_labels["treasury"].text = UiTheme.fmt_money(float(c["treasury"]))
-	_budget_labels["debt"].text = UiTheme.fmt_money(0.0)
-	_budget_labels["bank"].text = UiTheme.fmt_money(0.0)
+	var debt := float(c.get("debt", 0.0))
+	var foreign := float(c.get("debt_foreign", 0.0))
+	_budget_labels["debt"].text = "%s  (%s / %s)" % [UiTheme.fmt_money(debt), UiTheme.fmt_money(debt - foreign), UiTheme.fmt_money(foreign)]
+	_budget_labels["debt"].add_theme_color_override("font_color", UiTheme.NEGATIVE if debt > 0.0 else UiTheme.TEXT)
+	var bank: Dictionary = c.get("bank", {})
+	_budget_labels["bank"].text = "%s / %s" % [UiTheme.fmt_money(float(bank.get("deposits", 0.0))), UiTheme.fmt_money(float(bank.get("lent", 0.0)))]
+	_budget_labels["efficiency"].text = "%.0f%% / %.0f%%%s" % [float(c.get("admin_efficiency", 0.0)) * 100.0, float(c.get("tax_efficiency", 0.0)) * 100.0,
+		"  · ¡salarios recortados por deuda!" if float(c.get("pay_ratio", 1.0)) < 1.0 else ""]
 
 
 # ------------------------------------------------------------ tecnología
 func _build_technology() -> void:
+	var tag := gs.player_tag
 	var c := _country()
 	_section("Investigación")
-	_table(["Concepto", "Valor"], [
-		["Puntos acumulados", "%.1f" % float(c.get("research_points", 0.0))],
-		["Puntos diarios", "%.2f" % float(c.get("research_points_daily", 0.0))],
-		["Origen", "Clero alfabetizado × gasto en educación"],
-	], [300, 200])
-	_section("Ramas")
-	_table(["Rama", "Estado"], [["Ejército", "Árbol en fase 8"], ["Armada", "Árbol en fase 8"], ["Comercio", "Árbol en fase 8"],
-		["Cultura", "Árbol en fase 8"], ["Industria", "Árbol en fase 8"]], [300, 200])
-	_section("Magia (configuración nacional)")
-	var mb: Dictionary = c.get("magic_branches", {})
-	var active: bool = gs.flags.get("GLOBAL_MAGIC_ACTIVATED", false)
-	_note("La magia se desbloquea con el acontecimiento mundial GLOBAL_MAGIC_ACTIVATED (%s). Cada nación recibe un número de ramas arcanas por área definido en sus datos." % ("ACTIVADO" if active else "aún no ha ocurrido"))
-	var rows := []
-	for k in mb:
-		rows.append([{"technology": "Tecnología", "economy": "Economía", "military": "Militar", "politics": "Política"}.get(k, k), str(mb[k])])
-	_table(["Área", "Ramas arcanas"], rows, [300, 120])
+	var cur: String = c.get("research", "")
+	var rows := [["Puntos de investigación / mes", "%.1f" % float(c.get("research_points_monthly", 0.0))],
+		["Investigando", gs.technologies.get(cur, {}).get("name", "Nada (elige una tecnología disponible)")]]
+	_table(["Concepto", "Valor"], rows, [320, 400])
+	if cur != "":
+		var pb := ProgressBar.new()
+		pb.max_value = float(gs.technologies[cur]["cost"])
+		pb.value = float(c.get("research_progress", 0.0))
+		pb.custom_minimum_size = Vector2(0, 18)
+		_content.add_child(pb)
+		var rpm := maxf(0.01, float(c.get("research_points_monthly", 0.0)))
+		_note("%.0f / %.0f puntos · unos %d meses restantes" % [float(c.get("research_progress", 0.0)), float(gs.technologies[cur]["cost"]), int(ceil((float(gs.technologies[cur]["cost"]) - float(c.get("research_progress", 0.0))) / rpm))])
+	var grid := HBoxContainer.new()
+	grid.add_theme_constant_override("separation", 8)
+	_content.add_child(grid)
+	for cat in gs.tech_categories:
+		var col := VBoxContainer.new()
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_child(UiTheme.label(cat["name"].to_upper(), 14, UiTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+		var techs := []
+		for t in gs.technologies:
+			if gs.technologies[t]["category"] == cat["id"]:
+				techs.append(t)
+		techs.sort_custom(func(a, b): return int(gs.technologies[a]["tier"]) < int(gs.technologies[b]["tier"]))
+		for t in techs:
+			var td: Dictionary = gs.technologies[t]
+			var done: bool = t in c["technologies"]
+			var avail := VTechnologySystem.can_research(gs, tag, t)
+			var b := Button.new()
+			b.text = td["name"]
+			b.clip_text = true
+			b.custom_minimum_size = Vector2(0, 30)
+			var unl := ""
+			if not td.get("unlocks_factories", []).is_empty():
+				var names := []
+				for f in td["unlocks_factories"]:
+					names.append(gs.factory_types.get(f, {}).get("name", f))
+				unl = "\nDesbloquea: " + ", ".join(names)
+			var pre := []
+			for p in td.get("prerequisites", []):
+				pre.append(gs.technologies.get(p, {}).get("name", p))
+			b.tooltip_text = "%s (nivel %d)\nCoste: %d puntos\nEfectos: %s%s%s" % [td["name"], int(td["tier"]), int(td["cost"]), VModifiers.describe(td.get("effects", {})), unl,
+				("\nRequiere: " + ", ".join(pre)) if not pre.is_empty() else ""]
+			if done:
+				b.add_theme_stylebox_override("normal", UiTheme.box(Color("2d4a2a"), UiTheme.GOLD_DIM, 1, 3, 6))
+				b.disabled = false
+			elif t == cur:
+				b.add_theme_stylebox_override("normal", UiTheme.box(UiTheme.SELECTED, UiTheme.ACCENT, 2, 3, 6))
+			elif not avail:
+				b.disabled = true
+			b.pressed.connect(func():
+				if VTechnologySystem.set_research(gs, tag, t):
+					rebuild())
+			col.add_child(b)
+		grid.add_child(col)
+	_section("Inventos")
+	var irows := []
+	for i in gs.inventions:
+		var inv: Dictionary = gs.inventions[i]
+		var state: String = "Activado" if i in c.get("inventions", []) else ("Posible (%.0f%%/mes)" % (float(inv["chance"]) * (1.0 + float(c.get("literacy", 0.0))) * 100.0) if inv["technology"] in c["technologies"] else "Requiere " + gs.technologies.get(inv["technology"], {}).get("name", ""))
+		irows.append([inv["name"], VModifiers.describe(inv.get("effects", {})), state])
+	_table(["Invento", "Efectos", "Estado"], irows, [240, 340, 220])
+	_note("Magia: %s. Al activarse GLOBAL_MAGIC_ACTIVATED cada nación recibirá ramas arcanas según sus datos (magic_branches)." % ("desbloqueada" if gs.flags.get("magic_unlocked", false) else "aún no desbloqueada (magic_unlocked = false)"))
 
 
 # --------------------------------------------------------------- política
 func _build_politics() -> void:
+	var tag := gs.player_tag
 	var c := _country()
 	var gov: Dictionary = gs.governments.get(c["government"], {})
+	var rp := VPoliticsSystem.ruling_party(gs, tag)
 	_section("Gobierno")
+	var months_left := int(c.get("next_election_month", -1)) - gs.month_index
 	_table(["Concepto", "Valor"], [
 		["Forma de gobierno", gov.get("name", c["government"])],
-		["Descripción", gov.get("description", "")],
-		["Elecciones", "Sí" if gov.get("elections", false) else "No"],
-		["Partido gobernante", "%s (%s)" % [c["ruling_party"]["name"], gs.ideologies.get(c["ruling_party"]["ideology"], {}).get("name", "")]],
+		["Partido gobernante", "%s (%s)" % [rp.get("name", "—"), gs.ideologies.get(rp.get("ideology", ""), {}).get("name", "")]],
+		["Elecciones", ("Sí · próximas en %d meses" % maxi(0, months_left)) if gov.get("elections", false) else "No (el jefe de Estado designa el gobierno)"],
+		["Derecho de voto", gs.reforms["voting"]["levels"][gs.reform_level(tag, "voting")]["name"]],
 	], [260, 500])
-	_section("Opinión ideológica de la población")
-	var mix := VPopulationSystem.ideology_mix(gs, gs.owned_provinces(gs.player_tag))
-	var bar := VStackBar.create(20)
-	var segs := []
-	for k in mix:
-		segs.append([mix[k], gs.ideologies.get(k, {}).get("color_obj", Color.GRAY), gs.ideologies.get(k, {}).get("name", k)])
-	bar.set_segments(segs)
-	_content.add_child(bar)
-	var rows := []
-	var keys := mix.keys()
-	keys.sort_custom(func(a, b): return mix[a] > mix[b])
-	for k in keys:
-		rows.append([gs.ideologies.get(k, {}).get("name", k), "%.1f%%" % (float(mix[k]) * 100.0)])
-	_table(["Ideología", "Apoyo"], rows, [260, 100])
-	_section("Cámara alta (aproximación por POPs ricos)")
-	var rich_ids := gs.owned_provinces(gs.player_tag)
-	var upper := {}
-	var total := 0.0
-	for id in rich_ids:
-		for pop in gs.provinces[id]["pops"]:
-			if gs.pop_types.get(pop["type"], {}).get("strata", "") != "rich":
-				continue
-			for k in pop["ideology"]:
-				upper[k] = upper.get(k, 0.0) + float(pop["ideology"][k]) * float(pop["size"])
-				total += float(pop["ideology"][k]) * float(pop["size"])
-	var urows := []
-	for k in upper:
-		urows.append([gs.ideologies.get(k, {}).get("name", k), "%.1f%%" % (float(upper[k]) / max(1.0, total) * 100.0)])
-	_table(["Ideología", "Escaños"], urows, [260, 100])
+	_msg = _msg_label()
+	if gov.get("elections", false):
+		_content.add_child(UiTheme.button("Convocar elecciones anticipadas", func():
+			VPoliticsSystem.hold_election(gs, tag)
+			rebuild()))
+	var le: Dictionary = c.get("last_election", {})
+	if not le.is_empty():
+		var votes: Array = le["votes"]
+		var segs := []
+		var parties: Array = c["parties"]
+		for i in parties.size():
+			segs.append([float(votes[i]), gs.ideologies.get(parties[i]["ideology"], {}).get("color_obj", Color.GRAY), parties[i]["name"]])
+		_content.add_child(UiTheme.label("Últimas elecciones (%s): gana %s" % [le.get("date", ""), parties[int(le["winner"])]["name"]], 13, UiTheme.TEXT_DIM))
+		var bar := VStackBar.create(18)
+		bar.set_segments(segs)
+		_content.add_child(bar)
+	_section("Partidos")
+	var prow := []
+	var parties2: Array = c["parties"]
+	for i in parties2.size():
+		var p: Dictionary = parties2[i]
+		var pol: Dictionary = p["policies"]
+		var can := VPoliticsSystem.party_can_rule(gs, tag, p)
+		var act: Control = UiTheme.label("Gobierna" if i == int(c["ruling_party_index"]) else ("Puede gobernar" if can else ("Ilegal" if not VPoliticsSystem.party_available(gs, tag, p) else "Excluido")), 13)
+		if gov.get("appoint_ruling_party", false) and can and i != int(c["ruling_party_index"]):
+			act = UiTheme.button("Designar", func():
+				_msg.text = VPoliticsSystem.appoint_party(gs, tag, i)
+				rebuild())
+		prow.append([p["name"], gs.ideologies.get(p["ideology"], {}).get("name", ""), _pos_name("economic_policy", pol.get("economic_policy", "")),
+			_pos_name("trade", pol.get("trade_policy", "")), _pos_name("religious_policy", pol.get("religious_policy", "")),
+			_pos_name("citizenship", pol.get("citizenship_policy", "")), _pos_name("military_policy", pol.get("war_policy", "")), act])
+	_table(["Partido", "Ideología", "Economía", "Comercio", "Religión", "Ciudadanía", "Guerra", ""], prow, [220, 90, 120, 95, 85, 110, 85, 90])
+	_content.add_child(_msg)
+	_section("Cámara alta")
+	var uh: Dictionary = c.get("upper_house", {})
+	var useg := []
+	for k in uh:
+		useg.append([float(uh[k]), gs.ideologies.get(k, {}).get("color_obj", Color.GRAY), gs.ideologies.get(k, {}).get("name", k)])
+	var ub := VStackBar.create(18)
+	ub.set_segments(useg)
+	_content.add_child(ub)
 	_section("Reformas")
-	_note("Reformas políticas y sociales, elecciones, issues y movimientos rebeldes llegan con la fase 7 (datos en data/victoria_mode/reforms).")
+	var rrows := []
+	for rid in gs.reform_order:
+		var r: Dictionary = gs.reforms[rid]
+		var lvl := gs.reform_level(tag, rid)
+		var levels := []
+		for i in r["levels"].size():
+			levels.append(("[%s]" if i == lvl else "%s") % r["levels"][i]["name"])
+		var down := VPoliticsSystem.can_change_reform(gs, tag, rid, -1)
+		var up := VPoliticsSystem.can_change_reform(gs, tag, rid, 1)
+		var box := HBoxContainer.new()
+		var bd := UiTheme.button("-", func():
+			_msg.text = VPoliticsSystem.change_reform(gs, tag, rid, -1)
+			rebuild(), 28, "Retroceder un nivel\n" + (("Apoyo %.0f%% · oposición %.0f%%" % [float(down["support"]) * 100.0, float(down["against"]) * 100.0]) if down["ok"] else down["reason"]))
+		bd.disabled = not down["ok"]
+		var bu := UiTheme.button("+", func():
+			_msg.text = VPoliticsSystem.change_reform(gs, tag, rid, 1)
+			rebuild(), 28, "Avanzar un nivel\n" + (("Apoyo %.0f%% · oposición %.0f%%" % [float(up["support"]) * 100.0, float(up["against"]) * 100.0]) if up["ok"] else up["reason"]))
+		bu.disabled = not up["ok"]
+		box.add_child(bd)
+		box.add_child(bu)
+		rrows.append([r["name"], "Política" if r["type"] == "political" else "Social", " → ".join(levels), box])
+	_table(["Reforma", "Tipo", "Niveles (actual entre corchetes)", ""], rrows, [190, 70, 520, 70])
+	_section("Movimientos")
+	var mrows := []
+	var mvs: Dictionary = c.get("movements", {})
+	for rid in mvs:
+		var mv: Dictionary = mvs[rid]
+		if float(mv["support"]) < 0.002 and float(mv["radicalism"]) < 0.01:
+			continue
+		mrows.append([mv["name"], "%.1f%%" % (float(mv["support"]) * 100.0), "%.0f%%" % (float(mv["organisation"]) * 100.0),
+			_colored("%.0f%%" % (float(mv["radicalism"]) * 100.0), float(mv["radicalism"]) < 0.5), "¡Riesgo de rebelión!" if mv.get("rebel_risk", false) else ""])
+	if mrows.is_empty():
+		_note("No hay movimientos significativos: la población tiene poca conciencia política o sus demandas ya están satisfechas.")
+	else:
+		_table(["Movimiento", "Apoyo", "Organización", "Radicalismo", ""], mrows, [300, 80, 110, 100, 160])
+	_note("Un movimiento reúne a los POPs con conciencia ≥ 1,5 que desean más de una reforma (según sus issues). Si se ignora gana organización y radicalismo, que eleva la militancia de sus partidarios. Conceder la reforma lo desactiva. Las rebeliones armadas llegarán con el milestone militar.")
+
+
+var _msg: Label
+
+
+func _pos_name(issue: String, pos: String) -> String:
+	for p in gs.issues.get(issue, {}).get("positions", []):
+		if p["id"] == pos:
+			return p["name"]
+	return pos
 
 
 # -------------------------------------------------------------- población
 func _build_population() -> void:
 	var tag := gs.player_tag
+	var c := _country()
 	var instances := gs.country_state_instances(tag)
 	var hb := HBoxContainer.new()
 	hb.add_child(UiTheme.label("Filtrar por estado: ", 14, UiTheme.TEXT_DIM))
@@ -347,45 +612,108 @@ func _build_population() -> void:
 	hb.add_child(ob)
 	_content.add_child(hb)
 	var ids: Array = gs.owned_provinces(tag) if _pop_state_filter == 0 else gs.state_part(_pop_state_filter, tag)
-	var types := VPopulationSystem.sizes_by(gs, ids, "type")
+	var agg := {}
 	var total := 0
-	for k in types:
-		total += int(types[k])
-	_section("POPs por tipo  ·  total %s" % UiTheme.fmt_int(total))
-	var rows := []
-	var keys := types.keys()
-	keys.sort_custom(func(a, b): return types[a] > types[b])
-	for k in keys:
-		var sub := []
-		for id in ids:
-			for pop in gs.provinces[id]["pops"]:
-				if pop["type"] == k:
-					sub.append(pop)
-		var lit := 0.0
-		var mil := 0.0
-		var con := 0.0
-		var n := 0.0
-		for pop in sub:
+	var npops := 0
+	for id in ids:
+		for pop in gs.provinces[id]["pops"]:
+			npops += 1
 			var s := float(pop["size"])
-			n += s
-			lit += float(pop["literacy"]) * s
-			mil += float(pop["militancy"]) * s
-			con += float(pop["consciousness"]) * s
-		n = max(n, 1.0)
+			total += int(pop["size"])
+			var e: Dictionary = agg.get(pop["type"], {"size": 0.0, "n": 0, "lit": 0.0, "mil": 0.0, "con": 0.0, "emp": 0.0, "life": 0.0, "every": 0.0, "lux": 0.0, "income": 0.0, "cash": 0.0})
+			e["size"] += s
+			e["n"] += 1
+			e["lit"] += float(pop["literacy"]) * s
+			e["mil"] += float(pop["militancy"]) * s
+			e["con"] += float(pop["consciousness"]) * s
+			e["emp"] += float(pop["employment"]) * s
+			e["life"] += float(pop["needs_satisfaction"]["life"]) * s
+			e["every"] += float(pop["needs_satisfaction"]["everyday"]) * s
+			e["lux"] += float(pop["needs_satisfaction"]["luxury"]) * s
+			e["income"] += float(pop["income"])
+			e["cash"] += float(pop["cash"])
+			agg[pop["type"]] = e
+	var mob: Dictionary = c.get("acc_mobility_last", {})
+	_section("Resumen  ·  %s personas en %d POPs" % [UiTheme.fmt_int(total), npops])
+	_table(["Último mes", "Personas"], [
+		["Promocionados (a un estrato superior)", UiTheme.fmt_int(mob.get("promoted", 0))],
+		["Democionados (a un estrato inferior)", UiTheme.fmt_int(mob.get("demoted", 0))],
+		["Cambio de oficio (mismo estrato)", UiTheme.fmt_int(mob.get("changed_job", 0))],
+		["Migración interna", UiTheme.fmt_int(mob.get("migrated", 0))],
+		["Emigrantes / inmigrantes", "%s / %s" % [UiTheme.fmt_int(mob.get("emigrated", 0)), UiTheme.fmt_int(mob.get("immigrated", 0))]],
+		["Desempleo medio", "%.1f%%" % (float(c.get("unemployment", 0.0)) * 100.0)],
+	], [360, 160])
+	_section("POPs por tipo")
+	var rows := []
+	var keys := agg.keys()
+	keys.sort_custom(func(a, b): return agg[a]["size"] > agg[b]["size"])
+	for k in keys:
+		var e: Dictionary = agg[k]
+		var n := maxf(1.0, float(e["size"]))
 		var sw := ColorRect.new()
 		sw.color = gs.pop_types.get(k, {}).get("color_obj", Color.GRAY)
-		sw.custom_minimum_size = Vector2(14, 14)
-		var name_box := HBoxContainer.new()
-		name_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_box.add_child(sw)
-		name_box.add_child(UiTheme.label(gs.pop_type_name(k), 13))
-		rows.append([name_box, gs.pop_types.get(k, {}).get("strata", ""), UiTheme.fmt_int(types[k]), "%.1f%%" % (float(types[k]) / max(1, total) * 100.0),
-			"%.1f%%" % (lit / n * 100.0), "%.2f" % (mil / n), "%.2f" % (con / n), str(sub.size())])
-	_table(["Tipo", "Estrato", "Tamaño", "%", "Alfab.", "Milit.", "Conc.", "POPs"], rows, [220, 70, 100, 60, 70, 60, 60, 50])
+		sw.custom_minimum_size = Vector2(12, 12)
+		var nb := HBoxContainer.new()
+		nb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nb.add_child(sw)
+		var nl := UiTheme.label(gs.pop_type_name(k), 13)
+		nl.tooltip_text = _needs_tooltip(k)
+		nl.mouse_filter = Control.MOUSE_FILTER_PASS
+		nb.add_child(nl)
+		rows.append([nb, UiTheme.fmt_big(e["size"]), "%.0f%%" % (float(e["size"]) / maxf(1.0, float(total)) * 100.0),
+			"%.0f%%" % (e["emp"] / n * 100.0), _need_cell(e["life"] / n), _need_cell(e["every"] / n), _need_cell(e["lux"] / n),
+			"%.1f" % (e["income"] / n * 10000.0), "%.0f%%" % (e["lit"] / n * 100.0), "%.2f" % (e["con"] / n), "%.2f" % (e["mil"] / n), str(e["n"])])
+	_table(["Tipo", "Tamaño", "%", "Empleo", "Vida", "Diario", "Lujo", "Renta/10k", "Alfab.", "Conc.", "Milit.", "POPs"], rows, [170, 70, 40, 60, 50, 50, 50, 75, 55, 50, 50, 45])
+	_note("Pasa el ratón sobre un tipo para ver su cesta de necesidades. Vida/Diario/Lujo = fracción satisfecha el último mes.")
+	_section("Ideología")
+	var mix := VPopulationSystem.ideology_mix(gs, ids)
+	var bar := VStackBar.create(18)
+	var segs := []
+	for k in mix:
+		segs.append([mix[k], gs.ideologies.get(k, {}).get("color_obj", Color.GRAY), gs.ideologies.get(k, {}).get("name", k)])
+	bar.set_segments(segs)
+	_content.add_child(bar)
+	_section("Issues (posición mayoritaria)")
+	var iss := {}
+	for id in ids:
+		for pop in gs.provinces[id]["pops"]:
+			for k in pop.get("issues", {}):
+				var d: Dictionary = iss.get(k, {})
+				d[pop["issues"][k]] = float(d.get(pop["issues"][k], 0.0)) + float(pop["size"])
+				iss[k] = d
+	var irows := []
+	for k in iss:
+		var d: Dictionary = iss[k]
+		var best := ""
+		var bv := 0.0
+		var tot := 0.0
+		for pos in d:
+			tot += float(d[pos])
+			if float(d[pos]) > bv:
+				bv = float(d[pos])
+				best = pos
+		irows.append([gs.issues.get(k, {}).get("name", k), _pos_name(k, best), "%.0f%%" % (bv / maxf(1.0, tot) * 100.0)])
+	_table(["Cuestión", "Posición mayoritaria", "Apoyo"], irows, [220, 240, 80])
 	_section("Culturas")
 	_shares_table(VPopulationSystem.sizes_by(gs, ids, "culture"), func(k): return gs.culture_name(k))
 	_section("Religiones")
 	_shares_table(VPopulationSystem.sizes_by(gs, ids, "religion"), func(k): return gs.religion_name(k))
+
+
+func _need_cell(v: float) -> Label:
+	var col := UiTheme.POSITIVE if v >= 0.8 else (UiTheme.TEXT if v >= 0.4 else UiTheme.NEGATIVE)
+	return UiTheme.label("%.0f%%" % (v * 100.0), 13, col)
+
+
+func _needs_tooltip(type_id: String) -> String:
+	var lines := []
+	for tier in VPopulationSystem.TIERS:
+		var b := VPopulationSystem.needs_basket(gs, type_id, tier)
+		var parts := []
+		for g in b:
+			parts.append("%s %.2f" % [gs.good_name(g), float(b[g])])
+		lines.append("%s: %s" % [{"life": "Vida", "everyday": "Diario", "luxury": "Lujo"}[tier], ", ".join(parts)])
+	return "Necesidades por 10.000 personas/mes\n" + "\n".join(lines)
 
 
 func _shares_table(d: Dictionary, namer: Callable) -> void:
@@ -396,31 +724,79 @@ func _shares_table(d: Dictionary, namer: Callable) -> void:
 	keys.sort_custom(func(a, b): return d[a] > d[b])
 	var rows := []
 	for k in keys:
-		rows.append([namer.call(k), UiTheme.fmt_int(d[k]), "%.1f%%" % (float(d[k]) / max(1, total) * 100.0)])
+		rows.append([namer.call(k), UiTheme.fmt_int(d[k]), "%.1f%%" % (float(d[k]) / maxf(1.0, float(total)) * 100.0)])
 	_table(["Nombre", "Población", "%"], rows, [260, 120, 70])
 
 
 # --------------------------------------------------------------- comercio
 func _build_trade() -> void:
-	_section("Catálogo de bienes")
-	_note("Mercado interno → mercado de esfera → mercado mundial, con oferta/demanda y precios dinámicos: fase 6. Aquí se muestra el catálogo y la base productiva mundial actual (RGOs).")
-	var world := {}
-	for id in range(1, gs.first_sea_id):
-		var g: String = gs.provinces[id]["rgo"]
-		world[g] = world.get(g, 0) + 1
-	var cats := {"raw": "Materia prima", "industrial": "Industrial", "consumer": "Consumo", "luxury": "Lujo", "military": "Militar", "fantasy": "Fantástico (bloqueado)"}
+	var tag := gs.player_tag
+	_section("Mercado (mes anterior)")
+	_note("Orden de compra: mercado interno → esfera de influencia → mercado mundial (las potencias mejor clasificadas importan primero). Precio mundial dinámico según oferta y demanda, entre 0,25× y 4× el precio base. Arancel actual: %.0f%%." % (float(_country()["budget"].get("tariffs", 0.0)) * 100.0))
+	var cats := {"raw": "Materia prima", "industrial": "Industrial", "consumer": "Consumo", "luxury": "Lujo", "military": "Militar", "fantasy": "Fantástico"}
+	var w: Dictionary = gs.market.get("world", {})
 	var rows := []
-	for gid in gs.goods:
-		var g: Dictionary = gs.goods[gid]
+	var goods: Array = gs.goods.keys()
+	goods.sort_custom(func(a, b): return [gs.goods[a]["category"], a] < [gs.goods[b]["category"], b])
+	for g in goods:
+		var gd: Dictionary = gs.goods[g]
+		if not VMarketSystem.is_available(gs, g):
+			continue
+		var cg := VMarketSystem.country_good(gs, tag, g)
+		var p := VMarketSystem.price(gs, g)
+		var base := float(gd["base_price"])
 		var sw := ColorRect.new()
-		sw.color = g["color_obj"]
-		sw.custom_minimum_size = Vector2(14, 14)
+		sw.color = gd["color_obj"]
+		sw.custom_minimum_size = Vector2(12, 12)
 		var nb := HBoxContainer.new()
 		nb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nb.add_child(sw)
-		nb.add_child(UiTheme.label(g["name"], 13))
-		rows.append([nb, cats.get(g["category"], g["category"]), "%.2f" % float(g["base_price"]), str(world.get(gid, 0)) if g.get("rgo") != null else "—"])
-	_table(["Bien", "Categoría", "Precio base", "Provincias RGO (mundo)"], rows, [240, 180, 100, 160])
+		nb.add_child(UiTheme.label(gd["name"], 13))
+		var hist: Array = gs.market["history"].get(g, [])
+		rows.append([nb, cats.get(gd["category"], gd["category"]), _colored("%.2f" % p, p >= base), VSparkline.create(hist, base),
+			UiTheme.fmt_big(float(w.get("supply", {}).get(g, 0.0))), UiTheme.fmt_big(float(w.get("demand", {}).get(g, 0.0))),
+			"%.1f" % cg["supply"], "%.1f" % cg["demand"], "%.1f" % cg["imports"], "%.1f" % cg["exports"],
+			"%.0f%%" % (VMarketSystem.fill_buy(gs, tag, g) * 100.0)])
+	_table(["Bien", "Categoría", "Precio", "Historial", "Oferta mund.", "Demanda mund.", "Oferta nac.", "Demanda nac.", "Import.", "Export.", "Abastec."], rows, [150, 90, 50, 90, 80, 85, 75, 80, 60, 60, 60])
+	_note("Abastecimiento = fracción de la demanda nacional atendida. La escasez reduce la satisfacción de necesidades y la producción de las fábricas.")
+
+
+func _build_alerts() -> void:
+	var c := _country()
+	_section("Alertas")
+	var any := false
+	for w in c["wars"]:
+		_note("En guerra: %s contra %s." % [w["name"], gs.country_name(w["enemy"])])
+		any = true
+	if float(c.get("monthly_balance", 0.0)) < 0.0:
+		_note("El presupuesto tiene balance mensual negativo.")
+		any = true
+	if float(c.get("debt", 0.0)) > 0.0:
+		_note("Deuda: %s." % UiTheme.fmt_money(float(c["debt"])))
+		any = true
+	if c.get("research", "") == "":
+		_note("No se está investigando ninguna tecnología.")
+		any = true
+	for rid in c.get("movements", {}):
+		if c["movements"][rid].get("rebel_risk", false):
+			_note("Movimiento radicalizado: %s." % c["movements"][rid]["name"])
+			any = true
+	if not any:
+		_note("Sin alertas.")
+	_section("Acontecimientos recientes")
+	var n := 0
+	for i in range(gs.log_entries.size() - 1, -1, -1):
+		var e: Dictionary = gs.log_entries[i]
+		if e["tag"] != gs.player_tag:
+			continue
+		_note("%s — %s" % [e["date"], e["text"]])
+		n += 1
+		if n >= 40:
+			break
+	if n == 0:
+		_note("Todavía no ha ocurrido nada destacable.")
+	_section("Rendimiento de la simulación")
+	_note(VProfiler.report(gs))
 
 
 # ------------------------------------------------------------- diplomacia
@@ -489,17 +865,3 @@ func _build_military() -> void:
 			rows.append([b, str(p["fort"]), str(p["naval_base"])])
 	_table(["Provincia", "Fortificación", "Base naval"], rows, [300, 100, 100])
 	_note("Ejércitos y flotas físicos en el mapa (movimiento provincia a provincia, supply, attrition, generales, transporte naval) llegan en las fases 10–12.")
-
-
-func _build_alerts() -> void:
-	var c := _country()
-	_section("Alertas")
-	var any := false
-	for w in c["wars"]:
-		_note("En guerra: %s contra %s." % [w["name"], gs.country_name(w["enemy"])])
-		any = true
-	if float(c["income_daily"]) < float(c["expense_daily"]):
-		_note("El presupuesto tiene balance diario negativo.")
-		any = true
-	if not any:
-		_note("Sin alertas.")

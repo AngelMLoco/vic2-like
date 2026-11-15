@@ -196,14 +196,19 @@ func refresh() -> void:
 	var bal := float(c["income_daily"]) - float(c["expense_daily"])
 	_set_stat("prestige", "%d" % int(c["prestige"]), "Prestigio: %d\nPuntuación industrial: %d\nPuntuación militar: %d\nTotal: %d (ranking nº %d)" % [
 		int(c["prestige"]), int(c["industry_score"]), int(c["military_score"]), int(c["total_score"]), int(c["rank"])])
-	_set_stat("budget", UiTheme.fmt_money(float(c["treasury"])), "Tesoro: %s\nIngresos diarios: %+.1f\nGastos diarios: %.1f\nBalance diario: %+.1f" % [
-		UiTheme.fmt_money(float(c["treasury"])), float(c["income_daily"]), float(c["expense_daily"]), bal])
+	_set_stat("budget", UiTheme.fmt_money(float(c["treasury"])), "Tesoro: %s\nIngresos del último mes: %+.1f\nGastos del último mes: %.1f\nBalance mensual: %+.1f\nDeuda: %s" % [
+		UiTheme.fmt_money(float(c["treasury"])), float(c.get("monthly_income", 0.0)), float(c.get("monthly_expense", 0.0)), bal * 30.0, UiTheme.fmt_money(float(c.get("debt", 0.0)))])
 	_stats["budget"]["value"].add_theme_color_override("font_color", UiTheme.POSITIVE if bal >= 0.0 else UiTheme.NEGATIVE)
 	var pop := int(c.get("population", gs.country_population(tag)))
 	_set_stat("population", UiTheme.fmt_big(pop), "Población total: %s\nProvincias: %d" % [UiTheme.fmt_int(pop), c["provinces"].size()])
 	var lit := VPopulationSystem.weighted_average(gs, [int(c["capital"])], "literacy") if int(c["capital"]) > 0 else 0.0
 	_set_stat("literacy", "%d%%" % int(round(float(c["literacy"]) * 100.0)), "Alfabetización nacional: %.1f%%\n(capital: %.1f%%)" % [float(c["literacy"]) * 100.0, lit * 100.0])
-	_set_stat("technology", "%.1f" % float(c.get("research_points", 0.0)), "Puntos de investigación acumulados: %.1f\nDiarios: %+.2f (clero alfabetizado y gasto en educación)" % [float(c.get("research_points", 0.0)), float(c.get("research_points_daily", 0.0))])
+	var res: String = c.get("research", "")
+	var prog := ""
+	if res != "":
+		prog = "%s: %.0f / %.0f" % [gs.technologies[res]["name"], float(c.get("research_progress", 0.0)), float(gs.technologies[res]["cost"])]
+	_set_stat("technology", ("%.0f%%" % (float(c.get("research_progress", 0.0)) / float(gs.technologies[res]["cost"]) * 100.0)) if res != "" else "—",
+		"Investigación: %s\nPuntos al mes: %.1f (clero y oficinistas alfabetizados, educación, prestigio)" % [prog if prog != "" else "ninguna (abre Tecnología)", float(c.get("research_points_monthly", 0.0))])
 	_set_stat("infamy", "%.1f" % float(c["infamy"]), "Infamia: %.1f / 25\nPor encima de 25 la nación se convierte en paria." % float(c["infamy"]))
 	_set_stat("exhaustion", "%.1f" % float(c["war_exhaustion"]), "Cansancio bélico: %.1f" % float(c["war_exhaustion"]))
 	var wars: Array = c["wars"]

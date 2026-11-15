@@ -160,15 +160,14 @@ func refresh() -> void:
 	t += _kv("Terreno", gs.terrain_name(p["terrain"]))
 	t += _kv("Life rating", "%d" % int(p["life_rating"]))
 	var good: Dictionary = gs.goods.get(p["rgo"], {})
-	var workers := 0
-	var worker_type := "farmers" if good.get("rgo", "farm") == "farm" else "labourers"
-	for pp in p["pops"]:
-		if pp["type"] == worker_type:
-			workers += int(pp["size"])
-	var eff := float(gs.terrain_types.get(p["terrain"], {}).get("rgo_efficiency", 1.0))
-	var output := float(workers) / 40000.0 * eff * (1.0 + 0.1 * int(p["infrastructure"]))
-	t += _kv("RGO", "[color=#%s]■[/color] %s  ·  %s %s" % [good.get("color", "ffffff"), good.get("name", p["rgo"]), UiTheme.fmt_int(workers), gs.pop_type_name(worker_type).to_lower()])
-	t += _kv("Producción RGO", "%.2f unidades/día  [color=#7f7562](precio base %.1f)[/color]" % [output, float(good.get("base_price", 0.0))])
+	var rd: Dictionary = p.get("rgo_data", {})
+	var worker_type := VProductionSystem.rgo_worker_type(gs, p["rgo"])
+	t += _kv("RGO", "[color=#%s]■[/color] %s  ·  %s / %s %s" % [good.get("color", "ffffff"), good.get("name", p["rgo"]),
+		UiTheme.fmt_int(rd.get("workers", 0)), UiTheme.fmt_int(rd.get("max_workers", 0)), gs.pop_type_name(worker_type).to_lower()])
+	t += _kv("Producción RGO", "%.2f/mes · ingresos %.1f · eficiencia %.0f%%  [color=#7f7562](precio %.2f)[/color]" % [float(rd.get("output", 0.0)),
+		float(rd.get("revenue", 0.0)), float(rd.get("efficiency", 1.0)) * 100.0, VMarketSystem.price(gs, p["rgo"])])
+	t += _kv("Necesidades (pobres)", "vida %.0f%% · diario %.0f%% · paro %.0f%%" % [float(p.get("avg_life", 1.0)) * 100.0,
+		VPopulationSystem.needs_average(gs, [province_id], "everyday") * 100.0, float(p.get("unemployment", 0.0)) * 100.0])
 	t += _kv("Infraestructura", "%d" % int(p["infrastructure"]))
 	t += _kv("Fortificación", "%d" % int(p["fort"]))
 	t += _kv("Base naval", ("%d" % int(p["naval_base"])) if p["coastal"] else "— (interior)")

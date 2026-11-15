@@ -21,10 +21,10 @@ const MODES := [
 	{"id": "states", "name": "Estados", "key": "0", "available": true, "desc": "Cada parte de estado con su propio color."},
 	{"id": "infrastructure", "name": "Infraestructura", "key": "", "available": true, "desc": "Nivel de infraestructura."},
 	{"id": "literacy", "name": "Alfabetización", "key": "", "available": true, "desc": "Alfabetización media de los POPs."},
-	{"id": "rebels", "name": "Rebelión", "key": "", "available": false, "desc": "Disponible con la fase de política (movimientos y rebeldes)."},
+	{"id": "rebels", "name": "Militancia", "key": "", "available": true, "desc": "Militancia media de los POPs (las facciones rebeldes llegarán con el milestone militar)."},
 	{"id": "sphere", "name": "Esferas", "key": "", "available": false, "desc": "Disponible con la fase de diplomacia (influencia y esferas)."},
-	{"id": "migration", "name": "Migración", "key": "", "available": false, "desc": "Disponible con la fase de POPs (migración)."},
-	{"id": "needs", "name": "Necesidades", "key": "", "available": false, "desc": "Disponible con la fase de economía (necesidades de POPs)."},
+	{"id": "migration", "name": "Desempleo", "key": "", "available": true, "desc": "Desempleo de los POPs pobres (principal motor de la migración)."},
+	{"id": "needs", "name": "Necesidades", "key": "", "available": true, "desc": "Satisfacción de necesidades vitales de los POPs pobres."},
 	{"id": "colonial", "name": "Colonización", "key": "", "available": false, "desc": "Disponible con la fase de colonización."},
 	{"id": "supply", "name": "Suministro", "key": "", "available": false, "desc": "Disponible con la fase militar (supply y attrition)."},
 ]
@@ -128,6 +128,19 @@ static func color_of(gs: VGameState, mode: String, id: int, focus_tag: String, c
 		"infrastructure":
 			var lv := int(p.get("infrastructure", 0))
 			return Color("3e3a30").lerp(Color("e8d07a"), clamp(float(lv) / 3.0, 0.0, 1.0)) if owner != "" else UNOWNED.darkened(0.35)
+		"needs":
+			if owner == "":
+				return UNOWNED.darkened(0.35)
+			return Color("8a2a1a").lerp(Color("e8d07a"), clampf(float(p.get("avg_life", 1.0)) * 1.4 - 0.4, 0.0, 1.0)).lerp(Color("5ab05a"), clampf(float(p.get("avg_life", 1.0)) - 0.85, 0.0, 0.15) / 0.15)
+		"migration":
+			if owner == "":
+				return UNOWNED.darkened(0.35)
+			return Color("3e5a3a").lerp(Color("e05a3a"), clampf(float(p.get("unemployment", 0.0)) * 4.0, 0.0, 1.0))
+		"rebels":
+			if owner == "":
+				return UNOWNED.darkened(0.35)
+			var mil := VPopulationSystem.weighted_average(gs, [id], "militancy")
+			return Color("4a5a4a").lerp(Color("c81a1a"), clampf(mil / 5.0, 0.0, 1.0))
 		"literacy":
 			var lit := VPopulationSystem.weighted_average(gs, [id], "literacy")
 			return Color("4a2a2a").lerp(Color("7ad8a8"), clamp(lit * 1.6, 0.0, 1.0))
@@ -184,4 +197,10 @@ static func legend(gs: VGameState, mode: String) -> Array:
 			return [[Color("3e3a30"), "Sin infraestructura"], [Color("e8d07a"), "Infraestructura alta"]]
 		"literacy":
 			return [[Color("4a2a2a"), "Analfabeta"], [Color("7ad8a8"), "Alfabetizada"]]
+		"needs":
+			return [[Color("8a2a1a"), "Hambre"], [Color("e8d07a"), "Vida cubierta en parte"], [Color("5ab05a"), "Vida cubierta"]]
+		"migration":
+			return [[Color("3e5a3a"), "Pleno empleo"], [Color("e05a3a"), "Paro ≥ 25%"]]
+		"rebels":
+			return [[Color("4a5a4a"), "Calma"], [Color("c81a1a"), "Militancia alta"]]
 	return []
