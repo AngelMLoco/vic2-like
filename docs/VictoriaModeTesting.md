@@ -314,3 +314,83 @@ integradas por POP y mes. Las micro-optimizaciones posteriores ya daban ganancia
 * **Recomendación:** la simulación ya está a ≈3 % del mínimo pedido y es determinista. Si el objetivo
   de 3–6 s/año es firme, merece la pena mover esos tres o cuatro bucles a C# con la API de arriba. Si basta con
   ≈8 s, no hace falta todavía. Pendiente de decisión.
+
+## Milestone 4 — Eventos, decisiones y despertar mágico
+
+### Comandos
+
+```
+godot --headless --path . res://tests/VictoriaEventTest.tscn        # motor de eventos y decisiones
+godot --headless --path . res://tests/VictoriaMagicTest.tscn        # despertar, ramas, yacimientos, cadena mágica
+godot --headless --path . res://tests/VictoriaPerformanceBenchmark.tscn -- 10
+godot --headless --path . res://tests/VictoriaBalanceTest.tscn -- 50
+godot --path . res://tests/VictoriaScreenshots.tscn -- <carpeta>   # incluye m4_event_popup, m4_world_event, m4_decisions_chronicle
+```
+
+Variables de entorno:
+
+| Variable | Efecto |
+|---|---|
+| `VBENCH_EVENTS=0` / `VBAL_EVENTS=0` | desactiva eventos, decisiones y magia (huella idéntica a `cda9ee0`) |
+| `VBENCH_NO_MAGIC=1` / `VBAL_NO_MAGIC=1` | eventos activos, pero el despertar mágico nunca ocurre |
+
+Depuración en partida o en pruebas: `VEventDebug.run(gs, "fire_event magic.awakening")`,
+`"take_decision found_arcane_academy PRS"`, `"activate_magic"`, `"list_available_decisions FRK"`, `"list_events"`.
+
+### Pruebas automáticas (todas con 0 fallos)
+
+| Escena | Comprobaciones |
+|---|---|
+| VictoriaEventTest | 76 (carga y errores de datos, triggers, once, cooldown, MTTH, ámbitos, banderas, IA, follow-ups, modificadores y caducidad, on_action, cola del jugador, decisiones, frecuencia en 3 años, guardado v5 y rechazo de v4) |
+| VictoriaMagicTest | 39 (bloqueo previo, despertar, ramas, yacimientos deterministas, oferta de cristal, refinería, magos, cadena integrada con PRS, guardado) |
+| VPopStoreTest / VictoriaM3Test / VictoriaSmokeTest | 28 / 80 / 53, sin regresiones |
+
+### Rendimiento (mismo equipo, 10 años, misma partida)
+
+| Configuración | Media | Tramo 5→10 |
+|---|---|---|
+| Eventos desactivados | 8,16 s/año | 8,30 s/año |
+| Eventos + decisiones + magia | 8,72 s/año | 9,03 s/año |
+
+Con eventos desactivados, la huella coincide con `cda9ee0` (306 ejércitos, 1873 brigadas, 227 fábricas).
+Coste añadido total ≈ +0,56 s/año: el coste directo del sistema más los efectos emergentes de una economía
+distinta (más brigadas y guerras, nuevas fábricas y POPs de magos). Coste directo medido por el perfilador:
+
+| Sección | ms/año |
+|---|---|
+| Planificador de eventos (total) | 474 |
+| · evaluación de triggers | 198 |
+| · efectos | 12 |
+| · IA de eventos | 1 |
+| Decisiones (IA) | 55 |
+| Magia (mensual) | 50 |
+
+En 10 años: 1013 eventos disparados, 170 476 eventos considerados, 137 743 evaluaciones de triggers y
+2619 on_actions. Sin magia, el planificador costaba ≈0,23 s/año (+0,11 s/año en total).
+
+### 50 años (`VictoriaBalanceTest -- 50`, 0 problemas)
+
+| Año | Población | Vida | Diario | Paro | Militancia | Consciencia | Fábricas | Guerras | Facciones rebeldes | Eventos | Magos |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 10 | 740 M | 0,80 | 0,39 | 0,03 | 0,33 | 0,29 | 194 | 37 | 0 | 1013 | 11 027 |
+| 20 | 792 M | 0,80 | 0,36 | 0,06 | 0,21 | 0,24 | 252 | 66 | 6 | 2190 | 22 306 |
+| 30 | 852 M | 0,79 | 0,34 | 0,08 | 0,18 | 0,34 | 394 | 87 | 13 | 3415 | 44 440 |
+| 40 | 898 M | 0,75 | 0,35 | 0,10 | 0,40 | 0,77 | 506 | 107 | 16 | 4847 | 84 820 |
+| 50 | 955 M | 0,71 | 0,35 | 0,14 | 0,79 | 1,35 | 479 | 126 | 35 | 6332 | 160 071 |
+
+A los 50 años: 785 decisiones, 143 yacimientos mágicos y 1307 entradas de crónica. La militancia y la
+consciencia suben al final, como en M3.2; 23 naciones tienen riesgo de rebelión.
+
+### Frecuencia para el jugador
+
+Antes del despertar y en paz, FRK recibe unas 2 ventanas al año (la prueba midió 6 en 3 años). Con guerra o
+crisis suben a 3–6. Las de tipo *normal* tienen un tope de 2 por nación y mes; las *major*, *notification* y
+*hidden* no cuentan para ese tope.
+
+### Diagnóstico: deflación a los 50 años (resuelto)
+
+La primera versión daba a los 50 años una mediana de precios de 0,25 y tesoros a 0. Las ejecuciones aisladas
+(sin eventos, eventos sin magia y con magia) señalaron a la magia. El elixir alquímico estaba en la cesta de
+lujo de aristócratas y capitalistas y era casi inalcanzable, así que bloqueaba el gasto en lujo extra: los
+ricos atesoraban en los bancos y el dinero dejaba de circular. Se quitó el elixir de esas cestas. Además, los
+costes de eventos y decisiones van ahora a los POPs del país (`VEventEffects.spend`) en vez de destruirse.

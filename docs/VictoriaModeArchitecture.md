@@ -411,3 +411,109 @@ Correcciones (sin bonificaciones globales):
   (`unemployment_relief_factor` × nivel de la reforma × presupuesto social, con un máximo del 80 %).
 * **Movimientos que no crecen:** su radicalismo se enfría 0,01 por trimestre.
 * **Cansancio bélico:** ya decaía 1 punto al mes en paz (de 30 a 0 en 2,5 años); no se ha cambiado.
+
+## Milestone 4 — Eventos, decisiones y despertar mágico
+
+Contenido **encima** de la simulación existente: los eventos leen el estado real (mercado, POPs, fábricas,
+política, guerra, magia) y lo modifican a través de las APIs de cada sistema.
+
+### Módulos
+
+| Módulo | Función |
+|---|---|
+| `events/VEventSystem` | carga y validación, índice, planificador, MTTH, disparo, cola del jugador, follow-ups, `notify` (on_action) |
+| `events/VEventConditions` | compila las condiciones JSON a nodos `[código, args…]` y las evalúa; texto legible del primer fallo |
+| `events/VEventEffects` | valida y aplica los efectos usando las APIs de los sistemas; describe efectos para los tooltips |
+| `events/VEventAI` | elección de opción de la IA: pesos × modificadores condicionales, tirada determinista |
+| `events/VScopedState` | banderas de nación/provincia/estado, variables, modificadores temporales, crónica |
+| `events/VDecisionSystem` | decisiones: visibles, disponibles (con motivo), coste, efectos, cooldown, IA |
+| `events/VEventDebug` | consola: `fire_event`, `take_decision`, `activate_magic`, `list_available_decisions` |
+| `magic/VMagicSystem` | despertar, ramas, yacimientos, extracción, aparición de magos, acceso a tecnologías mágicas |
+| `ui/VEventPopup` | ventana de evento con cola, ilustración (`art_key`) y tooltips de efectos |
+
+`VWorldSimulation` solo llama a `VEventSystem.daily` (dentro del día) y `VEventSystem.monthly` (cierre de mes).
+`VConditions` no cambia (POPs e inventos).
+
+### Ciclo de vida de un evento
+
+1. **Carga:** `data/victoria_mode/events/*.json` y `magic/events/*.json`.
+2. **Validación:** ids duplicados, opciones vacías, condiciones o efectos desconocidos, países, bienes,
+   tecnologías y modificadores inexistentes, follow-ups a eventos que no existen. Los errores van a
+   `gs.data_errors` y se muestran con `push_error`.
+3. **Compilación:** condiciones a nodos con código entero y efectos validados.
+4. **Índice:**
+   * cadencia × ámbito para los eventos genéricos;
+   * nación → sus eventos propios (`tags`): un evento de Frankia no se comprueba para las otras 88;
+   * `on_action` → eventos.
+5. **Planificador:**
+   * Cada día solo se procesa el cubo de naciones del día (`índice % 28`): eventos mensuales siempre,
+     trimestrales y anuales escalonados.
+   * Los globales se procesan el día 1; los programados (follow-ups) cuando vencen.
+   * Los eventos de provincia solo miran conjuntos candidatos: capital, provincias mágicas, ocupadas o
+     costeras. Nunca se recorre el mundo ni los POPs.
+6. **Filtros baratos:** nación, bandera global requerida, `once`/`cooldown` (historial propio, no el log) y
+   presupuesto mensual de 2 eventos «normal» por nación.
+7. **Trigger compilado** → **tirada determinista**:
+   * MTTH: probabilidad por comprobación = 1 − 0,5^(periodo/MTTH), con modificadores de factor.
+   * O `chance`.
+   * La clave se mezcla con `rand_from_seed`: el hash de cadenas parecidas sale parecido y sesgaba las tiradas.
+8. **Disparo:**
+   * Se aplican los efectos inmediatos y se registra en la crónica.
+   * **Jugador:** cola de ventanas (`major`/`normal`); `notification` se resuelve sola; `hidden` no se muestra.
+   * **IA:** `VEventAI` elige la opción.
+   * Después se aplica la opción y se programan los follow-ups.
+
+Ganchos on_action que emiten los sistemas: `war_declared`, `war_ended`, `battle_won/lost`, `province_occupied`,
+`government_changed`, `reform_passed`, `election_finished`, `technology_researched`, `invention_discovered`,
+`country_enters/leaves_sphere`, `rebellion_started/won`, `factory_closed`, `factory_built`, `magic_activated`,
+`decision_taken`.
+
+### Banderas, variables y modificadores
+
+* **Banderas globales:** `gs.flags`, que ya existía.
+* **Banderas de nación, provincia y estado, y variables numéricas de nación:** en `gs.event_state`, que se guarda.
+* **Modificadores temporales** `{id, source, start, expires, effects}`:
+  * Los de nación se suman en `VModifiers.recompute` junto a tecnologías, inventos y reformas. Solo se
+    recalculan al añadir, quitar o caducar uno.
+  * Los de provincia se agregan en `p["pmods"]` y los leen producción (eficiencia y tamaño del RGO) y población
+    (crecimiento, militancia, alfabetización, conciencia).
+  * La caducidad es mensual y solo recorre las listas existentes.
+
+### Capa mágica (prototipo)
+
+* **Despertar:** evento global `magic.awakening` definido en datos (trigger configurable: año ≥ 140 y la
+  bandera sin activar, MTTH 6 meses).
+  * Su efecto `activate_magic` pone `GLOBAL_MAGIC_ACTIVATED` y `magic_unlocked`, que ya usaba
+    VTechnologySystem.
+  * También siembra yacimientos de forma determinista según el terreno y emite `magic_activated`.
+* **Ramas:** el campo existente `country.magic_branches`. Los perfiles de prueba están en
+  `magic/prototype_branches.json` (PROTOTYPE).
+  * Las tecnologías mágicas declaran `magic_branch` + `min_level` + `requires_flag`;
+    `VTechnologySystem.can_research` las filtra con `VMagicSystem.tech_allowed`.
+  * Resultado: cada nación desbloquea cosas distintas.
+* **Provincias:** `p["magic"] = {potential, deposit}`. Es una capa secundaria y **no sustituye el RGO**.
+  Un índice por nación evita recorrer el mapa.
+* **Economía:**
+  * Los yacimientos producen cristal de maná, que entra al mercado como cualquier bien y paga a los
+    trabajadores de la provincia.
+  * Cadena: cristal → reactivos arcanos (refinería de maná) → componentes encantados (taller arcano), y
+    elixir alquímico (laboratorio).
+  * Son fábricas y bienes normales. Mientras el bien está bloqueado no se construyen fábricas que lo usen
+    (`VProductionSystem.goods_unlocked`).
+* **Magos:**
+  * Tipo de POP de datos (`magi` en `pop_types.json`): necesidades, renta, ideología, cultura y religión
+    como cualquier otro.
+  * Aparecen por promoción rara desde clero, oficinistas y aristócratas alfabetizados, en provincias con
+    potencial mágico de naciones con rama (`VMobilitySystem._transfer`: personas reales).
+  * También por decisiones (Academia Arcana).
+* **Ejército:** modificador `battle_magic`, que el resolver de batalla ya lee, y la unidad prototipo `arcane_support`
+  (exige tecnología y se abastece de componentes encantados). Sin cartas todavía.
+* **Política:** debate de regulación (prohibir, licencias, fomentar o monopolio del Estado, este último solo
+  con rama política), con banderas y modificadores que cambian la aparición de magos, la militancia y el fisco.
+* **IA:** investiga tecnologías mágicas disponibles, construye fábricas mágicas rentables (inversión normal),
+  elige opciones de eventos mágicos y toma decisiones mágicas.
+
+### Guardado v5
+
+`events` (todo `gs.event_state`) y `p["magic"]` en las provincias. Las definiciones (eventos, decisiones,
+modificadores, ramas) vienen de los datos y no se guardan. Las partidas v4 se rechazan.

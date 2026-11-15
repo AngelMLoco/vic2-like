@@ -43,6 +43,12 @@ const GROUPS := {
 	"ranking": ["m_ranking"],
 	"unit counts": ["m_unit_counts"],
 	"money audit": ["m_money_audit"],
+	"eventos (planificador total)": ["event_scheduler"],
+	"· evaluación de triggers": ["event_trigger_checks"],
+	"· efectos": ["event_effects"],
+	"· IA de eventos": ["event_ai"],
+	"· decisiones (IA)": ["decisions"],
+	"· magia": ["magic"],
 }
 
 var years := 10
@@ -57,6 +63,16 @@ func _ready() -> void:
 	var gs := VDataLoader.new_game()
 	var load_ms := Time.get_ticks_msec() - tl
 	gs.player_tag = ""
+	# modos: VBENCH_EVENTS=0 (sin motor de eventos ni magia, = M3.2), VBENCH_NO_MAGIC=1 (eventos sin despertar)
+	var mode := "eventos + magia"
+	if OS.get_environment("VBENCH_EVENTS") == "0":
+		gs.flags["events_disabled"] = true
+		mode = "sin eventos"
+	elif OS.get_environment("VBENCH_NO_MAGIC") == "1":
+		gs.event_defs.erase("magic.awakening")
+		VEventSystem._build_index(gs)
+		mode = "eventos sin magia"
+	print("modo: " + mode)
 	var sim := VWorldSimulation.new(gs)
 	VProfiler.reset(gs)
 	print("== Benchmark de rendimiento: %d años · %d naciones · %d provincias terrestres · %d zonas marítimas · carga %d ms ==" % [
@@ -137,7 +153,9 @@ static func fingerprint(gs: VGameState) -> Dictionary:
 		"factories": int(s["open"]), "price_median": snappedf(float(s["pmed"]), 0.001), "wars_total": int(m["wars_total"]),
 		"sphere_members": int(m["sphere"]), "brigades": brig, "max_brigades": int(m["max_brigades"]), "casualties": cas,
 		"rebel_factions_total": int(gs.next_ids.get("rebel", 1)) - 1, "armies": int(m["armies"]),
-		"pops": gs.pops.count(), "militancy": snappedf(float(s["mil"]), 0.01)}
+		"pops": gs.pops.count(), "militancy": snappedf(float(s["mil"]), 0.01),
+		"events_fired": int(VScopedState.es(gs)["stats"].get("fired", 0)), "decisions": int(VScopedState.es(gs)["stats"].get("decisions", 0)),
+		"magic": gs.flags.get("GLOBAL_MAGIC_ACTIVATED", false)}
 
 
 func _compare_baseline(fp: Dictionary) -> void:

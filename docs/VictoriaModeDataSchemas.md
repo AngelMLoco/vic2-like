@@ -159,3 +159,116 @@ Las provincias ya no guardan POPs. Las partidas v3 se rechazan con un mensaje.
 * `militancy_relaxation` (0,01): fracción de la militancia que se disipa cada mes.
 * `unemployment_relief_factor` (2,0): cuánto reduce el subsidio de paro (reforma × presupuesto social) la
   militancia causada por el paro, con un máximo del 80 %.
+
+## Milestone 4 — Eventos, decisiones y magia
+
+Añadir un evento, una decisión, una tecnología, un bien o una fábrica mágica = añadir JSON; no hay que tocar el
+código. El cargador valida todo y muestra errores claros.
+
+### Evento — `events/*.json`, `magic/events/*.json` → `events[]`
+
+```json
+{"id": "emergent.food_crisis", "scope": "country", "type": "normal", "cadence": "monthly",
+ "title": "…", "desc": "…", "art": "famine",
+ "tags": ["FRK"], "requires_flag": "GLOBAL_MAGIC_ACTIVATED", "target": "lowest_relation_neighbor",
+ "province_candidates": "capital",
+ "trigger": {"avg_life_below": 0.62, "good_price": {"grain": 1.35}},
+ "mtth": {"months": 18, "modifiers": [{"factor": 0.5, "militancy": 2.5}]}, "chance": 0.3,
+ "once": false, "cooldown": 36, "important": true,
+ "immediate": {…efectos…},
+ "options": [{"name": "…", "trigger": {…}, "effects": {…},
+   "ai_weight": {"base": 10, "modifiers": [{"factor": 0.3, "treasury_below": 500}]},
+   "follow_up": {"id": "emergent.bread_riots", "months": 2}}]}
+```
+
+* `scope`: `global` | `country` | `state` | `province`. Los de provincia exigen `province_candidates`:
+  `capital` | `owned` | `magic` | `occupied` | `coastal`.
+* `type`: `major` (ventana destacada, fuera del presupuesto) | `normal` | `notification` (sin ventana) | `hidden`.
+* `cadence`: `daily` | `monthly` (por defecto) | `quarterly` | `yearly` | `on_action` (+ `on_action`: nombre del
+  gancho) | `follow_up` (solo como continuación o con `trigger_event`).
+* `target`: `lowest_relation_neighbor`, `highest_relation_neighbor`, `strongest_neighbor`, `weakest_neighbor`,
+  `random_neighbor`, `sphere_leader`, `war_enemy`, `from`.
+* Sin `mtth` ni `chance`, el evento ocurre en cuanto se cumple el trigger.
+
+### Condiciones (eventos y decisiones)
+
+* **Lógica:** `and`, `or` ([…]), `not`, `target` {…} (en la nación objetivo), `owner` {…}, `any_neighbor` {…},
+  `count_countries` {min, where}.
+* **Numéricas:** `campo: x` → campo ≥ x; `campo_below: x` → campo < x.
+  * De nación: `prestige`, `military_score`, `industry_score`, `treasury`, `debt`, `literacy`, `militancy`,
+    `consciousness`, `unemployment`, `avg_life`, `avg_everyday`, `population`, `war_exhaustion`, `infamy`,
+    `factory_count`, `research_points`, `wars`, `brigades`, `provinces`, `magi`.
+  * De provincia: `province_population`, `province_unemployment`, `province_militancy`, `life_rating`, `fort`,
+    `naval_base`, `infrastructure`, `magic_potential`, `province_life`.
+  * Globales: `number_of_wars`, `world_literacy`, `world_militancy`, `world_avg_life`, `great_powers_at_war`.
+* **De nación:**
+  * fecha y banderas: `year`, `year_below`, `month`, `flag`/`not_flag` (globales), `country_flag`/`not_country_flag`;
+  * identidad y rango: `tag`, `civilized`, `great_power`, `secondary_power`, `rank_above`, `rank_below`;
+  * gobierno: `government`, `ruling_ideology`, `reform_min`/`reform_max` {reforma: nivel};
+  * tecnología: `has_technology`, `has_invention`;
+  * guerra y diplomacia: `at_war`, `has_sphere`, `in_sphere`, `has_target`, `target_relation`/`_below`,
+    `owns_province`, `owns_state`, `controls_province`, `controls_state`, `has_core`;
+  * economía: `factory_type_count` {tipo: n}, `good_price`/`good_price_below` {bien: proporción del precio base},
+    `good_shortage` {bien: llenado mínimo}, `good_available`;
+  * política y rebeldes: `rebel_risk`, `rebel_faction_exists`, `movement_support` {reforma: apoyo};
+  * magia: `magic_branch` {rama: nivel}, `magic_any_branch`;
+  * otros: `variable`/`variable_below` {nombre: valor}, `pop_type_size` {tipo: personas}, `is_player`,
+    `has_modifier`.
+* **De provincia:** `owner_is`, `controller_is` (admiten `self`, `target`, `from`), `terrain`, `coastal`, `rgo`,
+  `culture`, `religion`, `occupied`, `blockaded`, `has_magic_deposit`, `state`, `is_capital`, `province_flag`,
+  `not_province_flag`.
+
+### Efectos (eventos y decisiones)
+
+* **Dinero, prestigio e infamia:** `add_treasury`, `add_treasury_ratio` (fracción del tesoro), `add_prestige`,
+  `add_infamy`.
+* **POPs:** `add_militancy`/`add_consciousness` (número o {value, strata}), `add_population`/`kill_population`
+  (fracción), `convert_pops` {from, to, share, max}.
+* **Política y presupuesto:** `change_reform` {reforma: ±1}, `change_budget` {slider: ±}.
+* **Diplomacia:** `change_relation` (con el objetivo).
+* **Modificadores:** `add_country_modifier`/`add_province_modifier` ({id, months} o una lista),
+  `remove_country_modifier`.
+* **Banderas y variables:** `set_flag`/`clear_flag`, `set_country_flag`/`clear_country_flag`,
+  `set_province_flag`/`clear_province_flag` (admiten listas), `set_variable`/`change_variable`.
+* **Provincias:** `add_core`/`remove_core`, `change_owner`/`change_controller` (`gs.change_owner`,
+  `VWarSystem.set_controller`), `change_rgo`.
+* **Tecnología:** `add_technology`, `add_invention`, `start_research`, `add_research_points`.
+* **Economía:** `add_good_stockpile`, `build_factory` {type}, `close_factory` {type|any}.
+* **Guerra y rebeldes:** `spawn_rebels` {movement}, `create_casus_belli`/`start_war` {cb, state} (con el
+  objetivo), `add_war_exhaustion`.
+* **Esferas:** `add_influence`, `add_to_sphere`, `remove_from_sphere`.
+* **Encadenar:** `trigger_event` {id, days}.
+* **Magia:** `activate_magic`, `add_magic_deposit`, `discover_magic_deposit`.
+* **Otros:** `log`.
+* **Cambios de ámbito:** `target` {…}, `owner` {…}, `capital` {…},
+  `every_owned_province`/`random_owned_province` {limit, effects}.
+
+### Modificadores — `events/modifiers.json` → `modifiers[{id, name, effects}]`
+
+Los de nación usan las claves de VModifiers. Claves nuevas que leen los sistemas:
+* `mana_extraction`: producción de los yacimientos.
+* `mage_emergence`: aparición de magos.
+* `battle_magic`: el resolver de batalla.
+
+Los de provincia admiten `rgo_efficiency`, `rgo_size`, `pop_growth`, `militancy`, `literacy_growth` y
+`consciousness_growth`.
+
+### Decisión — `decisions/*.json`, `magic/decisions/*.json` → `decisions[]`
+
+`{id, name, desc, category (industrial|political|diplomatic|military|magic), tags, requires_flag, visible {cond},
+available {cond}, cost {treasury, prestige, research}, effects, ai_weight (probabilidad por trimestre: número o
+{base, modifiers}), cooldown (meses), once}`
+
+### Magia
+
+* `magic/prototype_branches.json`: perfiles PROTOTYPE de `magic_branches` por nación y `rules`.
+  * Yacimientos: `deposit_good`, `deposit_chance`, `deposit_output`, `terrain_weight`.
+  * Magos: `mage_type`, `mage_sources`, `mage_min_literacy`, `mage_rate`, `mage_min_branch`.
+* `magic/technologies.json`: `categories`, `technologies[]` (con `magic_branch`, `min_level`, `requires_flag`,
+  `unlocks_factories`) e `inventions[]`.
+* Bienes `fantasy` en `goods.json` (`unlock_flag: GLOBAL_MAGIC_ACTIVATED`), fábricas mágicas en
+  `factories.json` (`requires_tech`), el tipo de POP `magi` en `pop_types.json` y la unidad `arcane_support`
+  en `unit_types.json`.
+* Provincia: `magic {potential, deposit}`.
+
+**Guardado:** `save_version` = 5 (añade `events` y `magic` de provincia); las partidas v4 se rechazan.

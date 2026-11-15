@@ -133,6 +133,31 @@ func _ready() -> void:
 	game.camera.center_on(Vector2(gs.map_width * 0.52, gs.map_height * 0.35), 0.5)
 	await _frames(45)
 	await _shot("m3_sphere_mapmode")
+	# M4: evento del jugador, acontecimiento mundial y decisiones/crónica
+	game.set_mapmode("political")
+	game.camera.center_on(gs.provinces[int(gs.countries["FRK"]["capital"])]["center"], 1.0)
+	_clear_events(game)
+	VEventDebug.run(gs, "fire_event emergent.food_crisis FRK")
+	game._check_events()
+	await _frames(20)
+	await _shot("m4_event_popup")
+	_clear_events(game)
+	VEventDebug.run(gs, "fire_event magic.awakening")
+	game._check_events()
+	await _frames(20)
+	await _shot("m4_world_event")
+	_clear_events(game)
+	gs.countries["FRK"]["treasury"] = 20000.0
+	VEventDebug.run(gs, "fire_event magic.arcane_research FRK")
+	game._check_events()
+	if game.event_popup.visible:
+		game.event_popup._choose(0)
+	game.nation_window.open("politics")
+	await _frames(6)
+	game.nation_window._content.get_parent().scroll_vertical = 100000
+	await _frames(6)
+	await _shot("m4_decisions_chronicle")
+	game.nation_window.close()
 	print("capturas en ", ProjectSettings.globalize_path(out_dir) if out_dir.begins_with("user://") else out_dir)
 	get_tree().quit()
 
@@ -146,3 +171,10 @@ func _shot(name: String) -> void:
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(out_dir.path_join(name + ".png"))
+
+
+func _clear_events(game: Node) -> void:
+	var g: VGameState = game.gs
+	while not VEventSystem.pending(g).is_empty():
+		VEventSystem.choose(g, 0, 0)
+	game.event_popup.visible = false

@@ -22,7 +22,7 @@ de GFM), con código, datos, gráficos y geografía propios (Natural Earth, domi
 | 11 | Guerra: CB data-driven sobre estados, justificación, ocupación, warscore con desglose, wargoals, paz | ✅ (M3) |
 | 12 | Armada: flotas en zonas marítimas, transporte real, bloqueos (mercado), combate naval | ✅ (M3) |
 | — | Rebeldes armados a partir de movimientos políticos | ✅ (M3) |
-| 13 | Eventos/decisiones GFM-like (scripted + condicionales, cadenas, flags) | ⏳ |
+| 13 | Eventos/decisiones GFM-like (scripted + condicionales, cadenas, flags) | ✅ (M4: motor + vertical slice) |
 | 14 | Pulido: tooltips, ledger, rendimiento (M3.1 ✅ parcial), saves | ⏳ |
 
 ## Milestone 1 (actual) — "esto es la base correcta"
@@ -79,7 +79,41 @@ efecto sobre la militancia por paro y movimientos que se enfrían si no crecen. 
 El objetivo de < 8 s **no se ha alcanzado**; el informe sobre C# está en Testing → M3.2 y queda pendiente
 de decisión.
 
-## Siguiente paso (milestone 4)
+## Milestone 4 — Eventos, decisiones y despertar mágico — completado (vertical slice)
+
+* **Motor de eventos data-driven:**
+  * condiciones compiladas y efectos validados;
+  * ámbitos global, nación, estado y provincia;
+  * cadencias y ganchos on_action;
+  * MTTH determinista, `once`, cooldown y presupuesto anti-spam;
+  * cola de ventanas del jugador e IA de opciones;
+  * follow-ups y crónica.
+* **Decisiones** con visibilidad, disponibilidad con motivo, coste, cooldown e IA, integradas en Política.
+* **Estado con ámbito:** banderas de nación, provincia y estado, variables y modificadores temporales de nación
+  y de provincia (en VModifiers).
+* **Contenido:** 53 eventos, entre ellos cadenas política, económica, diplomática y militar, 5 líneas
+  nacionales, eventos emergentes y sistémicos, y 10 eventos mágicos. 11 decisiones.
+* **Despertar mágico** definido en datos (GLOBAL_MAGIC_ACTIVATED), con ramas por nación sobre `magic_branches`
+  (perfiles PROTOTYPE).
+* **Capa mágica:**
+  * 8 tecnologías y 4 inventos;
+  * cadena de 4 bienes y 3 fábricas;
+  * yacimientos (capa secundaria, no sustituye el RGO);
+  * magos como POP real;
+  * hooks militares y la unidad `arcane_support`;
+  * debate político de regulación.
+
+Pendiente (no es de este milestone): lore final del despertar, escuelas de magia definitivas, combate con
+cartas, arte de eventos (el motor ya resuelve `art_key`), crisis diplomáticas profundas, personajes y dinastías.
+
+## Siguiente paso (milestone 5)
+
+* Contenido: más cadenas GFM-like, arte de eventos y el lore definitivo del despertar.
+* Mapa: el mapa de fantasía definitivo.
+* Combate con cartas sobre `VBattleResolver`.
+* Equilibrar la economía mágica.
+
+## (histórico) Siguiente paso previsto tras M3 (milestone 4)
 
 Eventos y decisiones GFM-like (scripted + condicionales, cadenas, flags), contenido de fantasía en capas y el
 despertar mágico (GLOBAL_MAGIC_ACTIVATED con ramas por nación).

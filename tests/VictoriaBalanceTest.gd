@@ -16,6 +16,12 @@ func _ready() -> void:
 	print("carga del mundo: %d ms" % (Time.get_ticks_msec() - t0))
 	gs.player_tag = ""
 	gs.flags["money_audit"] = true
+	# VBAL_EVENTS=0: sin motor de eventos ni magia · VBAL_NO_MAGIC=1: eventos sin despertar
+	if OS.get_environment("VBAL_EVENTS") == "0":
+		gs.flags["events_disabled"] = true
+	elif OS.get_environment("VBAL_NO_MAGIC") == "1":
+		gs.event_defs.erase("magic.awakening")
+		VEventSystem._build_index(gs)
 	var sim := VWorldSimulation.new(gs)
 	print(header())
 	print(row(gs, 0))
@@ -28,6 +34,7 @@ func _ready() -> void:
 		print(row(gs, y + 1) + "  (%.1f s)" % ((Time.get_ticks_msec() - ty) / 1000.0))
 		print("      " + m3_row(gs))
 		print("      " + pop_row(gs))
+		print("      " + event_row(gs))
 		var gps := []
 		for t in gs.country_order:
 			if gs.countries[t].get("status", "") == "great_power":
@@ -230,6 +237,20 @@ static func pop_row(gs: VGameState) -> String:
 			parts.append("%s %+.3f" % [k, float(d[k])])
 	return "POPs %d (creados %d, fusionados %d, nuevos por traslado %d) · militancia/mes: %s · neto %+.4f" % [
 		gs.pops.count(), int(st["created"]), int(st["merged"]), int(st["split"]), ", ".join(parts), float(d.get("net", 0.0))]
+
+
+## Eventos, decisiones y magia (acumulado).
+static func event_row(gs: VGameState) -> String:
+	var st: Dictionary = VScopedState.es(gs)["stats"]
+	var magi := 0
+	var deps := 0
+	for tag in gs.country_order:
+		magi += int(gs.countries[tag].get("type_sizes", {}).get("magi", 0))
+	for id in range(1, gs.first_sea_id):
+		if float(gs.provinces[id].get("magic", {}).get("deposit", 0.0)) > 0.0:
+			deps += 1
+	return "eventos %d (IA %d) · decisiones %d · magia %s · magos %d · yacimientos %d · crónica %d" % [int(st.get("fired", 0)), int(st.get("ai", 0)),
+		int(st.get("decisions", 0)), "sí" if gs.flags.get("GLOBAL_MAGIC_ACTIVATED", false) else "no", magi, deps, VScopedState.es(gs)["history"].size()]
 
 
 static func m3_row(gs: VGameState) -> String:
