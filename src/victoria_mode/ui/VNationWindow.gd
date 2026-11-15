@@ -765,8 +765,11 @@ func _build_alerts() -> void:
 	var c := _country()
 	_section("Alertas")
 	var any := false
-	for w in c["wars"]:
-		_note("En guerra: %s contra %s." % [w["name"], gs.country_name(w["enemy"])])
+	for wid in c["wars"]:
+		var w: Dictionary = gs.wars.get(int(wid), {})
+		if w.is_empty():
+			continue
+		_note("En guerra: %s · warscore %+.0f%s" % [w["name"], VWarSystem.warscore_for(w, gs.player_tag), " · ¡oferta de paz pendiente!" if not w.get("offer", {}).is_empty() else ""])
 		any = true
 	if float(c.get("monthly_balance", 0.0)) < 0.0:
 		_note("El presupuesto tiene balance mensual negativo.")
@@ -800,68 +803,348 @@ func _build_alerts() -> void:
 
 
 # ------------------------------------------------------------- diplomacia
+signal war_open(war_id: int)
+signal army_focus(army_id: int)
+
+
+func _action_button(text: String, chk: Dictionary, cb: Callable, extra_tip: String = "") -> Button:
+	var tip := ""
+	if chk.get("ok", false):
+		tip = "Coste: %.1f" % float(chk.get("cost", 0.0))
+		if not chk.get("reasons", []).is_empty():
+			tip += "\nIA: %s" % "; ".join(chk["reasons"])
+	else:
+		tip = chk.get("reason", "")
+	if extra_tip != "":
+		tip += "\n" + extra_tip
+	var b := UiTheme.button(text, cb, 0, tip)
+	b.disabled = not chk.get("ok", false)
+	b.add_theme_font_size_override("font_size", 12)
+	return b
+
+
 func _build_diplomacy() -> void:
-	var me := _country()
-	_section("Naciones del mundo")
+	var me := gs.player_tag
+	var mc := _country()
+	var is_gp := VInfluenceSystem.is_gp(gs, me)
+	_section("Diplomacia — puntos diplomáticos %.1f · infamia %.1f / %.0f%s" % [float(mc.get("diplo_points", 0.0)), float(mc.get("infamy", 0.0)),
+		float(gs.war_rules.get("max_infamy", 25.0)), " · Gran Potencia" if is_gp else ""])
+	if _diplo_selected == "" or _diplo_selected == me or not gs.countries.has(_diplo_selected):
+		var neigh := VDiplomacySystem.neighbor_countries(gs, me)
+		_diplo_selected = neigh[0] if not neigh.is_empty() else ""
+	if _diplo_selected != "":
+		_build_diplo_target(_diplo_selected)
+	# guerras, CB y justificaciones
+	_section("Guerras")
+	if mc["wars"].is_empty():
+		_note("En paz.")
+	for wid in mc["wars"]:
+		var w: Dictionary = gs.wars.get(int(wid), {})
+		if w.is_empty():
+			continue
+		var hb := HBoxContainer.new()
+		hb.add_child(UiTheme.label("%s · warscore %+.0f%s" % [w["name"], VWarSystem.warscore_for(w, me), " · ¡oferta de paz!" if not w.get("offer", {}).is_empty() else ""], 14))
+		hb.add_child(UiTheme.button("Abrir guerra / paz", func(): war_open.emit(int(wid))))
+		_content.add_child(hb)
+	_section("Casus belli y justificaciones")
+	for j in gs.justifications:
+		if j["owner"] != me:
+			continue
+		var pb := ProgressBar.new()
+		pb.value = float(j["progress"]) * 100.0
+		pb.custom_minimum_size = Vector2(200, 14)
+		var hb2 := HBoxContainer.new()
+		hb2.add_child(UiTheme.label("Justificando %s contra %s%s " % [gs.cb_types.get(j["type"], {}).get("name", j["type"]), gs.country_name(j["target"]),
+			(": " + gs.states.get(int(j["state_id"]), {}).get("name", "")) if int(j["state_id"]) > 0 else ""], 13))
+		hb2.add_child(pb)
+		hb2.add_child(UiTheme.label(" ¡DESCUBIERTA!" if j["discovered"] else " (secreta)", 12, UiTheme.NEGATIVE if j["discovered"] else UiTheme.TEXT_DIM))
+		hb2.add_child(UiTheme.button("Cancelar", func():
+			VCasusBelliSystem.cancel_justification(gs, me)
+			rebuild()))
+		_content.add_child(hb2)
+	var cbs := VCasusBelliSystem.cbs_of(gs, me)
+	if cbs.is_empty():
+		_note("No tienes casus belli. Justifica uno sobre una nación (selecciónala en la tabla).")
+	for cb in cbs:
+		var hb3 := HBoxContainer.new()
+		hb3.add_child(UiTheme.label("%s contra %s%s · caduca en %d meses " % [gs.cb_types.get(cb["type"], {}).get("name", cb["type"]), gs.country_name(cb["target"]),
+			(": " + gs.states.get(int(cb["state_id"]), {}).get("name", "")) if int(cb["state_id"]) > 0 else "", int(cb["expires"]) - gs.month_index], 13))
+		var why := VWarSystem.can_declare(gs, me, cb)
+		var b := UiTheme.button("Declarar la guerra", func():
+			var res := VWarSystem.declare_war(gs, me, cb)
+			if res.has("war"):
+				war_open.emit(int(res["war"]["id"]))
+			rebuild(), 0, why if why != "" else "Usa este casus belli para declarar la guerra (se llamará a los aliados).")
+		b.disabled = why != ""
+		hb3.add_child(b)
+		_content.add_child(hb3)
+	# tabla de naciones
+	_section("Naciones")
 	var rows := []
 	for tag in VRankingSystem.ranked(gs):
+		if tag == me:
+			continue
 		var c: Dictionary = gs.countries[tag]
 		var nb := HBoxContainer.new()
 		nb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nb.add_child(VFlagView.create(c["flag"], Vector2(24, 16)))
-		var b := UiTheme.button(c["name"], func():
+		nb.add_child(VFlagView.create(c["flag"], Vector2(22, 15)))
+		var bn := UiTheme.button(c["name"], func():
 			_diplo_selected = tag
 			country_focus.emit(tag)
 			rebuild())
-		b.flat = true
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		bn.flat = true
+		bn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		bn.add_theme_font_size_override("font_size", 12)
 		if tag == _diplo_selected:
-			b.add_theme_color_override("font_color", UiTheme.ACCENT)
-		nb.add_child(b)
-		var rel := "—" if tag == gs.player_tag else str(int(me["relations"].get(tag, 0)))
-		var rel_state := ""
-		if tag in me["allies"]:
-			rel_state = "Aliado"
-		for w in me["wars"]:
-			if w["enemy"] == tag:
-				rel_state = "En guerra"
-		rows.append([nb, str(c["rank"]), VRankingSystem.status_name(c["status"]), "%d" % int(c["total_score"]), rel, rel_state])
-	_table(["Nación", "Rk.", "Rango", "Puntos", "Relación", "Estado"], rows, [300, 40, 170, 70, 70, 100])
-	_section("Acciones diplomáticas")
-	var target := _diplo_selected if _diplo_selected != "" and _diplo_selected != gs.player_tag else ""
-	_note("Objetivo: %s. Relaciones, alianzas, garantías, acceso militar, influencia/esferas y Casus Belli se activan en las fases 9 y 11." % (gs.country_name(target) if target != "" else "ninguno (elige una nación en la tabla)"))
-	var hb := HFlowContainer.new()
-	for a in ["Mejorar relaciones", "Empeorar relaciones", "Proponer alianza", "Garantizar independencia", "Pedir acceso militar",
-			"Aumentar opinión", "Añadir a la esfera", "Justificar guerra", "Declarar guerra"]:
-		var b := UiTheme.button(a)
-		b.disabled = true
-		b.tooltip_text = "Disponible en la fase de diplomacia/guerra."
-		hb.add_child(b)
-	_content.add_child(hb)
+			bn.add_theme_color_override("font_color", UiTheme.ACCENT)
+		nb.add_child(bn)
+		var flags := []
+		if VDiplomacySystem.are_allied(gs, me, tag):
+			flags.append("Aliado")
+		if VDiplomacySystem.has_access(gs, me, tag):
+			flags.append("Acceso")
+		if tag in mc.get("guarantees", []):
+			flags.append("Garantía")
+		if VWarSystem.at_war_with(gs, me, tag):
+			flags.append("GUERRA")
+		if VDiplomacySystem.in_truce(gs, me, tag):
+			flags.append("Tregua")
+		var leader: String = c.get("sphere_leader", "")
+		var op := "—"
+		var inf := "—"
+		if is_gp and VInfluenceSystem.valid_target(gs, me, tag):
+			op = VInfluenceSystem.opinion_name(gs, VInfluenceSystem.opinion(gs, me, tag))
+			var e: Dictionary = mc.get("influence", {}).get(tag, {})
+			inf = "%.0f" % float(e.get("points", 0.0)) if not e.is_empty() else "0"
+		rows.append([nb, str(c["rank"]), VRankingSystem.status_name(c["status"]).replace("Nación ", ""), "%+d" % gs.relation(me, tag), ", ".join(flags),
+			VMapLabels.short_name(gs.country_name(leader)) if leader != "" else "—", op, inf])
+	_table(["Nación", "Rk", "Rango", "Rel.", "Vínculos", "Esfera", "Opinión", "Influencia"], rows, [240, 30, 120, 50, 140, 90, 90, 70])
+
+
+func _build_diplo_target(t: String) -> void:
+	var me := gs.player_tag
+	var c: Dictionary = gs.countries[t]
+	_section("Nación seleccionada: %s" % c["name"])
+	var info := "Relaciones %+d · %s · ranking %d" % [gs.relation(me, t), VRankingSystem.status_name(c["status"]), int(c["rank"])]
+	if VDiplomacySystem.in_truce(gs, me, t):
+		info += " · tregua %d meses" % (VDiplomacySystem.truce_with(gs, me, t) - gs.month_index)
+	var leader: String = c.get("sphere_leader", "")
+	if leader != "":
+		info += " · en la esfera de %s" % gs.country_name(leader)
+	_note(info)
+	var flow := HFlowContainer.new()
+	for action in VDiplomacySystem.ACTION_NAMES:
+		var chk := VDiplomacySystem.check(gs, me, action, t)
+		flow.add_child(_action_button(VDiplomacySystem.ACTION_NAMES[action], chk, func():
+			var err := VDiplomacySystem.perform(gs, me, action, t)
+			if err != "":
+				_note(err)
+			rebuild()))
+	_content.add_child(flow)
+	# influencia
+	if VInfluenceSystem.is_gp(gs, me) and VInfluenceSystem.valid_target(gs, me, t):
+		var e := VInfluenceSystem.entry(gs, me, t)
+		_note("Influencia sobre %s: %.0f puntos · opinión %s · prioridad %d%s" % [VMapLabels.short_name(c["name"]), float(e["points"]),
+			VInfluenceSystem.opinion_name(gs, VInfluenceSystem.opinion(gs, me, t)), int(e["priority"]),
+			(" · embajada prohibida %d meses" % (int(e["banned_until"]) - gs.month_index)) if int(e["banned_until"]) > gs.month_index else ""])
+		var pri := HBoxContainer.new()
+		pri.add_child(UiTheme.label("Prioridad: ", 13, UiTheme.TEXT_DIM))
+		for p in 4:
+			var bp := UiTheme.button(str(p), func():
+				var err2 := VInfluenceSystem.set_priority(gs, me, t, p)
+				if err2 != "":
+					_note(err2)
+				rebuild(), 30, "Reparto de la influencia mensual (0 = sin influencia)")
+			bp.disabled = int(e["priority"]) == p
+			pri.add_child(bp)
+		_content.add_child(pri)
+		var flow2 := HFlowContainer.new()
+		for action in ["increase_opinion", "add_to_sphere", "remove_from_sphere"]:
+			var chk2 := VInfluenceSystem.check(gs, me, action, t)
+			flow2.add_child(_action_button(VInfluenceSystem.ACTION_NAMES[action], chk2, func():
+				var err3 := VInfluenceSystem.perform(gs, me, action, t)
+				if err3 != "":
+					_note(err3)
+				rebuild()))
+		for comp in VInfluenceSystem.competitors(gs, t):
+			if comp["gp"] == me:
+				continue
+			for action in ["decrease_opinion", "discredit", "expel_advisors", "ban_embassy"]:
+				var chk3 := VInfluenceSystem.check(gs, me, action, t, comp["gp"])
+				flow2.add_child(_action_button("%s (%s)" % [VInfluenceSystem.ACTION_NAMES[action], VMapLabels.short_name(gs.country_name(comp["gp"]))], chk3, func():
+					var err4 := VInfluenceSystem.perform(gs, me, action, t, comp["gp"])
+					if err4 != "":
+						_note(err4)
+					rebuild()))
+		_content.add_child(flow2)
+	var comps := VInfluenceSystem.competitors(gs, t)
+	if not comps.is_empty():
+		var lines := []
+		for comp in comps:
+			lines.append("%s: opinión %s, %.0f puntos" % [gs.country_name(comp["gp"]), VInfluenceSystem.opinion_name(gs, int(comp["opinion"])), float(comp["points"])])
+		_note("Potencias que influyen sobre %s: %s" % [VMapLabels.short_name(c["name"]), " · ".join(lines)])
+	# justificar guerra
+	var flow3 := HFlowContainer.new()
+	for cb_id in gs.cb_types:
+		var d: Dictionary = gs.cb_types[cb_id]
+		if int(d.get("justify_months", 0)) <= 0:
+			continue
+		var states := [0]
+		if d.get("scope", "") == "state":
+			states = VCasusBelliSystem.bordering_states(gs, me, t).slice(0, 4)
+			if states.is_empty():
+				states = [0]
+		for sid in states:
+			var why := VCasusBelliSystem.can_justify(gs, me, t, cb_id, int(sid))
+			var label := "Justificar: %s%s" % [d["name"], (" (" + gs.states[int(sid)]["name"] + ")") if int(sid) > 0 else ""]
+			var b := UiTheme.button(label, func():
+				var err5 := VCasusBelliSystem.start_justification(gs, me, t, cb_id, int(sid))
+				if err5 != "":
+					_note(err5)
+				rebuild(), 0, why if why != "" else "%d meses · infamia %.1f (completa si se descubre)" % [int(d["justify_months"]), float(d["infamy"])])
+			b.disabled = why != ""
+			b.add_theme_font_size_override("font_size", 12)
+			flow3.add_child(b)
+	_content.add_child(flow3)
 
 
 # ---------------------------------------------------------------- militar
+var _recruit_type: OptionButton
+var _recruit_prov: OptionButton
+var _ship_type: OptionButton
+var _ship_port: OptionButton
+var _mil_msg: Label
+
+
 func _build_military() -> void:
+	var me := gs.player_tag
 	var c := _country()
-	var types := VPopulationSystem.sizes_by(gs, gs.owned_provinces(gs.player_tag), "type")
+	var types := VPopulationSystem.sizes_by(gs, gs.owned_provinces(me), "type")
+	_mil_msg = _msg_label()
 	_section("Fuerzas armadas")
+	var need := VSupplySystem.country_monthly_need(gs, me)
+	var stock_txt := []
+	for g in need:
+		stock_txt.append("%s %.1f/%.1f" % [gs.good_name(g), float(c["stockpile"].get(g, 0.0)), float(need[g])])
 	_table(["Concepto", "Valor"], [
-		["Brigadas", str(c["military"]["brigades"])],
-		["Barcos", str(c["military"]["ships"])],
-		["Soldier POPs (reclutables)", UiTheme.fmt_int(types.get("soldiers", 0))],
-		["Oficiales (generan leadership)", UiTheme.fmt_int(types.get("officers", 0))],
-		["Puntuación militar", "%d" % int(c["military_score"])],
-		["Cansancio bélico", "%.1f" % float(c["war_exhaustion"])],
-	], [320, 200])
-	_section("Fortificaciones y bases navales")
+		["Brigadas / barcos", "%d / %d" % [int(c["military"]["brigades"]), int(c["military"]["ships"])]],
+		["Soldier POPs (sostienen las brigadas)", UiTheme.fmt_int(types.get("soldiers", 0))],
+		["Oficiales → liderazgo", "%s oficiales · %.1f puntos de liderazgo" % [UiTheme.fmt_int(types.get("officers", 0)), float(c.get("leadership", 0.0))]],
+		["Reserva militar (existencias / consumo mensual)", ", ".join(stock_txt) if not stock_txt.is_empty() else "—"],
+		["Cansancio bélico", "%.1f" % float(c.get("war_exhaustion", 0.0))],
+		["Resolvedor de combate", VCombatSystem.resolver().resolver_name()],
+	], [320, 520])
+	_section("Ejércitos")
 	var rows := []
-	for id in gs.owned_provinces(gs.player_tag):
-		var p: Dictionary = gs.provinces[id]
-		if int(p["fort"]) > 0 or int(p["naval_base"]) > 0:
-			var b := UiTheme.button(p["name"], func(): province_focus.emit(id))
-			b.flat = true
-			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			rows.append([b, str(p["fort"]), str(p["naval_base"])])
-	_table(["Provincia", "Fortificación", "Base naval"], rows, [300, 100, 100])
-	_note("Ejércitos y flotas físicos en el mapa (movimiento provincia a provincia, supply, attrition, generales, transporte naval) llegan en las fases 10–12.")
+	for a in VArmySystem.country_armies(gs, me):
+		var b := UiTheme.button(a["name"], func(): army_focus.emit(int(a["id"])))
+		b.flat = true
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var l: Dictionary = gs.leaders.get(int(a.get("leader", 0)), {})
+		var st := "Combate" if int(a["battle"]) > 0 else ("Retirada" if a.get("retreating", false) else ("Embarcado" if int(a["embarked"]) > 0 else ("Marcha" if not a["path"].is_empty() else "Detenido")))
+		rows.append([b, gs.provinces[int(a["province"])]["name"], str(a["brigades"].size()), UiTheme.fmt_int(VArmySystem.army_strength(gs, a)),
+			"%.0f%%" % (VArmySystem.army_organisation(gs, a) * 100.0), "%.0f%%" % (float(a.get("morale", 1.0)) * 100.0),
+			"%.0f%%" % (float(a.get("supply", 1.0)) * 100.0), l.get("name", "—"), st])
+	_table(["Ejército", "Ubicación", "Brig.", "Hombres", "Org.", "Moral", "Sumin.", "General", "Estado"], rows, [190, 140, 40, 70, 45, 50, 55, 150, 80])
+	var hb := HBoxContainer.new()
+	hb.add_child(UiTheme.label("Reclutar brigada: ", 13, UiTheme.TEXT_DIM))
+	_recruit_type = OptionButton.new()
+	for ut in gs.unit_types:
+		var req: String = gs.unit_types[ut].get("requires_tech", "")
+		_recruit_type.add_item(gs.unit_types[ut]["name"] + ("" if req == "" or req in c.get("technologies", []) else " (requiere tecnología)"))
+		_recruit_type.set_item_metadata(_recruit_type.item_count - 1, ut)
+	hb.add_child(_recruit_type)
+	_recruit_prov = OptionButton.new()
+	for id in gs.owned_provinces(me):
+		for pop in gs.provinces[id]["pops"]:
+			if pop["type"] == "soldiers" and int(pop["size"]) >= (pop.get("brigades", []).size() + 1) * gs.unit_manpower:
+				_recruit_prov.add_item("%s (%s soldados)" % [gs.provinces[id]["name"], UiTheme.fmt_int(pop["size"])])
+				_recruit_prov.set_item_metadata(_recruit_prov.item_count - 1, id)
+				break
+	hb.add_child(_recruit_prov)
+	hb.add_child(UiTheme.button("Reclutar", func():
+		if _recruit_prov.selected < 0:
+			_mil_msg.text = "No hay POPs de soldados con hombres libres para nuevas brigadas."
+			return
+		var res := VArmySystem.recruit(gs, me, int(_recruit_prov.get_item_metadata(_recruit_prov.selected)), _recruit_type.get_item_metadata(_recruit_type.selected))
+		_mil_msg.text = res.get("error", "Brigada reclutada.")
+		rebuild()))
+	_content.add_child(hb)
+	_content.add_child(_mil_msg)
+	_section("Líderes")
+	var lrows := []
+	for lid in gs.leaders:
+		var l2: Dictionary = gs.leaders[lid]
+		if l2["country"] != me:
+			continue
+		var where := "sin destino"
+		if int(l2.get("army", 0)) > 0:
+			where = gs.armies.get(int(l2["army"]), {}).get("name", "?")
+		elif int(l2.get("fleet", 0)) > 0:
+			where = gs.fleets.get(int(l2["fleet"]), {}).get("name", "?")
+		lrows.append([VLeaderSystem.describe(gs, l2), "General" if l2["kind"] == "general" else "Almirante", where])
+	_table(["Líder", "Tipo", "Destino"], lrows, [480, 90, 200])
+	var hb2 := HBoxContainer.new()
+	for kind in ["general", "admiral"]:
+		var cost := VLeaderSystem.cost(gs, kind)
+		var bl := UiTheme.button("Contratar %s (%.0f)" % ["general" if kind == "general" else "almirante", cost], func():
+			var l3 := VLeaderSystem.hire(gs, me, kind)
+			_mil_msg.text = "" if not l3.is_empty() else "Faltan puntos de liderazgo."
+			rebuild(), 0, "Consume puntos de liderazgo generados por los POPs de oficiales")
+		bl.disabled = float(c.get("leadership", 0.0)) < cost
+		hb2.add_child(bl)
+	_content.add_child(hb2)
+	_section("Flotas")
+	var frows := []
+	for f in VNavySystem.country_fleets(gs, me):
+		var fb := UiTheme.button(f["name"], func(): army_focus.emit(-int(f["id"])))
+		fb.flat = true
+		fb.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		fb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		frows.append([fb, gs.provinces[int(f["location"])]["name"], str(f["ships"].size()), "%d/%d" % [VNavySystem.carried_brigades(gs, f), VNavySystem.capacity(gs, f)], f.get("mission", "idle")])
+	_table(["Flota", "Ubicación", "Barcos", "Transporte", "Misión"], frows, [220, 180, 60, 80, 90])
+	var hb3 := HBoxContainer.new()
+	hb3.add_child(UiTheme.label("Construir barco: ", 13, UiTheme.TEXT_DIM))
+	_ship_type = OptionButton.new()
+	for st in gs.ship_types:
+		_ship_type.add_item(gs.ship_types[st]["name"])
+		_ship_type.set_item_metadata(_ship_type.item_count - 1, st)
+	hb3.add_child(_ship_type)
+	_ship_port = OptionButton.new()
+	for id in gs.owned_provinces(me):
+		if int(gs.provinces[id].get("naval_base", 0)) > 0:
+			_ship_port.add_item(gs.provinces[id]["name"])
+			_ship_port.set_item_metadata(_ship_port.item_count - 1, id)
+	hb3.add_child(_ship_port)
+	hb3.add_child(UiTheme.button("Construir", func():
+		if _ship_port.selected < 0:
+			_mil_msg.text = "No tienes puertos con base naval."
+			return
+		var err := VNavySystem.build(gs, me, int(_ship_port.get_item_metadata(_ship_port.selected)), _ship_type.get_item_metadata(_ship_type.selected))
+		_mil_msg.text = err if err != "" else "Barco en construcción."
+		rebuild()))
+	_content.add_child(hb3)
+	for item in c.get("ship_queue", []):
+		_note("En astillero: %s en %s (%d días)" % [gs.ship_types[item["type"]]["name"], gs.provinces[int(item["port"])]["name"], int(item["days"])])
+	_section("Guerras")
+	if c["wars"].is_empty():
+		_note("En paz.")
+	for wid in c["wars"]:
+		var w: Dictionary = gs.wars.get(int(wid), {})
+		if w.is_empty():
+			continue
+		var sign := 1.0 if VWarSystem.side_of(w, me) == "attackers" else -1.0
+		var hb4 := HBoxContainer.new()
+		hb4.add_child(UiTheme.label("%s · warscore %+.0f (batallas %+.0f, ocupación %+.0f, bloqueo %+.0f, objetivos %+.0f)" % [w["name"], VWarSystem.warscore_for(w, me),
+			float(w["battle_ws"]) * sign, float(w["occupation_ws"]) * sign, float(w["blockade_ws"]) * sign, float(w["ticking_ws"]) * sign], 13))
+		hb4.add_child(UiTheme.button("Abrir", func(): war_open.emit(int(wid))))
+		_content.add_child(hb4)
+	_section("Rebeldes")
+	var facs := VRebelSystem.country_factions(gs, me)
+	if facs.is_empty():
+		_note("No hay facciones rebeldes.")
+	for f2 in facs:
+		_note("%s — exigen %s · %s · %d provincias controladas · organización %.0f%%" % [gs.rebel_types.get(f2["type"], {}).get("name", f2["type"]),
+			gs.reforms.get(f2["movement"], {}).get("name", f2["movement"]), "en armas" if f2["risen"] else "organizándose",
+			f2["controlled_provinces"].size(), float(f2["organisation"]) * 100.0])

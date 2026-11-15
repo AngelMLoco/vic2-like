@@ -13,6 +13,12 @@ var phase: Phase = Phase.COUNTRY_SELECT
 
 var world_map: VWorldMap
 var labels: VMapLabels
+var units: VMapUnits
+var unit_panel: VUnitPanel
+var peace_window: VPeaceWindow
+var selected_armies: Array = []
+var selected_fleet: int = 0
+var _known_offers := {}
 var camera: VMapCamera
 
 var ui_root: Control
@@ -69,11 +75,15 @@ func _build_world() -> void:
 	labels = VMapLabels.new()
 	labels.setup(gs)
 	world.add_child(labels)
+	units = VMapUnits.new()
+	units.setup(gs)
+	world.add_child(units)
 	camera = VMapCamera.new()
 	world.add_child(camera)
 	camera.make_current()
 	camera.setup(world_map.map_size())
 	camera.clicked.connect(_on_map_clicked)
+	camera.right_clicked.connect(_on_map_right_clicked)
 	camera.hovered.connect(_on_map_hovered)
 	camera.view_changed.connect(_on_view_changed)
 
@@ -105,7 +115,20 @@ func _build_ui() -> void:
 	nation_window.setup(gs)
 	nation_window.country_focus.connect(func(tag): _set_focus_tag(tag))
 	nation_window.province_focus.connect(func(id): _select_province(id, true))
+	nation_window.war_open.connect(_open_war)
+	nation_window.army_focus.connect(_focus_unit)
 	ui_root.add_child(nation_window)
+
+	unit_panel = VUnitPanel.new()
+	unit_panel.setup(gs)
+	unit_panel.closed.connect(_clear_unit_selection)
+	unit_panel.changed.connect(_on_units_changed)
+	ui_root.add_child(unit_panel)
+
+	peace_window = VPeaceWindow.new()
+	peace_window.setup(gs)
+	peace_window.changed.connect(_on_units_changed)
+	ui_root.add_child(peace_window)
 
 	country_select = VCountrySelect.new()
 	country_select.setup(gs)
@@ -202,11 +225,50 @@ func _on_day() -> void:
 	sim.on_day()
 	top_bar.refresh()
 	nation_window.refresh_live()
+	if gs.flags.get("_overlay_dirty", false):
+		gs.flags["_overlay_dirty"] = false
+		world_map.refresh_overlay()
+		if world_map.mode in ["military", "rebels"]:
+			_recolor()
+	units.refresh(camera.current_zoom())
+	if unit_panel.visible:
+		unit_panel.refresh()
+	_check_offers()
+
+
+## Ofertas de paz de la IA al jugador: aviso y apertura de la ventana de paz.
+func _check_offers() -> void:
+	if gs.player_tag == "":
+		return
+	for wid in gs.countries[gs.player_tag].get("wars", []):
+		var w: Dictionary = gs.wars.get(int(wid), {})
+		if w.is_empty() or w.get("offer", {}).is_empty():
+			continue
+		var key := "%d|%d" % [int(wid), int(w["offer"].get("month", 0))]
+		if _known_offers.has(key):
+			continue
+		_known_offers[key] = true
+		clock.set_paused(true)
+		_show_toast("%s propone la paz (%s)" % [gs.country_name(w["offer"]["from"]), w["name"]])
+		_open_war(int(wid))
+
+
+func _open_war(wid: int) -> void:
+	nation_window.close()
+	peace_window.open(wid)
+
+
+func _on_units_changed() -> void:
+	units.selected_armies = selected_armies
+	units.refresh(camera.current_zoom())
+	unit_panel.refresh()
+	world_map.refresh_overlay()
+	top_bar.refresh()
 
 
 func _on_month() -> void:
 	sim.on_month()
-	if world_map.mode in ["population", "industry", "military", "literacy", "culture", "religion", "needs", "migration", "rebels"]:
+	if world_map.mode in ["population", "industry", "military", "literacy", "culture", "religion", "needs", "migration", "rebels", "sphere", "diplomatic"]:
 		_recolor()
 	province_panel.refresh()
 	top_bar.refresh()
@@ -249,13 +311,18 @@ func _set_focus_tag(tag: String) -> void:
 
 
 func _on_ownership_changed() -> void:
-	sim.territory_changed()
 	world_map.refresh_all()
 	labels.rebuild()
 	mapmode_bar.minimap.recolor(world_map.colors)
 
 
 func _on_map_clicked(world_pos: Vector2) -> void:
+	if phase == Phase.PLAYING:
+		var hit := units.unit_at(world_pos)
+		if not hit.is_empty():
+			_select_unit(hit, Input.is_key_pressed(KEY_SHIFT))
+			return
+		_clear_unit_selection()
 	var id := world_map.province_at(world_pos)
 	if phase == Phase.COUNTRY_SELECT:
 		var owner: String = gs.province(id).get("owner", "") if gs.is_land(id) else ""
@@ -265,6 +332,87 @@ func _on_map_clicked(world_pos: Vector2) -> void:
 		province_panel.visible = false
 		return
 	_select_province(id)
+
+
+# --------------------------------------------------------------- unidades
+func _select_unit(hit: Dictionary, add: bool) -> void:
+	if hit["kind"] == "fleet":
+		selected_armies = []
+		selected_fleet = int(hit["id"])
+		unit_panel.show_fleet(selected_fleet)
+	else:
+		selected_fleet = 0
+		var aid := int(hit["id"])
+		if add and not selected_armies.is_empty():
+			if aid in selected_armies:
+				selected_armies.erase(aid)
+			else:
+				selected_armies.append(aid)
+		else:
+			selected_armies = [aid]
+		unit_panel.show_armies(selected_armies)
+	province_panel.visible = false
+	units.selected_armies = selected_armies
+	units.selected_fleet = selected_fleet
+	units.refresh(camera.current_zoom())
+
+
+func _clear_unit_selection() -> void:
+	selected_armies = []
+	selected_fleet = 0
+	unit_panel.visible = false
+	units.selected_armies = []
+	units.selected_fleet = 0
+	units.refresh(camera.current_zoom())
+
+
+## Centrar y seleccionar una unidad (id > 0 ejército, id < 0 flota) desde la ventana militar.
+func _focus_unit(id: int) -> void:
+	nation_window.close()
+	if id > 0 and gs.armies.has(id):
+		_select_unit({"kind": "army", "id": id}, false)
+		camera.center_on(gs.provinces[int(gs.armies[id]["province"])]["center"], maxf(camera.target_zoom, 1.4))
+	elif id < 0 and gs.fleets.has(-id):
+		_select_unit({"kind": "fleet", "id": -id}, false)
+		camera.center_on(gs.provinces[int(gs.fleets[-id]["location"])]["center"], maxf(camera.target_zoom, 1.0))
+
+
+## Clic derecho: órdenes. Ejércitos: mover (Mayús = encolar) o desembarcar. Flota: navegar o desembarcar.
+func _on_map_right_clicked(world_pos: Vector2) -> void:
+	if phase != Phase.PLAYING:
+		return
+	var id := world_map.province_at(world_pos)
+	if id <= 0:
+		return
+	var queue := Input.is_key_pressed(KEY_SHIFT)
+	var msgs := []
+	if selected_fleet > 0 and gs.fleets.has(selected_fleet):
+		var f: Dictionary = gs.fleets[selected_fleet]
+		if f["country"] != gs.player_tag:
+			return
+		if gs.is_land(id) and not f["transported_armies"].is_empty() and f["path"].is_empty() and (id in gs.provinces[int(f["location"])]["neighbors"] or id == int(f["location"])):
+			for aid in f["transported_armies"].duplicate():
+				var err := VNavySystem.unload_army(gs, gs.armies[aid], id)
+				msgs.append(err if err != "" else "Desembarco en %s" % gs.provinces[id]["name"])
+		else:
+			var err2 := VNavySystem.order_move(gs, f, id)
+			msgs.append(err2 if err2 != "" else "Rumbo a %s" % gs.provinces[id]["name"])
+	else:
+		for aid in selected_armies:
+			var a: Dictionary = gs.armies.get(int(aid), {})
+			if a.is_empty() or a["country"] != gs.player_tag:
+				continue
+			var err3 := ""
+			if int(a["embarked"]) > 0:
+				err3 = VNavySystem.unload_army(gs, a, id)
+			else:
+				err3 = VArmySystem.order_move(gs, a, id, queue)
+			if err3 != "":
+				msgs.append(err3)
+	if not msgs.is_empty():
+		unit_panel.message(msgs[0])
+		_show_toast(msgs[0])
+	_on_units_changed()
 
 
 func _select_province(id: int, center: bool = false) -> void:
@@ -327,6 +475,9 @@ func _on_view_changed() -> void:
 	var z := camera.current_zoom()
 	labels.update_zoom(z)
 	world_map.set_border_alphas(clamp((z - 0.45) / 0.9, 0.12, 0.65), clamp((z - 0.3) / 0.5, 0.3, 0.85))
+	if units:
+		units.focus_tag = gs.player_tag
+		units.refresh(z)
 	mapmode_bar.minimap.set_view(camera.visible_rect())
 
 
@@ -351,6 +502,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if k == KEY_ESCAPE:
 		if game_menu.visible:
 			game_menu.visible = false
+		elif peace_window.visible:
+			peace_window.close()
+		elif unit_panel.visible:
+			_clear_unit_selection()
 		elif nation_window.visible:
 			nation_window.close()
 		elif province_panel.visible:

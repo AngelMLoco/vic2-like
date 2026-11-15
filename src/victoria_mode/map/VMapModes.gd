@@ -16,17 +16,17 @@ const MODES := [
 	{"id": "culture", "name": "Cultura", "key": "5", "available": true, "desc": "Cultura mayoritaria de cada provincia."},
 	{"id": "religion", "name": "Religión", "key": "6", "available": true, "desc": "Religión mayoritaria de cada provincia."},
 	{"id": "industry", "name": "Economía / Industria", "key": "7", "available": true, "desc": "Niveles de fábrica por estado."},
-	{"id": "military", "name": "Militar", "key": "8", "available": true, "desc": "Fortificaciones, bases navales y potencia militar."},
+	{"id": "military", "name": "Militar", "key": "8", "available": true, "desc": "Control: propio, aliado, enemigo, ocupado (rayado), rebeldes; fortificaciones y bases navales."},
 	{"id": "terrain", "name": "Terreno", "key": "9", "available": true, "desc": "Tipo de terreno."},
 	{"id": "states", "name": "Estados", "key": "0", "available": true, "desc": "Cada parte de estado con su propio color."},
 	{"id": "infrastructure", "name": "Infraestructura", "key": "", "available": true, "desc": "Nivel de infraestructura."},
 	{"id": "literacy", "name": "Alfabetización", "key": "", "available": true, "desc": "Alfabetización media de los POPs."},
-	{"id": "rebels", "name": "Militancia", "key": "", "available": true, "desc": "Militancia media de los POPs (las facciones rebeldes llegarán con el milestone militar)."},
-	{"id": "sphere", "name": "Esferas", "key": "", "available": false, "desc": "Disponible con la fase de diplomacia (influencia y esferas)."},
+	{"id": "rebels", "name": "Rebelión", "key": "", "available": true, "desc": "Militancia media de los POPs y provincias en manos rebeldes (negro)."},
+	{"id": "sphere", "name": "Esferas", "key": "", "available": true, "desc": "Grandes Potencias y los países de su esfera de influencia."},
 	{"id": "migration", "name": "Desempleo", "key": "", "available": true, "desc": "Desempleo de los POPs pobres (principal motor de la migración)."},
 	{"id": "needs", "name": "Necesidades", "key": "", "available": true, "desc": "Satisfacción de necesidades vitales de los POPs pobres."},
 	{"id": "colonial", "name": "Colonización", "key": "", "available": false, "desc": "Disponible con la fase de colonización."},
-	{"id": "supply", "name": "Suministro", "key": "", "available": false, "desc": "Disponible con la fase militar (supply y attrition)."},
+	{"id": "supply", "name": "Suministro", "key": "", "available": true, "desc": "Límite de suministro (brigadas) para la nación de referencia."},
 ]
 
 
@@ -111,14 +111,36 @@ static func color_of(gs: VGameState, mode: String, id: int, focus_tag: String, c
 			var t := float(lvl) / float(ctx["max_level"])
 			return Color("8a5a2a").lerp(Color("ffcc4a"), sqrt(t))
 		"military":
+			var ctrl: String = p["controller"]
+			if ctrl == VGameState.REBEL_TAG:
+				return Color("1a1a1a")
 			if owner == "":
 				return UNOWNED.darkened(0.3)
-			var c2: Color = Color("3a3a3a").lerp(Color("c8402a"), float(gs.countries[owner]["military_score"]) / float(ctx["max_mil"]))
+			var c2 := Color("6a6658")
+			if focus_tag != "":
+				if ctrl == focus_tag:
+					c2 = Color("3f8a3a")
+				elif VWarSystem.at_war_with(gs, focus_tag, ctrl):
+					c2 = Color("b8342a")
+				elif VDiplomacySystem.are_allied(gs, focus_tag, ctrl):
+					c2 = Color("3a6ab0")
 			if int(p.get("fort", 0)) > 0:
-				c2 = c2.lightened(0.35)
-			if int(p.get("naval_base", 0)) > 0:
-				c2 = Color("4a8ad8")
+				c2 = c2.lightened(0.25)
 			return c2
+		"sphere":
+			if owner == "":
+				return UNOWNED.darkened(0.35)
+			if VInfluenceSystem.is_gp(gs, owner):
+				return gs.country_color(owner)
+			var leader: String = gs.countries[owner].get("sphere_leader", "")
+			if leader != "":
+				return gs.country_color(leader).lerp(Color.WHITE, 0.35)
+			return Color("5a564a")
+		"supply":
+			if owner == "":
+				return UNOWNED.darkened(0.35)
+			var lim := VSupplySystem.supply_limit(gs, focus_tag if focus_tag != "" else owner, id)
+			return Color("6a2a1a").lerp(Color("8ad86a"), clampf(lim / 16.0, 0.0, 1.0))
 		"terrain":
 			return gs.terrain_types.get(p["terrain"], {}).get("color_obj", UNOWNED)
 		"states":
@@ -139,6 +161,8 @@ static func color_of(gs: VGameState, mode: String, id: int, focus_tag: String, c
 		"rebels":
 			if owner == "":
 				return UNOWNED.darkened(0.35)
+			if p["controller"] == VGameState.REBEL_TAG:
+				return Color("111111")
 			var mil := VPopulationSystem.weighted_average(gs, [id], "militancy")
 			return Color("4a5a4a").lerp(Color("c81a1a"), clampf(mil / 5.0, 0.0, 1.0))
 		"literacy":
@@ -168,9 +192,8 @@ static func _diplomatic(gs: VGameState, owner: String, focus: String) -> Color:
 	if owner == focus:
 		return Color("4fc24a")
 	var fc: Dictionary = gs.countries[focus]
-	for w in fc["wars"]:
-		if w["enemy"] == owner:
-			return Color("d8342a")
+	if VWarSystem.at_war_with(gs, focus, owner):
+		return Color("d8342a")
 	if owner in fc["allies"]:
 		return Color("3a7ad8")
 	if gs.countries[owner].get("sphere_leader", "") == focus:
@@ -192,7 +215,11 @@ static func legend(gs: VGameState, mode: String) -> Array:
 		"industry":
 			return [[Color("4a4638"), "Sin industria"], [Color("8a5a2a"), "Poca industria"], [Color("ffcc4a"), "Gran centro industrial"]]
 		"military":
-			return [[Color("c8402a"), "Mayor potencia militar"], [Color("4a8ad8"), "Base naval"]]
+			return [[Color("3f8a3a"), "Control propio"], [Color("3a6ab0"), "Aliado"], [Color("b8342a"), "Enemigo"], [Color("1a1a1a"), "Rebeldes"]]
+		"sphere":
+			return [[Color("5a564a"), "Fuera de esferas"], [Color("c8c8c8"), "Color claro = en la esfera de esa potencia"]]
+		"supply":
+			return [[Color("6a2a1a"), "Suministro escaso"], [Color("8ad86a"), "Suministro abundante"]]
 		"infrastructure":
 			return [[Color("3e3a30"), "Sin infraestructura"], [Color("e8d07a"), "Infraestructura alta"]]
 		"literacy":
@@ -202,5 +229,5 @@ static func legend(gs: VGameState, mode: String) -> Array:
 		"migration":
 			return [[Color("3e5a3a"), "Pleno empleo"], [Color("e05a3a"), "Paro ≥ 25%"]]
 		"rebels":
-			return [[Color("4a5a4a"), "Calma"], [Color("c81a1a"), "Militancia alta"]]
+			return [[Color("4a5a4a"), "Calma"], [Color("c81a1a"), "Militancia alta"], [Color("111111"), "Control rebelde"]]
 	return []

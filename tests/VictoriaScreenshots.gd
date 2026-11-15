@@ -94,6 +94,45 @@ func _ready() -> void:
 	game.set_mapmode("needs")
 	await _frames(40)
 	await _shot("m2_mapmode_needs")
+	# milestone 3: unidades, diplomacia, militar, guerra
+	game.set_mapmode("political")
+	var army := {}
+	for a in VArmySystem.country_armies(gs, "FRK"):
+		if army.is_empty() or a["brigades"].size() > army["brigades"].size():
+			army = a
+	game._focus_unit(int(army["id"]))
+	await _frames(45)
+	await _shot("m3_army_selected")
+	var states := VCasusBelliSystem.bordering_states(gs, "FRK", "RHE")
+	var cb := VCasusBelliSystem.add_cb(gs, "FRK", "RHE", "acquire_state", int(states[0]))
+	gs.countries["FRK"]["diplo_points"] = 9.0
+	var res := VWarSystem.declare_war(gs, "FRK", cb)
+	var target := int(gs.state_part(int(states[0]), "RHE")[0])
+	VArmySystem.order_move(gs, army, target)
+	for i in 40:
+		game.clock._tick()
+	game._clear_unit_selection()
+	game._select_unit({"kind": "army", "id": int(army["id"])}, false)
+	game.camera.center_on(gs.provinces[target]["center"], 1.6)
+	game.set_mapmode("military")
+	await _frames(45)
+	await _shot("m3_war_military_mapmode")
+	game._clear_unit_selection()
+	game.nation_window.open("diplomacy")
+	await _frames(4)
+	await _shot("m3_diplomacy_tab")
+	game.nation_window.open("military")
+	await _frames(4)
+	await _shot("m3_military_tab")
+	if res.has("war"):
+		game._open_war(int(res["war"]["id"]))
+		await _frames(4)
+		await _shot("m3_war_window")
+	game.peace_window.close()
+	game.set_mapmode("sphere")
+	game.camera.center_on(Vector2(gs.map_width * 0.52, gs.map_height * 0.35), 0.5)
+	await _frames(45)
+	await _shot("m3_sphere_mapmode")
 	print("capturas en ", ProjectSettings.globalize_path(out_dir) if out_dir.begins_with("user://") else out_dir)
 	get_tree().quit()
 

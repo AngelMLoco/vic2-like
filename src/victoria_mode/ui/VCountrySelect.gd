@@ -243,8 +243,13 @@ func select(tag: String) -> void:
 	for a in c["allies"]:
 		allies.append(gs.country_name(a))
 	var wars := []
-	for w in c["wars"]:
-		wars.append("%s (contra %s)" % [w["name"], gs.country_name(w["enemy"])])
+	for wid in c["wars"]:
+		var w: Dictionary = gs.wars.get(int(wid), {})
+		if not w.is_empty():
+			var en := []
+			for e in VWarSystem.enemies_in_war(gs, w, tag):
+				en.append(gs.country_name(e))
+			wars.append("%s (contra %s)" % [w["name"], ", ".join(en)])
 	var cap := int(c["capital"])
 	var t := ""
 	t += _kv("Gobierno", gs.government_name(c["government"]))
