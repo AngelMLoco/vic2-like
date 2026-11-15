@@ -30,6 +30,9 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var tag: String = p["owner"]
 	if tag == "":
 		return
+	# cada provincia evalúa movilidad cada 2 meses (escalonado) con tasas dobles: mismo ritmo, mitad de coste
+	if (gs.month_index + id) % 2 == 1:
+		return
 	var c: Dictionary = gs.countries[tag]
 	var rules := _rules_by_type(gs)
 	var vac := _vacancies(gs, p, tag, c)
@@ -47,7 +50,7 @@ static func process_province(gs: VGameState, id: int) -> void:
 				vac["rgo"] = int(p.get("rgo_free", 0)) if VProductionSystem.rgo_worker_type(gs, p["rgo"]) == target else 0
 			if not VConditions.pop_ok(gs, pop, cond, tag, ctx):
 				continue
-			var amount := int(float(pop["size"]) * float(rule.get("rate", 0.01)))
+			var amount := int(float(pop["size"]) * minf(1.0, float(rule.get("rate", 0.01)) * 2.0))
 			if cond.has("vacancy"):
 				amount = mini(amount, int(vac.get(cond["vacancy"], 0)))
 			if amount < MIN_MOVE:
@@ -85,9 +88,12 @@ static func _vacancies(gs: VGameState, p: Dictionary, tag: String, c: Dictionary
 	var country_pop := maxf(1.0, float(c.get("population", 1)))
 	var ct: Dictionary = c.get("type_sizes", {})
 	var mil_target := 0.03 * float(c["budget"].get("military", 0.0)) / 0.5
+	var share := 0.0
+	if not si.is_empty():
+		share = float(p["population"]) / maxf(1.0, float(si.get("_pop", gs.instance_population(si))))
 	return {
-		"factory_workers": int(si.get("vacancy_craftsmen", 0) * float(p["population"]) / maxf(1.0, float(gs.instance_population(si)))) if not si.is_empty() else 0,
-		"factory_clerks": int(si.get("vacancy_clerks", 0) * float(p["population"]) / maxf(1.0, float(gs.instance_population(si)))) if not si.is_empty() else 0,
+		"factory_workers": int(float(si.get("vacancy_craftsmen", 0)) * share),
+		"factory_clerks": int(float(si.get("vacancy_clerks", 0)) * share),
 		"rgo": 0,
 		"admin": int(maxf(0.0, 0.008 * country_pop - float(ct.get("bureaucrats", 0))) * total / country_pop),
 		"clergy": int(maxf(0.0, 0.02 * total - float(types.get("clergy", 0)))),
@@ -145,7 +151,7 @@ static func _migrate(gs: VGameState, p: Dictionary, tag: String, c: Dictionary, 
 			continue
 		# internacional: solo con pobreza grave
 		if life < 0.5 and unemp > 0.2 and not intl.is_empty():
-			var amount := int(float(pop["size"]) * minf(0.01, 0.003 * push))
+			var amount := int(float(pop["size"]) * minf(0.02, 0.006 * push))
 			if amount >= MIN_MOVE:
 				for dest_tag in intl:
 					if dest_tag == tag or not accepts(gs, dest_tag, pop["culture"]):
@@ -170,7 +176,7 @@ static func _migrate(gs: VGameState, p: Dictionary, tag: String, c: Dictionary, 
 		for dest_id in cands:
 			if int(dest_id) == int(p["id"]):
 				continue
-			var amount2 := int(float(pop["size"]) * minf(0.015, 0.005 * push))
+			var amount2 := int(float(pop["size"]) * minf(0.03, 0.01 * push))
 			if amount2 < MIN_MOVE:
 				break
 			var dest2: Dictionary = gs.provinces[dest_id]

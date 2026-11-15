@@ -209,12 +209,15 @@ func state_part(state_id: int, tag: String) -> Array:
 
 ## Instancias de estado de un país, ordenadas por población.
 func country_state_instances(tag: String) -> Array:
-	var out := []
+	var rows := []
 	for key in state_instances:
 		var si: Dictionary = state_instances[key]
 		if si["owner"] == tag:
-			out.append(si)
-	out.sort_custom(func(a, b): return _instance_pop(a) > _instance_pop(b))
+			rows.append([_instance_pop(si), si])
+	rows.sort_custom(func(a, b): return a[0] > b[0])
+	var out := []
+	for r in rows:
+		out.append(r[1])
 	return out
 
 

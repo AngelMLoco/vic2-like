@@ -101,6 +101,10 @@ func on_month() -> void:
 		VPoliticsSystem.monthly(gs, tag, is_player)
 		VProductionSystem.monthly_country(gs, tag, is_player)
 	VProfiler.end(gs, "country_month", tb)
+	if gs.flags.get("money_audit", false) or gs.month_index % 3 == 0:
+		var ta := VProfiler.begin()
+		VMoney.audit(gs)
+		VProfiler.end(gs, "money_audit", ta)
 	var tt := VProfiler.begin()
 	VMobilitySystem.monthly_targets(gs)
 	VRankingSystem.recalculate(gs)

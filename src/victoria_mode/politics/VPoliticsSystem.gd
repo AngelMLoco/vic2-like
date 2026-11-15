@@ -265,8 +265,12 @@ static func can_change_reform(gs: VGameState, tag: String, rid: String, directio
 	var uh: Dictionary = c.get("upper_house", {})
 	var support := 0.0
 	var against := 0.0
+	# presión social: con militancia alta los conservadores aceptan reformas para calmar al país
+	var pressure := clampf(float(c.get("avg_militancy", 0.0)) / 4.0, 0.0, 1.0)
 	for ideo in uh:
 		var s := float(gs.ideologies.get(ideo, {}).get("reform_support", {}).get(kind, 0.0)) * float(direction)
+		if direction > 0 and gs.ideologies.get(ideo, {}).get("group", "") == "conservative" and ideo != "tradicionalista":
+			s += pressure * 0.8
 		if s > 0.0:
 			support += float(uh[ideo]) * s
 		else:

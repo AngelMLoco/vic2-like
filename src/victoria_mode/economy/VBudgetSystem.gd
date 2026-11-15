@@ -103,6 +103,7 @@ static func buy_stockpile(gs: VGameState, tag: String) -> void:
 		var got := q * VMarketSystem.fill_buy(gs, tag, g)
 		cost += got * VMarketSystem.buy_price(gs, tag, g)
 		c["stockpile"][g] = float(c["stockpile"].get(g, 0.0)) + got
+	VMoney.destroyed(gs, cost, "stockpile")
 	add_expense(gs, tag, "stockpile", cost)
 
 
@@ -124,6 +125,9 @@ static func settle_month(gs: VGameState, tag: String, is_player: bool) -> void:
 		expense += float(acc.get(k, 0.0))
 	var balance := income - expense
 	c["treasury"] = float(c["treasury"]) + balance
+	VMoney.created(gs, float(acc.get("tariffs", 0.0)), "tariffs")
+	VMoney.destroyed(gs, float(acc.get("construction", 0.0)), "construction")
+	VMoney.destroyed(gs, float(acc.get("interest", 0.0)), "interest")
 	# deuda: pedir prestado si el tesoro es negativo
 	if float(c["treasury"]) < 0.0:
 		var need := -float(c["treasury"])
@@ -134,10 +138,12 @@ static func settle_month(gs: VGameState, tag: String, is_player: bool) -> void:
 		c["debt"] = float(c["debt"]) + need
 		c["debt_foreign"] = foreign + (need - from_bank)
 		c["treasury"] = 0.0
+		VMoney.created(gs, need, "state_borrowing")
 	elif debt > 0.0 and float(c["treasury"]) > expense * 3.0:
 		var repay: float = min(debt, (float(c["treasury"]) - expense * 3.0) * 0.5)
 		c["treasury"] = float(c["treasury"]) - repay
 		c["debt"] = debt - repay
+		VMoney.destroyed(gs, repay, "debt_repayment")
 		var f_rep: float = min(foreign, repay)
 		c["debt_foreign"] = foreign - f_rep
 		c["bank"]["lent"] = maxf(0.0, float(c["bank"]["lent"]) - (repay - f_rep))

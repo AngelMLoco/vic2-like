@@ -215,6 +215,7 @@ static func _process_rgo(gs: VGameState, p: Dictionary, tag: String, c: Dictiona
 	var owner_share := float(gs.economy_rules.get("rgo_owner_share", 0.2)) if aristo_size > 0 else 0.0
 	var worker_pool := revenue * (1.0 - owner_share)
 	var owner_pool := revenue * owner_share
+	var paid_out := 0.0
 	for pop in p["pops"]:
 		var t: String = pop["type"]
 		if t == wt or t == "slaves":
@@ -222,18 +223,23 @@ static func _process_rgo(gs: VGameState, p: Dictionary, tag: String, c: Dictiona
 			pop["employer"] = "rgo"
 			if employed > 0:
 				var share := worker_pool * float(pop["size"]) * ratio / float(employed)
-				if t == "slaves":
+				if t == "slaves" and aristo_size > 0:
 					VBudgetSystem.transfer(pop, share * 0.3)
 					owner_pool += share * 0.7
+					paid_out += share * 0.3
 				else:
 					VBudgetSystem.credit_income(gs, tag, pop, share)
+					paid_out += share
 		elif t in ["farmers", "labourers"]:
 			pop["employment"] = 0.0
 			pop["employer"] = ""
 	for a in aristos:
 		a["employment"] = 1.0
 		a["employer"] = "rgo_owner"
-		VBudgetSystem.credit_income(gs, tag, a, owner_pool * float(a["size"]) / float(aristo_size))
+		var ashare := owner_pool * float(a["size"]) / float(aristo_size)
+		VBudgetSystem.credit_income(gs, tag, a, ashare)
+		paid_out += ashare
+	VMoney.created(gs, paid_out, "rgo_sales")
 
 
 static func _process_artisans(gs: VGameState, p: Dictionary, tag: String, c: Dictionary) -> void:
@@ -241,16 +247,23 @@ static func _process_artisans(gs: VGameState, p: Dictionary, tag: String, c: Dic
 	var eff_mod := 1.0 + gs.mod(tag, "artisan_efficiency")
 	var switch_rate := float(gs.economy_rules.get("artisan_switch_rate", 0.15))
 	var best: String = c.get("artisan_best", "")
+	var profits: Dictionary = c.get("artisan_profit", {})
+	var choices: Array = c.get("artisan_choices", [])
 	for pop in p["pops"]:
 		if pop["type"] != "artisans":
 			continue
 		var product: String = pop.get("product", "")
-		if best != "" and product != best:
-			var profits: Dictionary = c.get("artisan_profit", {})
+		if best != "" and product != best and not choices.is_empty():
 			var cur := float(profits.get(product, -1.0))
 			if cur < float(profits.get(best, 0.0)) * 0.7 and (int(pop["id"]) + gs.month_index) % int(1.0 / switch_rate) == 0:
-				product = best
-				pop["product"] = best
+				# reparto ponderado por beneficio entre los productos rentables (evita que todos elijan el mismo)
+				var roll := float(absi(("%d|%d" % [int(pop["id"]), gs.month_index]).hash()) % 10000) / 10000.0 * float(c.get("artisan_choice_total", 1.0))
+				for ch in choices:
+					roll -= float(ch[1])
+					if roll <= 0.0:
+						product = ch[0]
+						break
+				pop["product"] = product
 		if not rates.has(product):
 			product = rates.keys()[0]
 			pop["product"] = product
@@ -280,10 +293,15 @@ static func _process_artisans(gs: VGameState, p: Dictionary, tag: String, c: Dic
 			var q := float(ft["outputs"][g]) * produced
 			VMarketSystem.add_supply(gs, tag, g, q)
 			revenue += q * VMarketSystem.price(gs, g) * VMarketSystem.fill_sell(gs, tag, g)
+		VMoney.created(gs, revenue, "artisan_sales")
+		VMoney.destroyed(gs, paid, "artisan_inputs")
 		if revenue >= paid:
 			VBudgetSystem.credit_income(gs, tag, pop, revenue - paid)
 		else:
-			pop["cash"] = maxf(0.0, float(pop["cash"]) - (paid - revenue))
+			var loss := paid - revenue
+			if loss > float(pop["cash"]):
+				VMoney.created(gs, loss - float(pop["cash"]), "artisan_loss_forgiven")
+			pop["cash"] = maxf(0.0, float(pop["cash"]) - loss)
 		pop["employment"] = clampf(scale * fill, 0.0, 1.0) if revenue > paid else clampf(scale * fill * 0.5, 0.0, 1.0)
 		pop["employer"] = "artisan:" + product
 
@@ -335,8 +353,10 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 	var cr_total := 0
 	var cl_total := 0
 	var infra := 0.0
+	var inst_pop := 0
 	for id in si["provinces"]:
 		infra += float(gs.provinces[id]["infrastructure"])
+		inst_pop += int(gs.provinces[id]["population"])
 		for pop in gs.provinces[id]["pops"]:
 			match pop["type"]:
 				"craftsmen":
@@ -348,6 +368,7 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 				"capitalists":
 					capitalists.append(pop)
 	infra /= maxf(1.0, float(si["provinces"].size()))
+	si["_pop"] = inst_pop
 	# plazas
 	var cr_slots := 0.0
 	var cl_slots := 0.0
@@ -429,6 +450,8 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 			var q := float(ft["outputs"][g]) * produced
 			VMarketSystem.add_supply(gs, tag, g, q)
 			revenue += q * VMarketSystem.price(gs, g) * VMarketSystem.fill_sell(gs, tag, g)
+		VMoney.created(gs, revenue, "factory_sales")
+		VMoney.destroyed(gs, input_cost, "factory_inputs")
 		var w_cr := emp_cr / UNIT * cr_wage
 		var w_cl := emp_cl / UNIT * cl_wage
 		wages_cr += w_cr
@@ -439,10 +462,22 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 		f["revenue"] = revenue
 		f["expenses"] = expenses
 		f["profit"] = profit
+		f["age"] = int(f.get("age", 24)) + 1
+		var hist: Array = f.get("profit_hist", [])
+		hist.append(profit)
+		if hist.size() > 12:
+			hist.remove_at(0)
+		f["profit_hist"] = hist
+		f["staffing"] = staffing
 		if profit >= 0.0:
 			var reinvest := profit * float(rules.get("factory_reinvest_share", 0.3))
 			f["cash"] = float(f["cash"]) + reinvest
 			profit_total += profit - reinvest
+			# colchón de caja: hasta N meses de gastos; el exceso se reparte a los propietarios
+			var buffer := maxf(100.0, expenses * float(rules.get("factory_cash_buffer_months", 3.0)))
+			if float(f["cash"]) > buffer:
+				profit_total += float(f["cash"]) - buffer
+				f["cash"] = buffer
 			f["loss_months"] = 0
 			f["hiring"] = minf(1.0, float(f["hiring"]) + 0.1)
 		else:
@@ -454,6 +489,7 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 					f["cash"] = 0.0
 				else:
 					f["hiring"] = maxf(0.1, float(f["hiring"]) * 0.75)
+					VMoney.created(gs, -float(f["cash"]), "factory_loss_forgiven")
 					f["cash"] = 0.0
 					if int(f["loss_months"]) >= int(rules.get("factory_close_months", 6)) and float(f["hiring"]) <= 0.15:
 						f["open"] = false
@@ -483,6 +519,7 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 				VBudgetSystem.credit_income(gs, tag, pop, profit_total * float(pop["size"]) / float(cap_size))
 		else:
 			c["treasury"] = float(c["treasury"]) + profit_total * 0.5
+			VMoney.destroyed(gs, profit_total * 0.5, "profit_without_owner")
 
 
 static func economic_policy(gs: VGameState, tag: String) -> String:
@@ -497,20 +534,21 @@ static func monthly_country(gs: VGameState, tag: String, is_player: bool) -> voi
 	if c["provinces"].is_empty():
 		return
 	_update_artisan_profit(gs, tag)
-	var capitalists: Array = c.get("_capitalists", [])
-	var investors: Array = capitalists + c.get("_aristocrats", [])
 	_progress_projects(gs, tag)
 	var rules: Dictionary = gs.economy_rules
 	var policy := economic_policy(gs, tag)
-	if policy in rules.get("investment_policies", []) and c.get("civilized", true):
+	c["invest_cooldown"] = maxi(0, int(c.get("invest_cooldown", 0)) - 1)
+	var max_projects := 1 + int(float(c.get("_factory_count", 0)) / float(rules.get("factories_per_parallel_project", 40)))
+	# inversión privada: solo capitalistas (los aristócratas viven de la renta del RGO y ahorran)
+	if policy in rules.get("investment_policies", []) and c.get("civilized", true) and int(c["invest_cooldown"]) == 0 and c["projects"].size() < max_projects:
+		var capitalists: Array = c.get("_capitalists", [])
 		var pool := 0.0
-		for pop in investors:
+		for pop in capitalists:
 			pool += float(pop["cash"]) + float(pop.get("bank", 0.0))
-		var max_projects := 1 + int(float(c.get("_factory_count", 0)) / 20.0)
 		var plan := best_investment(gs, tag)
-		if not plan.is_empty() and pool * 0.5 >= float(plan["cost"]) and c["projects"].size() < max_projects:
+		if not plan.is_empty() and pool >= float(plan["cost"]) * float(rules.get("investment_capital_ratio", 2.5)):
 			var cost := float(plan["cost"])
-			for pop in investors:
+			for pop in capitalists:
 				var w := (float(pop["cash"]) + float(pop.get("bank", 0.0))) / pool
 				var take := cost * w
 				var from_cash: float = minf(float(pop["cash"]), take)
@@ -518,32 +556,38 @@ static func monthly_country(gs: VGameState, tag: String, is_player: bool) -> voi
 				var from_bank := take - from_cash
 				pop["bank"] = maxf(0.0, float(pop.get("bank", 0.0)) - from_bank)
 				c["bank"]["deposits"] = maxf(0.0, float(c["bank"]["deposits"]) - from_bank)
+			VMoney.destroyed(gs, cost, "investment")
 			start_project(gs, tag, plan, "capitalists")
-	# reabrir fábricas cerradas que vuelvan a ser rentables
-	for si in gs.country_state_instances(tag):
-		for f in si["factories"]:
-			if not f["open"] and expected_margin(gs, tag, f["type"]) > 0.0 and (gs.month_index + int(f["id"])) % 6 == 0:
-				f["open"] = true
-				f["hiring"] = 0.4
-				f["loss_months"] = 0
-				f["cash"] = 50.0
-	# IA de gobierno: construir si la política lo permite y sobra dinero
-	if not is_player and policy in rules.get("government_build_policies", []) and c["projects"].size() < 2:
+			c["invest_cooldown"] = int(rules.get("investment_cooldown_months", 3))
+	# reabrir fábricas cerradas que vuelvan a ser rentables (con historial de precios, no un pico)
+	if (gs.month_index + tag.hash()) % 6 == 0:
+		for si in gs.country_state_instances(tag):
+			for f in si["factories"]:
+				if not f["open"] and expected_margin(gs, tag, f["type"], true) > 0.0:
+					f["open"] = true
+					f["hiring"] = 0.4
+					f["loss_months"] = 0
+					VMoney.created(gs, 50.0 - float(f["cash"]), "factory_reopen")
+					f["cash"] = 50.0
+	# IA de gobierno: construir si la política lo permite y sobra mucho dinero
+	if not is_player and policy in rules.get("government_build_policies", []) and int(c["invest_cooldown"]) == 0 and c["projects"].size() < max_projects:
 		var monthly_exp := maxf(50.0, float(c.get("monthly_expense", 0.0)))
-		if float(c["treasury"]) > monthly_exp * 8.0:
+		if float(c["treasury"]) > monthly_exp * 12.0:
 			var plan2 := best_investment(gs, tag)
-			if not plan2.is_empty() and float(c["treasury"]) - float(plan2["cost"]) > monthly_exp * 4.0:
+			if not plan2.is_empty() and float(c["treasury"]) - float(plan2["cost"]) > monthly_exp * 6.0:
 				VBudgetSystem.add_expense(gs, tag, "construction", float(plan2["cost"]))
 				start_project(gs, tag, plan2, "government")
+				c["invest_cooldown"] = int(rules.get("investment_cooldown_months", 3)) * 2
 
 
-## Margen mensual esperado por nivel (ingresos − insumos − salarios) a precios actuales.
-static func expected_margin(gs: VGameState, tag: String, ftype: String) -> float:
+## Margen mensual esperado por nivel (ingresos − insumos − salarios).
+## Con smoothed = true usa la media de los últimos 6 meses del precio de venta (evita invertir por un pico).
+static func expected_margin(gs: VGameState, tag: String, ftype: String, smoothed: bool = false) -> float:
 	var ft: Dictionary = gs.factory_types.get(ftype, {})
 	var rate := float(gs.market["factory_rate"].get(ftype, 0.0))
 	var out := 0.0
 	for g in ft.get("outputs", {}):
-		out += float(ft["outputs"][g]) * VMarketSystem.price(gs, g)
+		out += float(ft["outputs"][g]) * (avg_price(gs, g, 6) if smoothed else VMarketSystem.price(gs, g))
 	var inp := 0.0
 	for g in ft.get("inputs", {}):
 		inp += float(ft["inputs"][g]) * VMarketSystem.buy_price(gs, tag, g)
@@ -566,25 +610,82 @@ static func build_cost(gs: VGameState, tag: String, ftype: String, expand: bool)
 	return cost * (0.6 if expand else 1.0)
 
 
-## Mejor inversión disponible: ampliar una fábrica rentable o abrir una nueva en el estado con más mano de obra.
+static func avg_price(gs: VGameState, good: String, months: int) -> float:
+	var hist: Array = gs.market.get("history", {}).get(good, [])
+	if hist.is_empty():
+		return VMarketSystem.price(gs, good)
+	var n := mini(months, hist.size())
+	var t := 0.0
+	for i in range(hist.size() - n, hist.size()):
+		t += float(hist[i])
+	return t / float(n)
+
+
+## ¿El mercado pide más de este producto? (demanda mundial por encima de la oferta, o precio medio alto)
+static func output_in_demand(gs: VGameState, ftype: String) -> bool:
+	var w: Dictionary = gs.market.get("world", {})
+	for g in gs.factory_types.get(ftype, {}).get("outputs", {}):
+		var sup := float(w.get("supply", {}).get(g, 0.0))
+		var dem := float(w.get("demand", {}).get(g, 0.0))
+		var base := float(gs.goods[g]["base_price"])
+		if dem > sup * 1.05 or avg_price(gs, g, 6) > base * 1.15:
+			return true
+	return false
+
+
+## ¿Hay insumos suficientes en el mercado (nacional y mundial)?
+static func inputs_available(gs: VGameState, tag: String, ftype: String) -> bool:
+	var w: Dictionary = gs.market.get("world", {})
+	for g in gs.factory_types.get(ftype, {}).get("inputs", {}):
+		if VMarketSystem.fill_buy(gs, tag, g) < 0.85:
+			return false
+		var sup := float(w.get("supply", {}).get(g, 0.0))
+		var dem := float(w.get("demand", {}).get(g, 0.0))
+		if sup < dem * 0.95:
+			return false
+	return true
+
+
+## Mejor inversión disponible. Ampliar exige rentabilidad persistente (12 meses de antigüedad,
+## beneficio medio positivo en el historial, plantilla completa y demanda del producto). Construir exige
+## demanda real del producto, margen positivo con precios medios, insumos disponibles, tecnología,
+## mano de obra libre en el estado y que no haya ya un proyecto del mismo tipo.
 static func best_investment(gs: VGameState, tag: String) -> Dictionary:
+	var c: Dictionary = gs.countries[tag]
 	var instances := gs.country_state_instances(tag)
 	var max_level := int(gs.economy_rules.get("factory_max_level", 10))
+	var pending := {}
+	for pr in c.get("projects", []):
+		pending[pr["type"]] = true
 	var best := {}
 	var best_score := 0.0
 	for si in instances:
+		if int(si.get("vacancy_craftsmen", 0)) > 1000:
+			continue
 		for f in si["factories"]:
-			if f["open"] and float(f["profit"]) > 0.0 and float(f["hiring"]) >= 0.95 and int(f["level"]) < max_level and int(si.get("vacancy_craftsmen", 0)) < 2000 and int(f["craftsmen_employed"]) >= int(float(f["max_workers"]) * 0.8):
-				var score := float(f["profit"]) / int(f["level"]) * 1.2
-				if score > best_score:
-					best_score = score
-					best = {"state_key": si["key"], "type": f["type"], "expand": true, "factory_id": f["id"], "cost": build_cost(gs, tag, f["type"], true)}
+			if not f["open"] or int(f.get("age", 0)) < 12 or int(f["level"]) >= max_level or pending.has(f["type"]):
+				continue
+			var hist: Array = f.get("profit_hist", [])
+			if hist.size() < 6 or float(f["hiring"]) < 0.95 or float(f.get("staffing", 0.0)) < 0.9:
+				continue
+			var avg := 0.0
+			var worst := INF
+			for v in hist:
+				avg += float(v)
+				worst = minf(worst, float(v))
+			avg /= float(hist.size())
+			if avg <= 0.0 or worst < -0.25 * absf(avg) or not output_in_demand(gs, f["type"]):
+				continue
+			var score := avg / int(f["level"])
+			if score > best_score:
+				best_score = score
+				best = {"state_key": si["key"], "type": f["type"], "expand": true, "factory_id": f["id"], "cost": build_cost(gs, tag, f["type"], true)}
 	var type_best := ""
 	var type_score := 0.0
 	for t in gs.factory_types:
-		if not can_build_type(gs, tag, t):
+		if pending.has(t) or not can_build_type(gs, tag, t) or not output_in_demand(gs, t) or not inputs_available(gs, tag, t):
 			continue
-		var m := expected_margin(gs, tag, t)
+		var m := expected_margin(gs, tag, t, true)
 		if m > type_score:
 			type_score = m
 			type_best = t
@@ -592,7 +693,7 @@ static func best_investment(gs: VGameState, tag: String) -> Dictionary:
 		var target := {}
 		var labour := 0.0
 		for si in instances.slice(0, 15):
-			if si["factories"].size() >= 6 or int(si.get("vacancy_craftsmen", 0)) > 3000:
+			if si["factories"].size() >= 6 or int(si.get("vacancy_craftsmen", 0)) > 1000:
 				continue
 			var pool := 0.0
 			for id in si["provinces"]:
@@ -601,7 +702,7 @@ static func best_investment(gs: VGameState, tag: String) -> Dictionary:
 						"craftsmen":
 							pool += float(pop["size"]) * (1.0 - float(pop["employment"]))
 						"farmers", "labourers":
-							pool += float(pop["size"]) * 0.03 * minf(1.0, float(pop["literacy"]) * 5.0)
+							pool += float(pop["size"]) * 0.02 * minf(1.0, float(pop["literacy"]) * 5.0) * (0.5 + float(1.0 - float(pop["employment"])))
 			if pool > labour:
 				labour = pool
 				target = si
@@ -681,6 +782,8 @@ static func _complete_project(gs: VGameState, tag: String, pr: Dictionary) -> vo
 		for f in si["factories"]:
 			if int(f["id"]) == int(pr["factory_id"]):
 				f["level"] = int(f["level"]) + 1
+				f["age"] = 0
+				f["profit_hist"] = []
 				gs.log_event(tag, "Ampliada %s (nivel %d)" % [gs.factory_types[f["type"]]["name"], f["level"]])
 				return
 	var fid := int(gs.market.get("next_factory_id", 1))
@@ -688,6 +791,7 @@ static func _complete_project(gs: VGameState, tag: String, pr: Dictionary) -> vo
 	var f2 := {"type": pr["type"], "level": 1}
 	_normalize_factory(f2, fid)
 	f2["hiring"] = 0.5
+	f2["age"] = 0
 	si["factories"].append(f2)
 	gs.log_event(tag, "Abre %s en %s" % [gs.factory_types[pr["type"]]["name"], gs.states[si["state"]]["name"]])
 
@@ -704,10 +808,23 @@ static func _update_artisan_profit(gs: VGameState, tag: String) -> void:
 			v += float(ft["outputs"][g]) * VMarketSystem.price(gs, g) * VMarketSystem.fill_sell(gs, tag, g)
 		for g in ft["inputs"]:
 			v -= float(ft["inputs"][g]) * VMarketSystem.buy_price(gs, tag, g)
-		v *= float(gs.market["artisan_rate"][t])
+		# la falta de insumos reduce lo que realmente se puede producir y vender
+		var fill := 1.0
+		for g in ft["inputs"]:
+			fill = minf(fill, VMarketSystem.fill_buy(gs, tag, g))
+		v *= float(gs.market["artisan_rate"][t]) * fill
 		profits[t] = v
 		if v > best_v:
 			best_v = v
 			best = t
+	var choices := []
+	var total := 0.0
+	for t in profits:
+		if float(profits[t]) > 0.0:
+			var w := float(profits[t]) * float(profits[t])
+			choices.append([t, w])
+			total += w
 	c["artisan_profit"] = profits
 	c["artisan_best"] = best
+	c["artisan_choices"] = choices
+	c["artisan_choice_total"] = total

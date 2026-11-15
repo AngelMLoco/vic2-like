@@ -15,18 +15,25 @@ func _ready() -> void:
 	var gs := VDataLoader.new_game()
 	print("carga del mundo: %d ms" % (Time.get_ticks_msec() - t0))
 	gs.player_tag = ""
+	gs.flags["money_audit"] = true
 	var sim := VWorldSimulation.new(gs)
 	print(header())
 	print(row(gs, 0))
 	var failures := []
+	var money_problems := []
 	for y in years:
 		var ty := Time.get_ticks_msec()
 		sim.run_days(365)
 		print(row(gs, y + 1) + "  (%.1f s)" % ((Time.get_ticks_msec() - ty) / 1000.0))
+		var au: Dictionary = gs.market.get("money_audit", {})
+		print("      dinero: " + VMoney.describe(au).replace("
+", " | "))
+		if au.has("residual_ratio") and float(au["residual_ratio"]) > 0.01:
+			money_problems.append("año %d: residuo monetario %.2f%% sin explicar" % [y + 1, float(au["residual_ratio"]) * 100.0])
 	print(VProfiler.report(gs))
 	if OS.get_environment("VBAL_DEBUG") != "":
 		debug_dump(gs)
-	failures = degenerate_checks(gs)
+	failures = degenerate_checks(gs) + money_problems
 	print("== balance: %d problemas ==" % failures.size())
 	for f in failures:
 		print("   - ", f)

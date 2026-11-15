@@ -52,5 +52,10 @@
   1.0,
   0.5,
   0.1
- ]
+ ],
+ "investment_capital_ratio": 2.5,
+ "investment_cooldown_months": 3,
+ "factories_per_parallel_project": 40,
+ "_doc_investment": "Inversión: solo capitalistas; capital >= coste × investment_capital_ratio; espera investment_cooldown_months entre proyectos; proyectos simultáneos = 1 + fábricas / factories_per_parallel_project.",
+ "factory_cash_buffer_months": 3.0
 }
