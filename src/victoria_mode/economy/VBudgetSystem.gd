@@ -16,6 +16,7 @@ extends RefCounted
 const INCOME_KEYS := ["tax_poor", "tax_middle", "tax_rich", "tariffs", "other"]
 const EXPENSE_KEYS := ["education", "administration", "military_wages", "stockpile", "social", "subsidies", "construction", "interest", "reparations"]
 const SLIDER_FOR := {"education": "education", "administration": "administration", "military": "military", "leadership": "military"}
+const TAX_KEY := {"poor": "tax_poor", "middle": "tax_middle", "rich": "tax_rich"}
 const EXPENSE_FOR_JOB := {"education": "education", "administration": "administration", "military": "military_wages", "leadership": "military_wages"}
 
 
@@ -50,10 +51,10 @@ static func credit_income(gs: VGameState, tag: String, pop: Dictionary, amount: 
 	var net := amount
 	if tag != "":
 		var c: Dictionary = gs.countries[tag]
-		var strata: String = gs.pop_types.get(pop["type"], {}).get("strata", "poor")
-		var rate := float(c["budget"].get("tax_" + strata, 0.0)) * float(c.get("tax_efficiency", 0.8))
-		var tax := amount * rate
-		c["acc"]["tax_" + strata] = float(c["acc"]["tax_" + strata]) + tax
+		var key: String = TAX_KEY[VPopulationSystem.strata_of(gs, pop["type"])]
+		var tax := amount * float(c["budget"].get(key, 0.0)) * float(c.get("tax_efficiency", 0.8))
+		var acc: Dictionary = c["acc"]
+		acc[key] = float(acc[key]) + tax
 		net = amount - tax
 	pop["cash"] = float(pop["cash"]) + net
 	pop["income_acc"] = float(pop.get("income_acc", 0.0)) + net

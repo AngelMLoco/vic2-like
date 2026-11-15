@@ -56,6 +56,66 @@ static func pop_ok(gs: VGameState, pop: Dictionary, cond: Dictionary, tag: Strin
 	return true
 
 
+## Versión precompilada de pop_ok para bucles calientes: [[código, valor], …] con códigos enteros
+## (comparar enteros es mucho más barato que el match por cadenas). Las claves sin código rápido
+## se evalúan con pop_ok (código -1).
+const _POP_CODES := {"min_literacy": 0, "max_literacy": 1, "min_life": 2, "max_life": 3, "min_everyday": 4,
+	"max_everyday": 5, "min_luxury": 6, "min_unemployment": 7, "max_unemployment": 8, "min_cash_per_capita": 9,
+	"max_cash_per_capita": 10, "min_consciousness": 11, "min_militancy": 12, "max_militancy": 13, "vacancy": 14}
+
+
+static func compile_pop(cond: Dictionary) -> Array:
+	var out := []
+	var rest := {}
+	for k in cond:
+		if _POP_CODES.has(k):
+			out.append([int(_POP_CODES[k]), cond[k] if k == "vacancy" else float(cond[k])])
+		else:
+			rest[k] = cond[k]
+	if not rest.is_empty():
+		out.append([-1, rest])
+	return out
+
+
+static func pop_ok_compiled(gs: VGameState, pop: Dictionary, compiled: Array, tag: String, ctx: Dictionary) -> bool:
+	for e in compiled:
+		var code: int = e[0]
+		match code:
+			0:
+				if float(pop["literacy"]) < e[1]: return false
+			1:
+				if float(pop["literacy"]) > e[1]: return false
+			2:
+				if float(pop["needs_satisfaction"]["life"]) < e[1]: return false
+			3:
+				if float(pop["needs_satisfaction"]["life"]) > e[1]: return false
+			4:
+				if float(pop["needs_satisfaction"]["everyday"]) < e[1]: return false
+			5:
+				if float(pop["needs_satisfaction"]["everyday"]) > e[1]: return false
+			6:
+				if float(pop["needs_satisfaction"]["luxury"]) < e[1]: return false
+			7:
+				if 1.0 - float(pop["employment"]) < e[1]: return false
+			8:
+				if 1.0 - float(pop["employment"]) > e[1]: return false
+			9:
+				if float(pop["cash"]) / maxf(1.0, float(pop["size"])) < e[1]: return false
+			10:
+				if float(pop["cash"]) / maxf(1.0, float(pop["size"])) > e[1]: return false
+			11:
+				if float(pop["consciousness"]) < e[1]: return false
+			12:
+				if float(pop["militancy"]) < e[1]: return false
+			13:
+				if float(pop["militancy"]) > e[1]: return false
+			14:
+				if int(ctx.get("vacancy", {}).get(e[1], 0)) <= 0: return false
+			_:
+				if not pop_ok(gs, pop, e[1], tag, ctx): return false
+	return true
+
+
 static func country_ok(gs: VGameState, tag: String, cond: Dictionary) -> bool:
 	var c: Dictionary = gs.countries[tag]
 	for k in cond:

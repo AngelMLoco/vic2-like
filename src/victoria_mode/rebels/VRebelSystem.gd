@@ -106,7 +106,7 @@ static func rise(gs: VGameState, f: Dictionary) -> void:
 			var prov := int(pop["province"])
 			if not by_prov.has(prov):
 				var army := VArmySystem.new_army(gs, tag, prov, "Rebeldes de %s" % gs.provinces[prov]["name"])
-				army["rebel_faction"] = int(f["id"])
+				VUnitIndex.army_set_rebel(gs, army, int(f["id"]))
 				by_prov[prov] = army
 				f["armies"].append(int(army["id"]))
 			var bid := gs.new_id("brigade")
@@ -192,7 +192,7 @@ static func dissolve(gs: VGameState, f: Dictionary, success: bool) -> void:
 		for id in gs.countries[tag]["provinces"]:
 			var p: Dictionary = gs.provinces[id]
 			if p["controller"] == VGameState.REBEL_TAG and int(p.get("rebel_faction", 0)) == int(f["id"]):
-				p["controller"] = tag
+				VWarSystem.set_controller(gs, int(id), tag)
 				p["rebel_faction"] = 0
 				p["occupation"] = 0.0
 		for pid in f["supporting_pops"]:

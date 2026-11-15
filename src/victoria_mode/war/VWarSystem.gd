@@ -13,16 +13,35 @@ extends RefCounted
 
 
 # ------------------------------------------------------------------ consultas
+## Caché de relaciones bélicas (enemigos / mismo bando) por nación, válida mientras no cambie
+## gs.access_version (se incrementa al declarar, unirse, retirarse, firmar la paz o cambiar propiedad).
+static func _relations(gs: VGameState) -> Dictionary:
+	var wc := gs.war_cache
+	if not wc.is_empty() and int(wc["ver"]) == gs.access_version:
+		return wc
+	var enemies := {}
+	var friends := {}
+	for wid in gs.wars:
+		var w: Dictionary = gs.wars[wid]
+		for pair in [[w["attackers"], w["defenders"]], [w["defenders"], w["attackers"]]]:
+			for a in pair[0]:
+				if not enemies.has(a):
+					enemies[a] = {}
+					friends[a] = {}
+				for b in pair[1]:
+					enemies[a][b] = true
+				for b in pair[0]:
+					friends[a][b] = true
+	wc = {"ver": gs.access_version, "enemies": enemies, "friends": friends}
+	gs.war_cache = wc
+	return wc
+
+
 static func at_war_with(gs: VGameState, a: String, b: String) -> bool:
-	if a == "" or b == "" or a == b or not gs.countries.has(a):
+	if a == "" or b == "" or a == b:
 		return false
-	for wid in gs.countries[a].get("wars", []):
-		var w: Dictionary = gs.wars.get(int(wid), {})
-		if w.is_empty():
-			continue
-		if (a in w["attackers"] and b in w["defenders"]) or (a in w["defenders"] and b in w["attackers"]):
-			return true
-	return false
+	var e: Dictionary = _relations(gs)["enemies"].get(a, {})
+	return e.has(b)
 
 
 static func war_between(gs: VGameState, a: String, b: String) -> int:
@@ -36,13 +55,13 @@ static func war_between(gs: VGameState, a: String, b: String) -> int:
 
 
 static func shared_war(gs: VGameState, a: String, b: String) -> bool:
-	if not gs.countries.has(a):
-		return false
-	for wid in gs.countries[a].get("wars", []):
-		var w: Dictionary = gs.wars.get(int(wid), {})
-		if not w.is_empty() and ((a in w["attackers"] and b in w["attackers"]) or (a in w["defenders"] and b in w["defenders"])):
-			return true
-	return false
+	var f: Dictionary = _relations(gs)["friends"].get(a, {})
+	return f.has(b)
+
+
+## Enemigos actuales de 'a' (diccionario tag → true de la caché; no modificar).
+static func enemies_of(gs: VGameState, a: String) -> Dictionary:
+	return _relations(gs)["enemies"].get(a, {})
 
 
 static func side_of(w: Dictionary, tag: String) -> String:
@@ -102,6 +121,7 @@ static func _join(gs: VGameState, w: Dictionary, tag: String, side: String) -> v
 		return
 	w[side].append(tag)
 	gs.countries[tag]["wars"].append(int(w["id"]))
+	VUnitIndex.bump_access(gs)
 
 
 static func can_declare(gs: VGameState, actor: String, cb: Dictionary) -> String:
@@ -274,6 +294,58 @@ static func on_battle_end(gs: VGameState, bt: Dictionary, winner: String) -> voi
 	w["battle_ws"] = clampf(float(w["battle_ws"]) + delta * sign, -40.0, 40.0)
 
 
+## Cambio de controlador (único punto): mantiene la ocupación agregada por nación y la versión.
+static func set_controller(gs: VGameState, id: int, ctrl: String) -> void:
+	var p: Dictionary = gs.provinces[id]
+	var old: String = p["controller"]
+	if old == ctrl:
+		return
+	p["controller"] = ctrl
+	gs.controller_version += 1
+	var owner: String = p["owner"]
+	if gs.ws_values_month < 0 or not gs.countries.has(owner):
+		return
+	var occ: Dictionary = gs.countries[owner].get("_occ", {})
+	var v := float(p.get("_wsv", 0.0))
+	if old != owner:
+		occ[old] = float(occ.get(old, 0.0)) - v
+		if float(occ[old]) <= 1e-6:
+			occ.erase(old)
+	if ctrl != owner:
+		occ[ctrl] = float(occ.get(ctrl, 0.0)) + v
+	gs.countries[owner]["_occ"] = occ
+
+
+## Valores de warscore por provincia y agregados por nación (valor total, valor ocupado por cada
+## controlador, provincias costeras). Se recalculan una vez al mes (la población cambia) o tras un
+## cambio de propiedad; entre medias se mantienen con set_controller().
+static func ensure_ws_values(gs: VGameState) -> void:
+	if gs.ws_values_month == gs.month_index:
+		return
+	for tag in gs.countries:
+		var c: Dictionary = gs.countries[tag]
+		c["_ws_total"] = 0.0
+		c["_occ"] = {}
+		c["_coastal"] = 0
+	for id in range(1, gs.first_sea_id):
+		var p = gs.provinces[id]
+		if p == null:
+			continue
+		var owner: String = p["owner"]
+		if owner == "" or not gs.countries.has(owner):
+			continue
+		var c: Dictionary = gs.countries[owner]
+		var v := _province_value(gs, p)
+		p["_wsv"] = v
+		c["_ws_total"] = float(c["_ws_total"]) + v
+		if p.get("coastal", false):
+			c["_coastal"] = int(c["_coastal"]) + 1
+		var ctrl: String = p["controller"]
+		if ctrl != owner:
+			c["_occ"][ctrl] = float(c["_occ"].get(ctrl, 0.0)) + v
+	gs.ws_values_month = gs.month_index
+
+
 static func _province_value(gs: VGameState, p: Dictionary) -> float:
 	var v := 1.0 + float(p["population"]) / 100000.0
 	var owner: String = p["owner"]
@@ -284,7 +356,16 @@ static func _province_value(gs: VGameState, p: Dictionary) -> float:
 
 ## Recalcula warscore, cansancio bélico y estado de cada guerra (diario).
 static func daily(gs: VGameState) -> void:
+	var t := VProfiler.begin()
 	_daily_sieges(gs)
+	VProfiler.end(gs, "sieges", t)
+	t = VProfiler.begin()
+	_daily_warscore(gs)
+	VProfiler.end(gs, "war_score", t)
+
+
+static func _daily_warscore(gs: VGameState) -> void:
+	ensure_ws_values(gs)
 	for wid in gs.wars.keys():
 		var w: Dictionary = gs.wars.get(wid, {})
 		if w.is_empty():
@@ -294,6 +375,7 @@ static func daily(gs: VGameState) -> void:
 			for t in w[side].duplicate():
 				if not gs.countries.has(t) or gs.countries[t]["provinces"].is_empty():
 					w[side].erase(t)
+					VUnitIndex.bump_access(gs)
 		if w["attackers"].is_empty() or w["defenders"].is_empty() or not (w["primary_attacker"] in w["attackers"]) or not (w["primary_defender"] in w["defenders"]):
 			end_war(gs, w, "La guerra termina: uno de los bandos ha desaparecido.")
 			continue
@@ -303,18 +385,22 @@ static func daily(gs: VGameState) -> void:
 		var bl_a := _blockade_share(gs, w["defenders"], w["attackers"])
 		var bl_d := _blockade_share(gs, w["attackers"], w["defenders"])
 		w["blockade_ws"] = (bl_a - bl_d) * 10.0
-		# ticking: objetivos territoriales del atacante controlados
+		# ticking: objetivos territoriales del atacante controlados (se recuentan solo si cambió algún
+		# controlador o la composición de la guerra; si no, se reutiliza el resultado)
 		for g in w["war_goals"]:
 			if int(g.get("state_id", 0)) > 0 and side_of(w, g["actor"]) == "attackers":
-				var part := gs.state_part(int(g["state_id"]), g["target"])
-				if not part.is_empty():
-					var all := true
+				if int(g.get("_cv", -1)) != gs.controller_version or int(g.get("_av", -1)) != gs.access_version:
+					g["_cv"] = gs.controller_version
+					g["_av"] = gs.access_version
+					var part := gs.state_part(int(g["state_id"]), g["target"])
+					var all := not part.is_empty()
 					for id in part:
 						if side_of(w, gs.provinces[id]["controller"]) != "attackers":
 							all = false
 							break
-					if all:
-						w["ticking_ws"] = minf(25.0, float(w["ticking_ws"]) + 0.1)
+					g["_all"] = all
+				if g.get("_all", false):
+					w["ticking_ws"] = minf(25.0, float(w["ticking_ws"]) + 0.1)
 		# el defensor gana warscore si resiste más de un año sin perder el objetivo
 		var days := gs.date.ordinal() - int(w.get("start_ordinal", gs.date.ordinal()))
 		if days > 365 and occ_a < 0.05:
@@ -329,38 +415,48 @@ static func daily(gs: VGameState) -> void:
 				c["war_exhaustion"] = clampf(float(c.get("war_exhaustion", 0.0)) + occ * 0.05 + bl * 0.02 + 0.003, 0.0, 100.0)
 
 
+## Parte (por valor) del territorio de 'owners' controlada por 'occupiers'. O(participantes²).
 static func _occupation_share(gs: VGameState, owners: Array, occupiers: Array) -> float:
 	var total := 0.0
 	var occ := 0.0
 	for t in owners:
-		for id in gs.countries[t]["provinces"]:
-			var p: Dictionary = gs.provinces[id]
-			var v := _province_value(gs, p)
-			total += v
-			if p["controller"] in occupiers:
-				occ += v
+		var c: Dictionary = gs.countries[t]
+		total += float(c.get("_ws_total", 0.0))
+		var o: Dictionary = c.get("_occ", {})
+		for q in o:
+			if q in occupiers:
+				occ += float(o[q])
 	return occ / total if total > 0.0 else 0.0
 
 
+## Parte de las costas de 'owners' bloqueada por 'blockers' (recuentos de VNavySystem._blockades).
 static func _blockade_share(gs: VGameState, owners: Array, blockers: Array) -> float:
 	var total := 0
 	var bl := 0
 	for t in owners:
-		for id in gs.countries[t]["provinces"]:
-			var p: Dictionary = gs.provinces[id]
-			if p.get("coastal", false):
-				total += 1
-				if p.get("blockaded_by", "") in blockers:
-					bl += 1
+		var c: Dictionary = gs.countries[t]
+		total += int(c.get("_coastal", 0))
+		var by: Dictionary = c.get("_bl_by", {})
+		for q in by:
+			if q in blockers:
+				bl += int(by[q])
 	return float(bl) / float(total) if total > 0 else 0.0
 
 
 ## Asedios: avance de la ocupación y cambio de controlador (no de propietario).
+## Solo se recorren los ejércitos del índice de asedio (en provincias de otro controlador o rebeldes).
 static func _daily_sieges(gs: VGameState) -> void:
 	var besieged := {}
-	for aid in gs.armies:
-		var a: Dictionary = gs.armies[aid]
-		if int(a["battle"]) > 0 or int(a["embarked"]) > 0 or not a["path"].is_empty() or a.get("retreating", false):
+	var sg := VUnitIndex.sieging_armies(gs)
+	for aid in sg.keys():
+		var a: Dictionary = gs.armies.get(aid, {})
+		if a.is_empty() or int(a["embarked"]) > 0:
+			sg.erase(aid)
+			continue
+		if int(a.get("rebel_faction", 0)) == 0 and gs.provinces[int(a["province"])]["controller"] == a["country"]:
+			sg.erase(aid)
+			continue
+		if int(a["battle"]) > 0 or not a["path"].is_empty() or a.get("retreating", false):
 			continue
 		var prov := int(a["province"])
 		var p := gs.province(prov)
@@ -389,7 +485,7 @@ static func _daily_sieges(gs: VGameState) -> void:
 		p["occupation"] = float(p.get("occupation", 0.0)) + rate
 		if float(p["occupation"]) >= 1.0:
 			var old: String = p["controller"]
-			p["controller"] = e["ctrl"]
+			set_controller(gs, int(prov), e["ctrl"])
 			p["rebel_faction"] = int(e["faction"]) if e["ctrl"] == VGameState.REBEL_TAG else 0
 			p["occupation"] = 0.0
 			p["occupation_by"] = ""
@@ -461,6 +557,7 @@ static func end_war(gs: VGameState, w: Dictionary, text: String) -> void:
 		if gs.countries.has(t):
 			gs.countries[t]["wars"].erase(int(w["id"]))
 			gs.log_event(t, text)
+	VUnitIndex.bump_access(gs)
 	for a in w["attackers"]:
 		for d in w["defenders"]:
 			VDiplomacySystem.set_truce(gs, a, d, int(gs.war_rules.get("truce_months", 60)))
@@ -470,7 +567,7 @@ static func end_war(gs: VGameState, w: Dictionary, text: String) -> void:
 		for id in gs.countries[t]["provinces"]:
 			var p: Dictionary = gs.provinces[id]
 			if p["controller"] != t and p["controller"] in parts and not at_war_with(gs, t, p["controller"]):
-				p["controller"] = t
+				set_controller(gs, int(id), t)
 				p["occupation"] = 0.0
 				p["occupation_by"] = ""
 	for bid in gs.battles.keys():
@@ -492,8 +589,9 @@ static func end_war(gs: VGameState, w: Dictionary, text: String) -> void:
 				a["path"] = []
 				a["retreating"] = false
 				if VArmySystem.order_move(gs, a, cap) != "":
-					a["province"] = cap
+					VUnitIndex.move_army(gs, a, cap)
 	gs.wars.erase(int(w["id"]))
+	VUnitIndex.bump_access(gs)
 	gs.flags["_overlay_dirty"] = true
 
 

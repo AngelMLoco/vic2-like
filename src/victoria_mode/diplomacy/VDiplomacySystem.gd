@@ -256,6 +256,8 @@ static func perform(gs: VGameState, actor: String, action: String, target: Strin
 		"cancel_access":
 			t["military_access"].erase(actor)
 			gs.set_relation(actor, target, gs.relation(actor, target) - 10)
+	if action in ["offer_alliance", "break_alliance", "request_access", "give_access", "cancel_access"]:
+		VUnitIndex.bump_access(gs)
 	return ""
 
 

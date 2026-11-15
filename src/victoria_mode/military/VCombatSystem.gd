@@ -102,6 +102,7 @@ static func side_strength(gs: VGameState, army_ids: Array) -> int:
 ## Único punto por el que un resolver aplica daño: organización + bajas reales (POPs de soldados).
 static func damage_brigade(gs: VGameState, battle: Dictionary, b: Dictionary, army: Dictionary, org_dmg: float, men: int, side: String) -> void:
 	b["organisation"] = maxf(0.0, float(b["organisation"]) - org_dmg)
+	army.erase("_org_full")
 	var tag: String = army["country"] if int(army.get("rebel_faction", 0)) == 0 else ""
 	var lost := VArmySystem.apply_casualties(gs, b, men, tag)
 	battle["losses"][side] = int(battle["losses"].get(side, 0)) + lost

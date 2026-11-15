@@ -57,6 +57,7 @@ static func new_fleet(gs: VGameState, tag: String, location: int, fleet_name: St
 	var f := {"id": id, "country": tag, "name": fleet_name if fleet_name != "" else "Flota %d" % id, "location": location,
 		"ships": [], "admiral": 0, "path": [], "move_progress": 0.0, "mission": "idle", "transported_armies": [], "battle": 0, "organisation": 1.0}
 	gs.fleets[id] = f
+	VUnitIndex.fleet_created(gs, f)
 	return f
 
 
@@ -65,20 +66,16 @@ static func new_ship(gs: VGameState, type_id: String) -> Dictionary:
 
 
 static func update_counts(gs: VGameState) -> void:
-	var counts := {}
-	for fid in gs.fleets:
-		var f: Dictionary = gs.fleets[fid]
-		counts[f["country"]] = int(counts.get(f["country"], 0)) + f["ships"].size()
 	for tag in gs.countries:
-		gs.countries[tag]["military"]["ships"] = int(counts.get(tag, 0))
+		var n := 0
+		for f in VUnitIndex.country_fleets(gs, tag):
+			n += f["ships"].size()
+		gs.countries[tag]["military"]["ships"] = n
 
 
+## Flotas de la nación (copia: se puede destruir/mover mientras se recorre).
 static func country_fleets(gs: VGameState, tag: String) -> Array:
-	var out := []
-	for fid in gs.fleets:
-		if gs.fleets[fid]["country"] == tag:
-			out.append(gs.fleets[fid])
-	return out
+	return VUnitIndex.country_fleets(gs, tag).duplicate()
 
 
 static func docked(gs: VGameState, f: Dictionary) -> bool:
@@ -193,7 +190,7 @@ static func load_army(gs: VGameState, army: Dictionary, f: Dictionary) -> String
 	var err := can_load(gs, army, f)
 	if err != "":
 		return err
-	army["embarked"] = int(f["id"])
+	VUnitIndex.army_embarked(gs, army, int(f["id"]))
 	army["path"] = []
 	f["transported_armies"].append(int(army["id"]))
 	return ""
@@ -222,8 +219,7 @@ static func unload_army(gs: VGameState, army: Dictionary, province_id: int) -> S
 		return err
 	var f: Dictionary = gs.fleets[int(army["embarked"])]
 	f["transported_armies"].erase(int(army["id"]))
-	army["embarked"] = 0
-	army["province"] = province_id
+	VUnitIndex.army_unloaded(gs, army, province_id)
 	army["dig_in"] = 0
 	VCombatSystem.on_army_arrived(gs, army)
 	return ""
@@ -239,22 +235,30 @@ static func daily(gs: VGameState) -> void:
 		if not f["path"].is_empty() and int(f.get("battle", 0)) == 0:
 			f["move_progress"] = float(f["move_progress"]) + 1.0
 			if float(f["move_progress"]) >= 3.0 / fleet_speed(gs, f):
-				f["location"] = int(f["path"][0])
+				VUnitIndex.move_fleet(gs, f, int(f["path"][0]))
 				f["path"].remove_at(0)
 				f["move_progress"] = 0.0
 				for aid in f["transported_armies"]:
 					if gs.armies.has(aid):
 						gs.armies[aid]["province"] = int(f["location"]) if gs.is_land(int(f["location"])) else int(gs.armies[aid]["province"])
-		# reparación en puerto propio con base naval
+		# reparación en puerto propio con base naval (flota intacta: casco y organización al máximo → nada que hacer)
+		if f.get("_full", false):
+			continue
+		var full := true
 		if docked(gs, f):
 			var p: Dictionary = gs.provinces[int(f["location"])]
 			var base := int(p.get("naval_base", 0))
 			for s in f["ships"]:
 				s["hull"] = minf(1.0, float(s["hull"]) + (0.02 if base > 0 else 0.005))
 				s["organisation"] = minf(1.0, float(s["organisation"]) + 0.05)
+				if float(s["hull"]) < 1.0 or float(s["organisation"]) < 1.0:
+					full = false
 		else:
 			for s in f["ships"]:
 				s["organisation"] = minf(1.0, float(s["organisation"]) + 0.01)
+				if float(s["hull"]) < 1.0 or float(s["organisation"]) < 1.0:
+					full = false
+		f["_full"] = full
 	_naval_battles(gs)
 	_blockades(gs)
 	_build_queue(gs)
@@ -294,11 +298,16 @@ static func _finish_naval(gs: VGameState, a: Dictionary, b: Dictionary, res: Dic
 	var txt := "Batalla naval en %s: vence %s (%d barcos hundidos)" % [gs.provinces[int(a["location"])]["name"], gs.country_name(winner["country"]), int(res["sunk"])]
 	gs.log_event(a["country"], txt)
 	gs.log_event(b["country"], txt)
+	a.erase("_full")
+	b.erase("_full")
+	a.erase("_warships")
+	b.erase("_warships")
 	for f in [a, b]:
 		if f["ships"].is_empty():
 			for aid in f["transported_armies"].duplicate():
 				if gs.armies.has(aid):
 					VArmySystem.stack_wipe(gs, gs.armies[aid])
+			VUnitIndex.fleet_destroyed(gs, f)
 			gs.fleets.erase(int(f["id"]))
 	if gs.fleets.has(int(loser["id"])):
 		var port := nearest_port(gs, loser)
@@ -338,10 +347,13 @@ static func _blockades(gs: VGameState) -> void:
 		var f: Dictionary = gs.fleets[fid]
 		if docked(gs, f) or f["ships"].is_empty():
 			continue
-		var war_ships := 0
-		for s in f["ships"]:
-			if float(gs.ship_types.get(s["type"], {}).get("attack", 0.0)) > 0.0:
-				war_ships += 1
+		var war_ships := int(f.get("_warships", -1))
+		if war_ships < 0:
+			war_ships = 0
+			for s in f["ships"]:
+				if float(gs.ship_types.get(s["type"], {}).get("attack", 0.0)) > 0.0:
+					war_ships += 1
+			f["_warships"] = war_ships
 		if war_ships == 0:
 			continue
 		for n in gs.provinces[int(f["location"])]["neighbors"]:
@@ -352,19 +364,36 @@ static func _blockades(gs: VGameState) -> void:
 				p["blockaded_by"] = f["country"]
 				now[n] = true
 	gs.market["_blockaded"] = now
-	if gs.date.day == 1 or not now.is_empty() or not prev.is_empty():
-		for tag in gs.country_order:
-			var c: Dictionary = gs.countries[tag]
-			var coastal := 0
-			var bl := 0
-			for id in c["provinces"]:
-				if gs.provinces[id].get("coastal", false):
-					coastal += 1
-					if now.has(id):
-						bl += 1
-			c["blockade_ratio"] = float(bl) / float(coastal) if coastal > 0 else 0.0
-			if bl > 0:
-				c["war_exhaustion"] = minf(100.0, float(c.get("war_exhaustion", 0.0)) + 0.02 * float(c["blockade_ratio"]))
+	# recuentos solo para las naciones afectadas hoy o ayer (sin recorrer todas las provincias)
+	if now.is_empty() and prev.is_empty():
+		return
+	VWarSystem.ensure_ws_values(gs)
+	var touched := {}
+	for id in prev:
+		touched[gs.provinces[id]["owner"]] = true
+	var counts := {}
+	for id in now:
+		var p: Dictionary = gs.provinces[id]
+		if not p.get("coastal", false):
+			continue
+		var o: String = p["owner"]
+		touched[o] = true
+		if not counts.has(o):
+			counts[o] = {}
+		counts[o][p["blockaded_by"]] = int(counts[o].get(p["blockaded_by"], 0)) + 1
+	for tag in touched:
+		if not gs.countries.has(tag):
+			continue
+		var c: Dictionary = gs.countries[tag]
+		var by: Dictionary = counts.get(tag, {})
+		var bl := 0
+		for k in by:
+			bl += int(by[k])
+		c["_bl_by"] = by
+		var coastal := int(c.get("_coastal", 0))
+		c["blockade_ratio"] = float(bl) / float(coastal) if coastal > 0 else 0.0
+		if bl > 0:
+			c["war_exhaustion"] = minf(100.0, float(c.get("war_exhaustion", 0.0)) + 0.02 * float(c["blockade_ratio"]))
 
 
 # ------------------------------------------------------- construcción
@@ -420,5 +449,7 @@ static func _build_queue(gs: VGameState) -> void:
 				if target.is_empty():
 					target = new_fleet(gs, tag, port)
 				target["ships"].append(new_ship(gs, item["type"]))
+				target.erase("_full")
+				target.erase("_warships")
 				update_counts(gs)
 				gs.log_event(tag, "Botado un %s en %s" % [gs.ship_types[item["type"]]["name"], gs.provinces[port]["name"]])

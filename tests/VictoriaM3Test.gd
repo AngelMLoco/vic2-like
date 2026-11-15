@@ -167,7 +167,7 @@ func test_army() -> void:
 	gs.flags["ai_disabled"] = true
 	var enemy := biggest_army("BRM")
 	var war := VWarSystem._new_war(gs, me, "BRM")
-	enemy["province"] = dest
+	VUnitIndex.move_army(gs, enemy, dest)
 	enemy["path"] = []
 	var soldiers_before := soldier_pops_total("BRM") + soldier_pops_total(me)
 	VCombatSystem.on_army_arrived(gs, enemy)
@@ -252,7 +252,7 @@ func test_navy() -> void:
 	for a in VArmySystem.country_armies(gs, me):
 		army = a
 		break
-	army["province"] = port
+	VUnitIndex.move_army(gs, army, port)
 	army["path"] = []
 	var cap := VNavySystem.capacity(gs, f)
 	if army["brigades"].size() > cap:
@@ -293,9 +293,9 @@ func test_navy() -> void:
 	for n in gs.provinces[int(efl["location"])]["neighbors"]:
 		if VNavySystem.is_sea(gs, n):
 			ezone = n
-	f["location"] = ezone
+	VUnitIndex.move_fleet(gs, f, ezone)
 	f["path"] = []
-	efl["location"] = ezone
+	VUnitIndex.move_fleet(gs, efl, ezone)
 	efl["path"] = []
 	var ships0: int = f["ships"].size() + efl["ships"].size()
 	VNavySystem.daily(gs)
@@ -306,11 +306,11 @@ func test_navy() -> void:
 	check(ships1 < ships0 or absf(float(w["battle_ws"])) > 0.0, "la batalla naval produce daños/hundimientos y warscore (%d → %d barcos)" % [ships0, ships1])
 	# bloqueo: una flota británica en la zona frente a la costa francesa
 	if gs.fleets.has(int(f["id"])):
-		f["location"] = ezone
+		VUnitIndex.move_fleet(gs, f, ezone)
 		f["path"] = []
 		for fid in gs.fleets.keys():
 			if gs.fleets[fid]["country"] == enemy and int(gs.fleets[fid]["location"]) == ezone:
-				gs.fleets[fid]["location"] = VNavySystem.home_port(gs, enemy)
+				VUnitIndex.move_fleet(gs, gs.fleets[fid], VNavySystem.home_port(gs, enemy))
 		VNavySystem.daily(gs)
 		check(float(gs.countries[enemy]["blockade_ratio"]) > 0.0, "la flota bloquea la costa enemiga (%.0f%% de la costa)" % (float(gs.countries[enemy]["blockade_ratio"]) * 100.0))
 		VMarketSystem.reset_accumulators(gs)
@@ -364,7 +364,7 @@ func test_rebels() -> void:
 	check(rebel_men > 0 and gs.country_population(tag) <= pop_before - rebel_men + 10, "las brigadas rebeldes salen de la población real (%d hombres)" % rebel_men)
 	# ocupación rebelde (sin ejército del país en medio)
 	for a in VArmySystem.country_armies(gs, tag):
-		a["province"] = int(c["capital"])
+		VUnitIndex.move_army(gs, a, int(c["capital"]))
 	gs.flags["ai_disabled"] = false
 	var occupied := false
 	for i in 120:
@@ -424,7 +424,7 @@ func test_integration() -> void:
 	var target := int(part[0])
 	var defender := biggest_army(b_tag)
 	if not defender.is_empty():
-		defender["province"] = target
+		VUnitIndex.move_army(gs, defender, target)
 		defender["path"] = []
 	var attacker := biggest_army(a_tag)
 	var cas0 := int(gs.countries[a_tag].get("casualties", 0)) + int(gs.countries[b_tag].get("casualties", 0))
@@ -539,3 +539,10 @@ func test_integration() -> void:
 		VWarSystem.daily(gs)
 		check(is_equal_approx(float(wc["total_ws"]), -100.0), "el warscore se limita a −100 (%.1f)" % float(wc["total_ws"]))
 		VWarSystem.end_war(gs, wc, "fin de la prueba")
+	# índices derivados coherentes tras toda la prueba (crear, mover, embarcar, destruir, rebeldes)
+	var ix_err := VUnitIndex.verify(gs)
+	check(ix_err == "", "el índice de unidades coincide con una reconstrucción completa (%s)" % (ix_err if ix_err != "" else "ok"))
+	gs.flags["ai_disabled"] = false
+	sim.run_days(60)
+	ix_err = VUnitIndex.verify(gs)
+	check(ix_err == "", "el índice sigue coherente tras 60 días con IA (%s)" % (ix_err if ix_err != "" else "ok"))

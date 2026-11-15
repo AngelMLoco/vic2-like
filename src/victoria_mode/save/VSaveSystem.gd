@@ -108,8 +108,8 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 		"month_index": gs.month_index,
 		"log": gs.log_entries,
 		"military": {
-			"armies": gs.armies, "brigades": gs.brigades, "leaders": gs.leaders, "fleets": gs.fleets,
-			"wars": gs.wars, "battles": gs.battles, "casus_belli": gs.casus_belli, "justifications": gs.justifications,
+			"armies": _public(gs.armies), "brigades": _public(gs.brigades), "leaders": gs.leaders, "fleets": _public(gs.fleets),
+			"wars": _public(gs.wars), "battles": gs.battles, "casus_belli": gs.casus_belli, "justifications": gs.justifications,
 			"rebel_factions": gs.rebel_factions, "next_ids": gs.next_ids,
 		},
 	}
@@ -123,6 +123,33 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 
 
 ## Devuelve un VGameState con la partida aplicada, o null con mensaje en error_out[0].
+## Copia sin las claves «_…» (cachés derivadas) de un diccionario id → entidad (hasta 2 niveles).
+static func _public(d: Dictionary) -> Dictionary:
+	var out := {}
+	for k in d:
+		var e = d[k]
+		if e is Dictionary:
+			var c := {}
+			for kk in e:
+				if str(kk).begins_with("_"):
+					continue
+				var v = e[kk]
+				if v is Array and not v.is_empty() and v[0] is Dictionary:
+					var arr := []
+					for item in v:
+						var ci := {}
+						for k3 in item:
+							if not str(k3).begins_with("_"):
+								ci[k3] = item[k3]
+						arr.append(ci)
+					v = arr
+				c[kk] = v
+			out[k] = c
+		else:
+			out[k] = e
+	return out
+
+
 static func load_game(path: String, error_out: Array = []) -> VGameState:
 	var data = VJson.load_any(path)
 	if not (data is Dictionary) or data.get("mode", "") != MODE_ID:
@@ -141,6 +168,10 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 	gs.log_entries = data.get("log", [])
 	var mil: Dictionary = data.get("military", {})
 	gs.armies = _int_keys(mil.get("armies", {}))
+	gs.unit_index = {}  # derivado: se reconstruye al primer uso
+	gs.path_cache = {}
+	gs.war_cache = {}
+	gs.access_version += 1
 	gs.brigades = _int_keys(mil.get("brigades", {}))
 	gs.leaders = _int_keys(mil.get("leaders", {}))
 	gs.fleets = _int_keys(mil.get("fleets", {}))

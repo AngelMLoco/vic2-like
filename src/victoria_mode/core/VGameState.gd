@@ -86,6 +86,16 @@ var market := {}
 var month_index: int = 0
 ## Rendimiento: últimas mediciones (ms) — ver VProfiler.
 var profile := {}
+var perf_counters := {}  # contadores de rendimiento (derivados, no se guardan)
+## Índices y cachés derivados (NO se guardan; ver VUnitIndex y VArmySystem.find_path).
+var unit_index := {}
+var access_version: int = 0
+var path_cache := {}
+var path_epoch: int = 0
+var controller_version: int = 0  # se incrementa con cada cambio de controlador (VWarSystem.set_controller)
+var ws_values_month: int = -1  # mes en que se calcularon los valores de warscore por provincia (-1 = recalcular)
+var land_component := PackedInt32Array()  # componente conexa terrestre de cada provincia (estático)
+var war_cache := {}
 ## Registro de acontecimientos recientes (promociones, migraciones, elecciones, inventos...).
 var log_entries: Array = []
 
@@ -243,6 +253,9 @@ func change_owner(province_ids: Array, new_owner: String) -> void:
 		p["controller"] = new_owner
 		p["occupation"] = 0.0
 	rebuild_territory()
+	controller_version += 1
+	ws_values_month = -1
+	access_version += 1  # cambia quién puede entrar dónde (rutas cacheadas)
 	ownership_changed.emit(province_ids)
 
 

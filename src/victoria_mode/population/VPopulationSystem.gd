@@ -134,6 +134,11 @@ static func needs_basket(gs: VGameState, type_id: String, tier: String) -> Dicti
 # ---------------------------------------------------- caché de precios
 ## Al inicio de cada mes: coste por 10.000 de cada nivel de necesidades (a precio de compra
 ## con aranceles) y fracción esperada de llenado, por nación y tipo de POP.
+static var ZERO_NEEDS := PackedFloat64Array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0])
+const EMPTY_TD := []
+const AGG_SPECIAL := {"clergy": true, "clerks": true, "capitalists": true, "aristocrats": true}
+
+
 static func prepare_month(gs: VGameState) -> void:
 	var prices: Dictionary = gs.market["price"]
 	var all_shares: Dictionary = gs.market.get("import_share", {})
@@ -171,8 +176,10 @@ static func prepare_month(gs: VGameState) -> void:
 					got += v * float(fills.get(g, 1.0))
 				costs[i] = cost
 				fl[i] = got / cost if cost > 0.0 else 1.0
-			cache[t] = {"cost": costs, "fill": fl}
+			cache[t] = {"cost": costs, "fill": fl,
+				"flat": PackedFloat64Array([costs[0], costs[1], costs[2], fl[0], fl[1], fl[2]])}
 		c["_needs"] = cache
+		c.erase("_needs_flat")
 		if not c.has("_tier_demand"):
 			c["_tier_demand"] = {}
 		c["_agg"] = new_agg()
@@ -181,19 +188,38 @@ static func prepare_month(gs: VGameState) -> void:
 
 ## Al final del mes convierte la demanda agregada por niveles en demanda de bienes concretos.
 static func flush_demand(gs: VGameState) -> void:
+	# cestas disponibles por tipo y nivel (bienes no disponibles fuera), una vez para todas las naciones
+	var baskets := {}
+	var acc_all: Dictionary = gs.market["acc_demand"]
 	for tag in gs.country_order:
 		var c: Dictionary = gs.countries[tag]
 		var td: Dictionary = c.get("_tier_demand", {})
+		if td.is_empty():
+			continue
+		if not acc_all.has(tag):
+			acc_all[tag] = {}
+		var acc: Dictionary = acc_all[tag]
 		for t in td:
 			var arr: Array = td[t]
+			var bl: Array = baskets.get(t, EMPTY_TD)
+			if bl.is_read_only():
+				bl = []
+				for i in 3:
+					var clean := []
+					var basket := needs_basket(gs, t, TIERS[i])
+					for g in basket:
+						if VMarketSystem.is_available(gs, g):
+							clean.append([g, float(basket[g])])
+					bl.append(clean)
+				baskets[t] = bl
 			for i in 3:
 				var units := float(arr[i])
 				if units <= 0.0:
 					continue
-				var basket := needs_basket(gs, t, TIERS[i])
-				for g in basket:
-					if VMarketSystem.is_available(gs, g):
-						VMarketSystem.add_demand(gs, tag, g, float(basket[g]) * units)
+				for e in bl[i]:
+					var q := float(e[1]) * units
+					if q > 0.0:
+						acc[e[0]] = float(acc.get(e[0], 0.0)) + q
 		c["_tier_demand"] = {}
 
 
@@ -207,6 +233,11 @@ static func process_province(gs: VGameState, id: int) -> void:
 		return
 	var c: Dictionary = gs.countries[owner]
 	var cache: Dictionary = c.get("_needs", {})
+	var flat: Dictionary = c.get("_needs_flat", {})
+	if flat.is_empty() and not cache.is_empty():
+		for t0 in cache:
+			flat[t0] = cache[t0].get("flat", ZERO_NEEDS)
+		c["_needs_flat"] = flat
 	var tier_dem: Dictionary = c["_tier_demand"]
 	var mods: Dictionary = c.get("mods", {})
 	var budget: Dictionary = c["budget"]
@@ -246,68 +277,94 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var life_sum := 0.0
 	var unemp_sum := 0.0
 	var poor_size := 0.0
+	var agg_st: Dictionary = agg["strata"]
+	var agg_ty: Dictionary = agg["types"]
+	var a_tot := 0
+	var a_lit := 0.0
+	var a_mil := 0.0
+	var a_con := 0.0
+	var a_unemp := 0.0
+	var a_life := 0.0
 	for pop in p["pops"]:
 		var t: String = pop["type"]
 		var tc: Array = ptc.get(t, ptc["_default"])
 		var units := float(pop["size"]) / POP_UNIT
 		pop["income"] = float(pop.get("income_acc", 0.0))
 		pop["income_acc"] = 0.0
-		# --- compra de necesidades
-		var nc: Dictionary = cache.get(t, {"cost": [0.0, 0.0, 0.0], "fill": [1.0, 1.0, 1.0]})
-		var life_cost := float(nc["cost"][0]) * units
-		var want_cash := (float(nc["cost"][0]) + float(nc["cost"][1]) + float(nc["cost"][2])) * units * 1.5
-		if float(pop["cash"]) < want_cash and float(pop.get("bank", 0.0)) > 0.0:
-			var w: float = minf(float(pop["bank"]), want_cash - float(pop["cash"]))
-			pop["bank"] = float(pop["bank"]) - w
-			pop["cash"] = float(pop["cash"]) + w
-			c["bank"]["deposits"] = maxf(0.0, float(c["bank"]["deposits"]) - w)
-		var spend := float(pop["cash"]) * float(tc[0])
-		if not tier_dem.has(t):
-			tier_dem[t] = [0.0, 0.0, 0.0]
-		var td: Array = tier_dem[t]
-		var sat := [0.0, 0.0, 0.0]
-		var full_total := 0.0
-		for i in 3:
-			var full := float(nc["cost"][i]) * units
-			full_total += full
-			var a := 1.0 if full <= 0.0 else clampf(spend / full, 0.0, 1.0)
-			td[i] = float(td[i]) + units * a
-			var paid := full * a * float(nc["fill"][i])
+		# --- compra de necesidades (costes/llenados planos por tipo; sin arrays temporales por POP)
+		var nf: PackedFloat64Array = flat.get(t, ZERO_NEEDS)
+		var c0 := nf[0] * units
+		var c1 := nf[1] * units
+		var c2 := nf[2] * units
+		var cash := float(pop["cash"])
+		var want_cash := (c0 + c1 + c2) * 1.5
+		if cash < want_cash:
+			var bank := float(pop.get("bank", 0.0))
+			if bank > 0.0:
+				var w: float = minf(bank, want_cash - cash)
+				pop["bank"] = bank - w
+				cash += w
+				c["bank"]["deposits"] = maxf(0.0, float(c["bank"]["deposits"]) - w)
+		var spend := cash * float(tc[0])
+		var td: Array = tier_dem.get(t, EMPTY_TD)
+		if td.is_read_only():
+			td = [0.0, 0.0, 0.0]
+			tier_dem[t] = td
+		var s0 := 0.0
+		var s1 := 0.0
+		var s2 := 0.0
+		# nivel 0 (vida) → 1 (diario) → 2 (lujo); si un nivel no se completa, los siguientes no se compran
+		var full_total := c0 + c1 + c2
+		var a := 1.0 if c0 <= 0.0 else clampf(spend / c0, 0.0, 1.0)
+		td[0] = float(td[0]) + units * a
+		var paid := c0 * a * nf[3]
+		spend -= paid
+		cash -= paid
+		spent_total += paid
+		s0 = a * nf[3]
+		if a >= 1.0:
+			a = 1.0 if c1 <= 0.0 else clampf(spend / c1, 0.0, 1.0)
+			td[1] = float(td[1]) + units * a
+			paid = c1 * a * nf[4]
 			spend -= paid
-			pop["cash"] = float(pop["cash"]) - paid
+			cash -= paid
 			spent_total += paid
-			sat[i] = a * float(nc["fill"][i])
-			if a < 1.0:
-				for j in range(i + 1, 3):
-					full_total += float(nc["cost"][j]) * units
-				break
+			s1 = a * nf[4]
+			if a >= 1.0:
+				a = 1.0 if c2 <= 0.0 else clampf(spend / c2, 0.0, 1.0)
+				td[2] = float(td[2]) + units * a
+				paid = c2 * a * nf[5]
+				spend -= paid
+				cash -= paid
+				spent_total += paid
+				s2 = a * nf[5]
 		var strata: String = tc[1]
 		# riqueza sobrante: más consumo de lujo (cestas adicionales) y después ahorro bancario
-		var lux_cost := float(nc["cost"][2]) * units
 		var reserve := full_total * 2.0
-		if sat[2] >= 0.99 and lux_cost > 0.0 and float(pop["cash"]) > reserve:
-			var extra := (float(pop["cash"]) - reserve) * 0.35
-			var k := extra / lux_cost
+		if s2 >= 0.99 and c2 > 0.0 and cash > reserve:
+			var extra := (cash - reserve) * 0.35
+			var k := extra / c2
 			td[2] = float(td[2]) + units * k
-			var paid_x := extra * float(nc["fill"][2])
-			pop["cash"] = float(pop["cash"]) - paid_x
+			var paid_x := extra * nf[5]
+			cash -= paid_x
 			spent_total += paid_x
-			sat[2] = 1.0 + minf(1.0, k)
+			s2 = 1.0 + minf(1.0, k)
 		if strata != "poor":
-			var excess := float(pop["cash"]) - reserve * 3.0
+			var excess := cash - reserve * 3.0
 			if excess > 0.0:
 				var dep := excess * deposit_share
 				pop["bank"] = float(pop.get("bank", 0.0)) + dep
-				pop["cash"] = float(pop["cash"]) - dep
+				cash -= dep
 				c["bank"]["deposits"] = float(c["bank"]["deposits"]) + dep
+		pop["cash"] = cash
 		var ns: Dictionary = pop["needs_satisfaction"]
-		ns["life"] = sat[0]
-		ns["everyday"] = sat[1]
-		ns["luxury"] = minf(1.0, sat[2])
+		var lux: float = minf(1.0, s2)
+		ns["life"] = s0
+		ns["everyday"] = s1
+		ns["luxury"] = lux
 		# --- consecuencias
-		var life: float = sat[0]
-		var every: float = sat[1]
-		var lux: float = minf(1.0, sat[2])
+		var life: float = s0
+		var every: float = s1
 		var unemp := 1.0 - float(pop["employment"])
 		if unemp > 0.1:
 			pop["unemployed_months"] = int(pop["unemployed_months"]) + 1
@@ -318,11 +375,23 @@ static func process_province(gs: VGameState, id: int) -> void:
 				_drift_ideology(gs, pop, strata, float(pop["literacy"]), float(pop["consciousness"]), every, drift * 3.0, socialist)
 			if do_issues:
 				update_issues(gs, pop, owner)
-			_agg_add(gs, agg, pop, strata, vote_rule)
+			var sz0 := int(pop["size"])
+			if vote_rule != "" or AGG_SPECIAL.has(t):
+				_agg_pop(gs, agg, pop, t, strata, vote_rule, sz0)
+			else:
+				agg_st[strata] = int(agg_st.get(strata, 0)) + sz0
+				agg_ty[t] = int(agg_ty.get(t, 0)) + sz0
+			var fs0 := float(sz0)
+			a_tot += sz0
+			a_lit += float(pop["literacy"]) * fs0
+			a_mil += float(pop["militancy"]) * fs0
+			a_con += float(pop["consciousness"]) * fs0
+			a_unemp += unemp * fs0
+			a_life += life * fs0
 			if strata == "poor":
-				life_sum += life * float(pop["size"])
-				unemp_sum += unemp * float(pop["size"])
-				poor_size += float(pop["size"])
+				life_sum += life * fs0
+				unemp_sum += unemp * fs0
+				poor_size += fs0
 			continue
 		var annual: float = 0.012 * clampf((life - 0.45) / 0.55, -1.5, 1.0) + (lr - 25.0) * 0.0004 + growth_mod
 		if life < 0.25:
@@ -343,11 +412,29 @@ static func process_province(gs: VGameState, id: int) -> void:
 			_drift_ideology(gs, pop, strata, lit, con, every, drift * 3.0, socialist)
 		if do_issues:
 			update_issues(gs, pop, owner)
-		_agg_add(gs, agg, pop, strata, vote_rule)
+		var sz := int(pop["size"])
+		if vote_rule != "" or AGG_SPECIAL.has(t):
+			_agg_pop(gs, agg, pop, t, strata, vote_rule, sz)
+		else:
+			agg_st[strata] = int(agg_st.get(strata, 0)) + sz
+			agg_ty[t] = int(agg_ty.get(t, 0)) + sz
+		var fs := float(sz)
+		a_tot += sz
+		a_lit += float(pop["literacy"]) * fs
+		a_mil += float(pop["militancy"]) * fs
+		a_con += float(pop["consciousness"]) * fs
+		a_unemp += unemp * fs
+		a_life += life * fs
 		if strata == "poor":
-			life_sum += life * float(pop["size"])
-			unemp_sum += unemp * float(pop["size"])
-			poor_size += float(pop["size"])
+			life_sum += life * fs
+			unemp_sum += unemp * fs
+			poor_size += fs
+	agg["total"] = int(agg["total"]) + a_tot
+	agg["lit"] = float(agg["lit"]) + a_lit
+	agg["mil"] = float(agg["mil"]) + a_mil
+	agg["con"] = float(agg["con"]) + a_con
+	agg["unemp"] = float(agg["unemp"]) + a_unemp
+	agg["life"] = float(agg["life"]) + a_life
 	VMoney.destroyed(gs, spent_total, "pop_purchases")
 	recalc_province(gs, id)
 	p["avg_life"] = life_sum / poor_size if poor_size > 0.0 else 1.0
@@ -370,36 +457,36 @@ static func _process_unowned(gs: VGameState, p: Dictionary) -> void:
 ## (sin copiar diccionarios: el objetivo se calcula clave a clave y se normaliza con el total conocido)
 static func _drift_ideology(gs: VGameState, pop: Dictionary, strata: String, lit: float, con: float, every: float, rate: float, socialist: float) -> void:
 	var bases: Dictionary = gs.market.get("_ideo_base", {})
-	if not bases.has(strata):
-		var b := {}
+	var entry: Array = bases.get(strata, [])
+	if entry.is_empty():
+		# [claves, bases, ranura (0 ninguna, 1 liberal, 2 radical, 3 socialista, 4 tradicionalista), total]
+		var keys := []
+		var vals := PackedFloat64Array()
+		var slots := PackedInt32Array()
 		var tot := 0.0
 		for i in gs.ideologies:
-			b[i] = float(gs.ideologies[i].get("strata_affinity", {}).get(strata, 0.0))
-			tot += float(b[i])
-		bases[strata] = b
-		bases[strata + "#total"] = tot
+			var v := float(gs.ideologies[i].get("strata_affinity", {}).get(strata, 0.0))
+			keys.append(i)
+			vals.append(v)
+			slots.append({"liberal": 1, "radical": 2, "socialista": 3, "tradicionalista": 4}.get(i, 0))
+			tot += v
+		entry = [keys, vals, slots, tot]
+		bases[strata] = entry
 		gs.market["_ideo_base"] = bases
-	var base: Dictionary = bases[strata]
-	var a_lib := 0.3 * lit
-	var a_rad := 0.1 * con / 10.0 + 0.05 * lit
-	var a_soc := 0.4 * maxf(0.0, 0.6 - every) * socialist if (lit > 0.15 and strata != "rich") else 0.0
-	var a_trad := 0.25 * (1.0 - lit)
-	var total := float(bases[strata + "#total"]) + a_lib + a_rad + a_soc + a_trad
+	var add := PackedFloat64Array([0.0, 0.3 * lit, 0.1 * con / 10.0 + 0.05 * lit,
+		0.4 * maxf(0.0, 0.6 - every) * socialist if (lit > 0.15 and strata != "rich") else 0.0, 0.25 * (1.0 - lit)])
+	var total := float(entry[3]) + add[1] + add[2] + add[3] + add[4]
 	if total <= 0.0:
 		return
 	var ideo: Dictionary = pop["ideology"]
 	var keep := 1.0 - rate
-	for k in base:
-		var t := float(base[k])
-		if k == "liberal":
-			t += a_lib
-		elif k == "radical":
-			t += a_rad
-		elif k == "socialista":
-			t += a_soc
-		elif k == "tradicionalista":
-			t += a_trad
-		ideo[k] = float(ideo.get(k, 0.0)) * keep + t / total * rate
+	var k_rate := rate / total
+	var keys: Array = entry[0]
+	var vals: PackedFloat64Array = entry[1]
+	var slots: PackedInt32Array = entry[2]
+	for i in keys.size():
+		var k: String = keys[i]
+		ideo[k] = float(ideo.get(k, 0.0)) * keep + (vals[i] + add[slots[i]]) * k_rate
 
 
 static func dominant_ideology(pop: Dictionary) -> String:
@@ -416,67 +503,147 @@ static func dominant_ideology(pop: Dictionary) -> String:
 ## La combinación (ideología, tipo) se cachea; si ninguna regla condicional aplica, el POP comparte
 ## el diccionario cacheado (solo se lee).
 static func update_issues(gs: VGameState, pop: Dictionary, tag: String) -> void:
-	var dom := dominant_ideology(pop)
-	var key: String = dom + "|" + str(pop["type"])
-	var cache: Dictionary = gs.market.get("_issue_base", {})
-	if not cache.has(key):
-		var issues: Dictionary = gs.ideologies.get(dom, {}).get("issues", {}).duplicate()
-		var bias: Dictionary = gs.pop_types.get(pop["type"], {}).get("issue_bias", {})
-		for k in bias:
-			issues[k] = bias[k]
-		cache[key] = issues
-		gs.market["_issue_base"] = cache
-	var result: Dictionary = cache[key]
-	var copied := false
+	# ideología dominante (en línea)
+	var dom := ""
+	var bv := -1.0
+	var ideo: Dictionary = pop["ideology"]
+	for k in ideo:
+		var v := float(ideo[k])
+		if v > bv:
+			bv = v
+			dom = k
+	var t: String = pop["type"]
+	# máscara de reglas condicionales que se cumplen (en orden)
+	var rules := _issue_rules(gs)
 	var ns: Dictionary = pop["needs_satisfaction"]
-	for rule in gs.issue_conditionals:
-		var cond: Dictionary = rule.get("if", {})
+	var mask := 0
+	for ri in rules.size():
+		var rule: Array = rules[ri]
+		var kinds: PackedInt32Array = rule[2]
+		var vals: PackedFloat64Array = rule[3]
 		var ok := true
-		for ck in cond:
-			var v := float(cond[ck])
-			match ck:
-				"max_life":
+		for i in kinds.size():
+			var v := vals[i]
+			match kinds[i]:
+				0:
 					ok = float(ns["life"]) <= v
-				"min_life":
+				1:
 					ok = float(ns["life"]) >= v
-				"max_everyday":
+				2:
 					ok = float(ns["everyday"]) <= v
-				"min_literacy":
+				3:
 					ok = float(pop["literacy"]) >= v
-				"min_consciousness":
+				4:
 					ok = float(pop["consciousness"]) >= v
-				"min_militancy":
+				5:
 					ok = float(pop["militancy"]) >= v
 				_:
-					ok = VConditions.pop_ok(gs, pop, {ck: cond[ck]}, tag, {})
+					ok = VConditions.pop_ok(gs, pop, rule[4], tag, {})
 			if not ok:
 				break
-		if ok and result.get(rule["issue"], "") != rule["position"]:
-			if not copied:
-				result = result.duplicate()
-				copied = true
-			result[rule["issue"]] = rule["position"]
+		if ok:
+			mask |= 1 << ri
+	# el resultado solo depende de (ideología dominante, tipo, máscara): se comparte entre POPs (solo lectura)
+	var cache: Dictionary = gs.market.get("_issue_base", {})
+	if cache.is_empty():
+		gs.market["_issue_base"] = cache
+	var by_type: Dictionary = cache.get(dom, {})
+	if by_type.is_empty():
+		cache[dom] = by_type
+	var by_mask: Dictionary = by_type.get(t, {})
+	if by_mask.is_empty():
+		by_type[t] = by_mask
+	var result = by_mask.get(mask)
+	if result == null:
+		var res: Dictionary = gs.ideologies.get(dom, {}).get("issues", {}).duplicate()
+		var bias: Dictionary = gs.pop_types.get(t, {}).get("issue_bias", {})
+		for k in bias:
+			res[k] = bias[k]
+		for ri in rules.size():
+			if mask & (1 << ri):
+				res[rules[ri][0]] = rules[ri][1]
+		res.make_read_only()
+		by_mask[mask] = res
+		result = res
 	pop["issues"] = result
 
 
+const _COND_KIND := {"max_life": 0, "min_life": 1, "max_everyday": 2, "min_literacy": 3, "min_consciousness": 4, "min_militancy": 5}
+
+
+## Reglas condicionales de issues precompiladas: [issue, posición, tipos, valores, condiciones no rápidas].
+static func _issue_rules(gs: VGameState) -> Array:
+	var rules: Array = gs.market.get("_issue_rules", [])
+	if rules.is_empty() and not gs.issue_conditionals.is_empty():
+		for rule in gs.issue_conditionals:
+			var cond: Dictionary = rule.get("if", {})
+			var kinds := PackedInt32Array()
+			var vals := PackedFloat64Array()
+			var slow := {}
+			for ck in cond:
+				if _COND_KIND.has(ck):
+					kinds.append(int(_COND_KIND[ck]))
+					vals.append(float(cond[ck]))
+				else:
+					slow[ck] = cond[ck]
+			if not slow.is_empty():
+				kinds.append(9)
+				vals.append(0.0)
+			rules.append([rule["issue"], rule["position"], kinds, vals, slow])
+		gs.market["_issue_rules"] = rules
+	return rules
+
+
 ## Datos por tipo de POP que el bucle mensual necesita (evita búsquedas en diccionarios por POP):
-## [spend_fraction, strata, factor de alfabetización, es trabajador manual]
+## [spend_fraction, strata, factor de alfabetización, es trabajador manual, empleo, sueldo estatal]
 static func _type_cache(gs: VGameState) -> Dictionary:
 	var cache: Dictionary = gs.market.get("_pop_type_cache", {})
 	if cache.is_empty():
 		for t in gs.pop_types:
 			var pt: Dictionary = gs.pop_types[t]
 			cache[t] = [float(pt.get("spend_fraction", 1.0)), String(pt.get("strata", "poor")),
-				0.7 + 0.3 * float(pt.get("literacy_mult", 1.0)), pt.get("job", "") in ["rgo_farm", "rgo_mine", "factory_worker"]]
-		cache["_default"] = [1.0, "poor", 1.0, false]
+				0.7 + 0.3 * float(pt.get("literacy_mult", 1.0)), pt.get("job", "") in ["rgo_farm", "rgo_mine", "factory_worker"],
+				String(pt.get("job", "none")), float(pt.get("gov_wage", 0.0))]
+		cache["_default"] = [1.0, "poor", 1.0, false, "none", 0.0]
 		gs.market["_pop_type_cache"] = cache
 	return cache
+
+
+## Estrato de un tipo de POP (desde la caché de tipos).
+static func strata_of(gs: VGameState, type_id: String) -> String:
+	var ptc := _type_cache(gs)
+	return ptc.get(type_id, ptc["_default"])[1]
 
 
 static func new_agg() -> Dictionary:
 	return {"n": 0, "strata": {"poor": 0, "middle": 0, "rich": 0}, "types": {}, "total": 0, "lit": 0.0, "mil": 0.0,
 		"con": 0.0, "unemp": 0.0, "life": 0.0, "clergy_lit": 0.0, "clerks_lit": 0.0, "capitalists": [], "aristocrats": [],
 		"voters": {}, "vote_total": 0.0}
+
+
+## Parte del agregado que no son sumas simples (tipos, estratos, listas, votos). Las sumas
+## (población, alfabetización, militancia, conciencia, paro, vida) las acumula el llamador.
+static func _agg_pop(gs: VGameState, agg: Dictionary, pop: Dictionary, t: String, strata: String, vote_rule: String, s: int) -> void:
+	match t:
+		"clergy":
+			agg["clergy_lit"] = float(agg["clergy_lit"]) + float(s) * float(pop["literacy"])
+		"clerks":
+			agg["clerks_lit"] = float(agg["clerks_lit"]) + float(s) * float(pop["literacy"])
+		"capitalists":
+			agg["capitalists"].append(pop)
+		"aristocrats":
+			agg["aristocrats"].append(pop)
+	if vote_rule != "":
+		var vw := VPoliticsSystem.vote_weight(gs, pop, vote_rule)
+		if vw > 0.0:
+			agg["vote_total"] = float(agg["vote_total"]) + vw
+			var voters: Dictionary = agg["voters"]
+			for k in pop["ideology"]:
+				voters[k] = float(voters.get(k, 0.0)) + float(pop["ideology"][k]) * vw
+	var st: Dictionary = agg["strata"]
+	st[strata] = int(st.get(strata, 0)) + s
+	var ty: Dictionary = agg["types"]
+	ty[t] = int(ty.get(t, 0)) + s
 
 
 static func _agg_add(gs: VGameState, agg: Dictionary, pop: Dictionary, strata: String, vote_rule: String) -> void:

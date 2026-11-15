@@ -88,26 +88,34 @@ static func new_army(gs: VGameState, tag: String, province_id: int, army_name: S
 		"brigades": [], "leader": 0, "morale": 1.0, "path": [], "move_progress": 0.0, "retreating": false, "dig_in": 0,
 		"supply": 1.0, "battle": 0, "embarked": 0, "rebel_faction": 0, "ai_target": 0, "attrition": 0.0}
 	gs.armies[id] = a
+	VUnitIndex.army_created(gs, a)
 	return a
 
 
 static func attach_brigade(gs: VGameState, army: Dictionary, b: Dictionary) -> void:
 	if int(b.get("army", 0)) > 0 and gs.armies.has(int(b["army"])):
-		gs.armies[int(b["army"])]["brigades"].erase(int(b["id"]))
+		var old: Dictionary = gs.armies[int(b["army"])]
+		old["brigades"].erase(int(b["id"]))
+		old.erase("_need")
 	b["army"] = int(army["id"])
 	if not (int(b["id"]) in army["brigades"]):
 		army["brigades"].append(int(b["id"]))
+	army.erase("_need")
+	army.erase("_org_full")
+	if int(b["strength"]) < gs.unit_manpower:
+		VUnitIndex.mark_damaged(gs, int(army["id"]))
 
 
 static func update_counts(gs: VGameState) -> void:
-	var counts := {}
-	for aid in gs.armies:
-		var a: Dictionary = gs.armies[aid]
-		if int(a.get("rebel_faction", 0)) > 0:
-			continue
-		counts[a["country"]] = int(counts.get(a["country"], 0)) + a["brigades"].size()
 	for tag in gs.countries:
-		gs.countries[tag]["military"]["brigades"] = int(counts.get(tag, 0))
+		update_country_count(gs, tag)
+
+
+static func update_country_count(gs: VGameState, tag: String) -> void:
+	var n := 0
+	for a in VUnitIndex.country_armies(gs, tag):
+		n += a["brigades"].size()
+	gs.countries[tag]["military"]["brigades"] = n
 
 
 # ------------------------------------------------------------ Soldier POP
@@ -121,9 +129,21 @@ static func find_pop(gs: VGameState, province_id: int, pop_id: int) -> Dictionar
 	return {}
 
 
+## POP de origen de la brigada, con la referencia cacheada en «_pop» (no se guarda). Los POPs nunca
+## se eliminan de su provincia (solo cambian de tamaño), así que la referencia sigue siendo válida.
+static func brigade_pop(gs: VGameState, b: Dictionary) -> Dictionary:
+	var ref = b.get("_pop")
+	if ref != null:
+		return ref
+	var pop := find_pop(gs, int(b["source_province_id"]), int(b["source_pop_id"]))
+	if not pop.is_empty():
+		b["_pop"] = pop
+	return pop
+
+
 ## Hombres que el POP de origen puede sostener por brigada (para el refuerzo).
 static func supportable(gs: VGameState, b: Dictionary) -> int:
-	var pop := find_pop(gs, int(b["source_province_id"]), int(b["source_pop_id"]))
+	var pop := brigade_pop(gs, b)
 	if pop.is_empty():
 		return 0
 	var linked: int = maxi(1, pop.get("brigades", []).size())
@@ -136,8 +156,9 @@ static func apply_casualties(gs: VGameState, b: Dictionary, men: int, tag: Strin
 	if men <= 0:
 		return 0
 	b["strength"] = int(b["strength"]) - men
+	VUnitIndex.mark_damaged(gs, int(b.get("army", 0)))
 	# (las brigadas rebeldes ya sacaron a sus hombres del POP al alzarse)
-	var pop := {} if b.get("rebel", false) else find_pop(gs, int(b["source_province_id"]), int(b["source_pop_id"]))
+	var pop := {} if b.get("rebel", false) else brigade_pop(gs, b)
 	if not pop.is_empty():
 		pop["size"] = maxi(1, int(pop["size"]) - men)
 	if gs.countries.has(tag):
@@ -179,7 +200,7 @@ static func destroy_army(gs: VGameState, army: Dictionary, return_men: bool = fa
 		var b: Dictionary = gs.brigades.get(bid, {})
 		if b.is_empty():
 			continue
-		var pop := find_pop(gs, int(b["source_province_id"]), int(b["source_pop_id"]))
+		var pop := brigade_pop(gs, b)
 		if not pop.is_empty():
 			pop.get("brigades", []).erase(int(bid))
 			if return_men:
@@ -189,6 +210,7 @@ static func destroy_army(gs: VGameState, army: Dictionary, return_men: bool = fa
 		gs.leaders[int(army["leader"])]["army"] = 0
 	if int(army.get("embarked", 0)) > 0 and gs.fleets.has(int(army["embarked"])):
 		gs.fleets[int(army["embarked"])]["transported_armies"].erase(int(army["id"]))
+	VUnitIndex.army_destroyed(gs, army)
 	gs.armies.erase(int(army["id"]))
 
 
@@ -202,7 +224,8 @@ static func stack_wipe(gs: VGameState, army: Dictionary) -> void:
 			lost += apply_casualties(gs, b, int(b["strength"]), tag)
 	gs.log_event(tag, "%s aniquilado (stack wipe): %s bajas" % [army["name"], UiTheme.fmt_int(lost)])
 	destroy_army(gs, army)
-	update_counts(gs)
+	if gs.countries.has(tag):
+		update_country_count(gs, tag)
 
 
 # ------------------------------------------------------------- reclutar
@@ -256,15 +279,14 @@ static func recruit(gs: VGameState, tag: String, province_id: int, utype: String
 	VBudgetSystem.add_expense(gs, tag, "stockpile", cost)
 	var b := _new_brigade(gs, utype, chk["pop"], province_id)
 	var army: Dictionary = {}
-	for aid in gs.armies:
-		var a: Dictionary = gs.armies[aid]
-		if a["country"] == tag and int(a["province"]) == province_id and int(a["embarked"]) == 0 and int(a["battle"]) == 0 and a["path"].is_empty() and int(a.get("rebel_faction", 0)) == 0:
+	for a in VUnitIndex.armies_in(gs, province_id):
+		if a["country"] == tag and int(a["battle"]) == 0 and a["path"].is_empty() and int(a.get("rebel_faction", 0)) == 0:
 			army = a
 			break
 	if army.is_empty():
 		army = new_army(gs, tag, province_id)
 	attach_brigade(gs, army, b)
-	update_counts(gs)
+	update_country_count(gs, tag)
 	return {"army": army, "brigade": b}
 
 
@@ -352,14 +374,12 @@ static func can_enter(gs: VGameState, tag: String, province_id: int, rebel_facti
 		return not f.is_empty() and owner == f["country"]
 	if owner == "" or owner == tag or ctrl == tag:
 		return true
-	if VWarSystem.at_war_with(gs, tag, owner) or VWarSystem.at_war_with(gs, tag, ctrl):
+	var en := VWarSystem.enemies_of(gs, tag)
+	if en.has(owner) or en.has(ctrl):
 		return true
 	if VDiplomacySystem.has_access(gs, tag, owner):
 		return true
 	if VDiplomacySystem.are_allied(gs, tag, owner) and VWarSystem.shared_war(gs, tag, owner):
-		return true
-	# provincia propia bajo control rebelde
-	if ctrl == VGameState.REBEL_TAG and owner == tag:
 		return true
 	return false
 
@@ -389,10 +409,133 @@ static func step_days(gs: VGameState, from_id: int, to_id: int, speed: float) ->
 static func find_path(gs: VGameState, tag: String, from_id: int, to_id: int, speed: float = 1.0, rebel_faction: int = 0, max_nodes: int = 4000) -> Array:
 	if from_id == to_id or not can_enter(gs, tag, to_id, rebel_faction):
 		return []
-	var fail_key := "%s|%d|%d|%d" % [tag, rebel_faction, from_id, to_id]
-	var fails: Dictionary = gs.market.get("_path_fail", {})
-	if int(fails.get(fail_key, -1)) > gs.date.ordinal():
+	VProfiler.count(gs, "path_requests")
+	# provincias en masas de tierra distintas: nunca hay ruta terrestre (sin A*)
+	if _component(gs, from_id) != _component(gs, to_id):
+		VProfiler.count(gs, "path_unreachable_component")
 		return []
+	var key := "%s|%d|%d|%d" % [tag, rebel_faction, from_id, to_id]
+	var pc := gs.path_cache
+	if int(pc.get("_ver", -1)) != gs.access_version or int(pc.get("_epoch", -1)) != gs.path_epoch or pc.size() > 20000:
+		pc.clear()
+		pc["_ver"] = gs.access_version
+		pc["_epoch"] = gs.path_epoch
+	var hit = pc.get(key)
+	if hit != null:
+		if hit is Array:
+			VProfiler.count(gs, "path_cache_hits")
+			return hit.duplicate()
+		if int(hit) > gs.date.ordinal():
+			VProfiler.count(gs, "path_fail_cache_hits")
+			return []
+	# regiones de acceso: si origen y destino están en regiones distintas no hay ruta (sin A*)
+	var lf := _reach_label(gs, tag, rebel_faction, from_id)
+	if lf > 0 and lf != _reach_label(gs, tag, rebel_faction, to_id):
+		VProfiler.count(gs, "path_unreachable_access")
+		pc[key] = gs.date.ordinal() + 30
+		return []
+	var tp := VProfiler.begin()
+	var res := _astar(gs, tag, from_id, to_id, speed, rebel_faction, max_nodes)
+	VProfiler.end(gs, "pathfinding", tp)
+	if res.is_empty():
+		VProfiler.count(gs, "path_failed")
+		pc[key] = gs.date.ordinal() + 30  # fallo recordado 30 días (o hasta que cambie el acceso)
+	else:
+		VProfiler.count(gs, "path_successful")
+		pc[key] = res.duplicate()  # la ruta óptima no depende de la velocidad (coste ∝ 1/velocidad)
+	return res
+
+
+## Región de acceso de una provincia para 'tag': componente conexa de las provincias en las que puede
+## entrar (misma validez que la caché de rutas: versión de acceso y época). Se rellena por inundación,
+## una vez por región. Devuelve -1 si 'tag' no puede entrar en la provincia.
+## Como can_enter solo depende de la provincia de destino, dos provincias accesibles están conectadas
+## por una ruta válida si y solo si comparten región: A* solo se lanza cuando va a tener éxito.
+static func _reach_label(gs: VGameState, tag: String, rf: int, id: int) -> int:
+	var rkey := "_reach|%s|%d" % [tag, rf]
+	var labels: Dictionary = gs.path_cache.get(rkey, {})
+	if labels.is_empty():
+		gs.path_cache[rkey] = labels
+	if labels.has(id):
+		return int(labels[id])
+	if not can_enter(gs, tag, id, rf):
+		return -1
+	var lab := int(gs.path_cache.get(rkey + "#n", 0)) + 1
+	gs.path_cache[rkey + "#n"] = lab
+	labels[id] = lab
+	var stack := [id]
+	var n_flood := 0
+	while not stack.is_empty():
+		var cur: int = stack.pop_back()
+		n_flood += 1
+		for n in gs.provinces[cur]["neighbors"]:
+			if n > 0 and n < gs.first_sea_id and not labels.has(n) and can_enter(gs, tag, n, rf):
+				labels[n] = lab
+				stack.append(n)
+	VProfiler.count(gs, "path_region_floods")
+	VProfiler.count(gs, "path_region_nodes", n_flood)
+	return lab
+
+
+## Presupuesto diario de búsquedas A* nuevas para la IA (las rutas cacheadas no cuentan).
+static func reset_path_budget(gs: VGameState, n: int) -> void:
+	var ix := gs.unit_index
+	if ix.is_empty():
+		VUnitIndex.rebuild(gs)
+		ix = gs.unit_index
+	ix["pb"] = n
+
+
+static func path_budget_left(gs: VGameState) -> int:
+	return int(gs.unit_index.get("pb", 1 << 30))
+
+
+## ¿Se puede pedir ya la ruta de este ejército? Sí si está en caché (éxito o fallo), si es trivial o si
+## queda presupuesto (que se consume).
+static func path_ready(gs: VGameState, army: Dictionary, to_id: int) -> bool:
+	var from := int(army["province"])
+	if from == to_id or _component(gs, from) != _component(gs, to_id):
+		return true
+	var pc := gs.path_cache
+	if int(pc.get("_ver", -1)) == gs.access_version and int(pc.get("_epoch", -1)) == gs.path_epoch:
+		if pc.has("%s|%d|%d|%d" % [army["country"], int(army.get("rebel_faction", 0)), from, to_id]):
+			return true
+		# destino en otra región de acceso: la respuesta (sin ruta) es inmediata
+		var rf := int(army.get("rebel_faction", 0))
+		var lf := _reach_label(gs, army["country"], rf, from)
+		if lf > 0 and lf != _reach_label(gs, army["country"], rf, to_id):
+			return true
+	var left := path_budget_left(gs)
+	if left <= 0:
+		return false
+	gs.unit_index["pb"] = left - 1
+	return true
+
+
+## Componente conexa terrestre (por vecindad + pasos de gs.adjacencies), calculada una vez.
+static func _component(gs: VGameState, id: int) -> int:
+	if gs.land_component.is_empty():
+		var comp := PackedInt32Array()
+		comp.resize(gs.first_sea_id)
+		comp.fill(-1)
+		var n_comp := 0
+		for start in range(1, gs.first_sea_id):
+			if comp[start] >= 0 or gs.provinces[start] == null:
+				continue
+			comp[start] = n_comp
+			var stack := [start]
+			while not stack.is_empty():
+				var cur: int = stack.pop_back()
+				for n in gs.provinces[cur]["neighbors"]:
+					if n > 0 and n < gs.first_sea_id and comp[n] < 0:
+						comp[n] = n_comp
+						stack.append(n)
+			n_comp += 1
+		gs.land_component = comp
+	return gs.land_component[id] if id > 0 and id < gs.first_sea_id else -1
+
+
+static func _astar(gs: VGameState, tag: String, from_id: int, to_id: int, speed: float, rebel_faction: int, max_nodes: int) -> Array:
 	var goal: Vector2 = gs.provinces[to_id]["center"]
 	var heap := [[0.0, from_id]]
 	var g := {from_id: 0.0}
@@ -411,6 +554,8 @@ static func find_path(gs: VGameState, tag: String, from_id: int, to_id: int, spe
 				cur = came[cur]
 				if cur != from_id:
 					path.push_front(cur)
+			VProfiler.count(gs, "path_nodes_expanded", expanded)
+			VProfiler.count_max(gs, "path_max_nodes", expanded)
 			return path
 		closed[cur] = true
 		expanded += 1
@@ -424,10 +569,8 @@ static func find_path(gs: VGameState, tag: String, from_id: int, to_id: int, spe
 				g[n] = cost
 				came[n] = cur
 				_heap_push(heap, [cost + (gs.provinces[n]["center"] as Vector2).distance_to(goal) * hk, n])
-	if fails.size() > 2000:
-		fails.clear()
-	fails[fail_key] = gs.date.ordinal() + 30
-	gs.market["_path_fail"] = fails
+	VProfiler.count(gs, "path_nodes_expanded", expanded)
+	VProfiler.count_max(gs, "path_max_nodes", expanded)
 	return []
 
 
@@ -505,10 +648,11 @@ static func daily_movement(gs: VGameState) -> void:
 		if not can_enter(gs, a["country"], nxt, int(a.get("rebel_faction", 0))):
 			a["path"] = []
 			a["move_progress"] = 0.0
+			gs.path_epoch += 1  # una ruta cacheada ya no es válida: se recalculan todas
 			continue
 		a["move_progress"] = float(a["move_progress"]) + 1.0
 		if float(a["move_progress"]) >= step_days(gs, int(a["province"]), nxt, army_speed(gs, a)):
-			a["province"] = nxt
+			VUnitIndex.move_army(gs, a, nxt)
 			a["path"].remove_at(0)
 			a["move_progress"] = 0.0
 			a["dig_in"] = 0
@@ -561,29 +705,26 @@ static func start_retreat(gs: VGameState, army: Dictionary) -> void:
 	army["dig_in"] = 0
 
 
+## Ejércitos desembarcados en la provincia (lista del índice: no modificar; copiar si se destruyen).
 static func armies_in(gs: VGameState, province_id: int) -> Array:
-	var out := []
-	for aid in gs.armies:
-		var a: Dictionary = gs.armies[aid]
-		if int(a["province"]) == province_id and int(a["embarked"]) == 0:
-			out.append(a)
-	return out
+	return VUnitIndex.armies_in(gs, province_id)
 
 
+## Ejércitos regulares de la nación (copia: se puede fusionar/destruir mientras se recorre).
 static func country_armies(gs: VGameState, tag: String) -> Array:
-	var out := []
-	for aid in gs.armies:
-		var a: Dictionary = gs.armies[aid]
-		if a["country"] == tag and int(a.get("rebel_faction", 0)) == 0:
-			out.append(a)
-	return out
+	return VUnitIndex.country_armies(gs, tag).duplicate()
 
 
 ## Refuerzo diario: cada brigada recupera hombres hasta lo que su POP de origen puede sostener.
+## Solo se recorren los ejércitos con bajas (índice «damaged», alimentado por apply_casualties).
 static func daily_reinforce(gs: VGameState) -> void:
 	var d := gs.date.ordinal()
-	for aid in gs.armies:
-		var a: Dictionary = gs.armies[aid]
+	var dmg := VUnitIndex.damaged_armies(gs)
+	for aid in dmg.keys():
+		var a: Dictionary = gs.armies.get(aid, {})
+		if a.is_empty():
+			dmg.erase(aid)
+			continue
 		# cada ejército se refuerza cada 3 días (escalonado) con paso triple
 		if (int(aid) + d) % 3 != 0:
 			continue
@@ -593,6 +734,7 @@ static func daily_reinforce(gs: VGameState) -> void:
 		if p.is_empty() or p["controller"] != a["country"]:
 			continue
 		var rate := 0.03 * float(a.get("supply", 1.0)) * (0.5 + float(gs.countries[a["country"]]["budget"].get("military", 0.5)))
+		var full := true
 		for bid in a["brigades"]:
 			var b: Dictionary = gs.brigades[bid]
 			if int(b["strength"]) >= gs.unit_manpower:
@@ -600,3 +742,7 @@ static func daily_reinforce(gs: VGameState) -> void:
 			var cap := supportable(gs, b)
 			if int(b["strength"]) < cap:
 				b["strength"] = mini(cap, int(b["strength"]) + maxi(1, int(float(gs.unit_manpower) * rate)))
+			if int(b["strength"]) < gs.unit_manpower:
+				full = false
+		if full:
+			dmg.erase(aid)

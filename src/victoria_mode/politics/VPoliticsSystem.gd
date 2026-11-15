@@ -359,6 +359,15 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 	for rid in gs.reform_order:
 		cur[rid] = gs.reform_level(tag, rid)
 	var support := {}
+	# reformas precompiladas (mismo resultado que desired_level, sin búsquedas por POP):
+	# [rid, issue, nivel actual, nivel máximo, posición → índice, empuje del movimiento]
+	var specs := []
+	var iidx := _issue_index(gs)
+	for rid in gs.reform_order:
+		var r: Dictionary = gs.reforms[rid]
+		var issue: String = r.get("issue", "")
+		specs.append([rid, issue, int(cur[rid]), r["levels"].size() - 1, iidx.get(issue, {}),
+			float(mvs.get(rid, {}).get("radicalism", 0.0)) * 0.03])
 	for id in c["provinces"]:
 		for pop in gs.provinces[id]["pops"]:
 			var con := float(pop["consciousness"])
@@ -366,10 +375,27 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 				pop["movement_push"] = 0.0
 				continue
 			var push := 0.0
-			for rid in gs.reform_order:
-				if desired_level(gs, pop, rid, int(cur[rid])) > int(cur[rid]):
-					support[rid] = float(support.get(rid, 0.0)) + float(pop["size"]) * minf(1.0, con / 6.0)
-					push = maxf(push, float(mvs.get(rid, {}).get("radicalism", 0.0)) * 0.03)
+			var issues: Dictionary = pop.get("issues", {})
+			for sp in specs:
+				var pos: String = issues.get(sp[1], "")
+				if pos == "":
+					continue
+				var idx := int(sp[4].get(pos, -1))
+				if idx < 0:
+					continue
+				var current: int = sp[2]
+				var want := current
+				if sp[1] == "suffrage":
+					want = mini(idx, sp[3])
+				elif sp[1] == "slavery":
+					want = 1 if pos == "abolish_slavery" else 0
+				elif idx == 1:
+					want = mini(current + 1, sp[3])
+				elif idx > 1:
+					want = sp[3]
+				if want > current:
+					support[sp[0]] = float(support.get(sp[0], 0.0)) + float(pop["size"]) * minf(1.0, con / 6.0)
+					push = maxf(push, sp[5])
 			pop["movement_push"] = push
 	var names: Dictionary = gs.reform_meta.get("movement_names", {})
 	for rid in gs.reform_order:

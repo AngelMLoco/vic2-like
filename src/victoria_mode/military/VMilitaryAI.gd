@@ -8,30 +8,39 @@ extends RefCounted
 ##    evitan destinos con un ejército enemigo claramente superior; asedian al llegar;
 ##  · si el objetivo no es alcanzable por tierra, usan transportes (embarcar → navegar → desembarcar);
 ##  · flotas: bloquean costas enemigas salvo que haya una flota superior cerca; vuelven a puerto a reparar.
+##
+## Rendimiento: solo se prepara información para las naciones a las que les toca hoy (≈1/5); los
+## destinos estratégicos (candidatos) se recalculan cada STRATEGIC_DAYS días o si cambia el acceso;
+## la elección táctica (cada 5 días) ordena por distancia y solo evalúa el peligro de los más cercanos;
+## las búsquedas A* nuevas están limitadas a PATH_BUDGET por día y el resto espera en cola.
 
-
-static var _by_country := {}
+const STRATEGIC_DAYS := 10
+const PATH_BUDGET := 10
 
 
 static func daily(gs: VGameState) -> void:
 	if gs.flags.get("ai_disabled", false):
 		return
 	var d := gs.date.ordinal()
-	_by_country = {}
-	for aid in gs.armies:
-		var a0: Dictionary = gs.armies[aid]
-		if int(a0.get("rebel_faction", 0)) == 0:
-			if not _by_country.has(a0["country"]):
-				_by_country[a0["country"]] = []
-			_by_country[a0["country"]].append(a0)
+	VArmySystem.reset_path_budget(gs, PATH_BUDGET)
+	_process_queue(gs)
+	var land_us := 0
+	var navy_us := 0
 	for tag in gs.country_order:
 		if tag == gs.player_tag or (d + absi(tag.hash())) % 5 != 0:
 			continue
 		var c: Dictionary = gs.countries[tag]
 		if c["provinces"].is_empty():
 			continue
+		VProfiler.count(gs, "ai_countries_evaluated")
+		var t1 := Time.get_ticks_usec()
 		_land(gs, tag)
+		var t2 := Time.get_ticks_usec()
 		_naval(gs, tag)
+		land_us += t2 - t1
+		navy_us += Time.get_ticks_usec() - t2
+	VProfiler.add(gs, "military_ai_land", land_us / 1000.0)
+	VProfiler.add(gs, "military_ai_navy", navy_us / 1000.0)
 	# los rebeldes también actúan
 	if d % 5 == 2:
 		for fid in gs.rebel_factions:
@@ -44,6 +53,40 @@ static func daily(gs: VGameState) -> void:
 
 static func _idle(a: Dictionary) -> bool:
 	return a["path"].is_empty() and int(a["battle"]) == 0 and int(a["embarked"]) == 0 and not a.get("retreating", false)
+
+
+## Orden de movimiento de la IA con presupuesto de búsquedas: si la ruta no está en caché y ya se
+## gastó el presupuesto del día, la orden espera en cola (se atiende en los próximos días).
+static func _order(gs: VGameState, a: Dictionary, target: int, naval_fallback: bool = false) -> void:
+	if not VArmySystem.path_ready(gs, a, target):
+		var q: Array = _queue(gs)
+		q.append([int(a["id"]), target, naval_fallback])
+		VProfiler.count(gs, "path_queued")
+		a["_ai_pending"] = true
+		return
+	if VArmySystem.order_move(gs, a, target) != "" and naval_fallback:
+		_try_naval_invasion(gs, a, target)
+
+
+static func _queue(gs: VGameState) -> Array:
+	var ix := gs.unit_index
+	if not ix.has("pq"):
+		ix["pq"] = []
+	return ix["pq"]
+
+
+static func _process_queue(gs: VGameState) -> void:
+	if gs.unit_index.is_empty() or not gs.unit_index.has("pq"):
+		return
+	var q: Array = gs.unit_index["pq"]
+	while not q.is_empty() and VArmySystem.path_budget_left(gs) > 0:
+		var e: Array = q.pop_front()
+		var a: Dictionary = gs.armies.get(int(e[0]), {})
+		if a.is_empty():
+			continue
+		a.erase("_ai_pending")
+		if _idle(a):
+			_order(gs, a, int(e[1]), bool(e[2]))
 
 
 ## Reclutamiento de la IA: una brigada cada ~2 meses si hay soldados libres y el tesoro lo permite
@@ -62,11 +105,11 @@ static func _recruit(gs: VGameState, tag: String) -> void:
 	if float(c["military"]["brigades"]) >= cap:
 		return
 	# reclutar preferentemente en la capital (allí se fusiona con el ejército existente)
-	var order: Array = c["provinces"].duplicate()
 	var capital := int(c.get("capital", -1))
-	if capital > 0:
-		order.push_front(capital)
-	for id in order:
+	if capital > 0 and VArmySystem.can_recruit(gs, tag, capital, "infantry")["ok"]:
+		VArmySystem.recruit(gs, tag, capital, "infantry")
+		return
+	for id in c["provinces"]:
 		var chk := VArmySystem.can_recruit(gs, tag, id, "infantry")
 		if chk["ok"]:
 			VArmySystem.recruit(gs, tag, id, "infantry")
@@ -75,7 +118,7 @@ static func _recruit(gs: VGameState, tag: String) -> void:
 
 static func _land(gs: VGameState, tag: String) -> void:
 	_recruit(gs, tag)
-	var armies: Array = _by_country.get(tag, []).filter(func(x): return gs.armies.has(int(x["id"])))
+	var armies: Array = VArmySystem.country_armies(gs, tag)
 	if armies.is_empty():
 		return
 	var at_war := VWarSystem.is_at_war(gs, tag)
@@ -94,30 +137,29 @@ static func _land(gs: VGameState, tag: String) -> void:
 				VArmySystem.merge(gs, by_prov[k], [a])
 			else:
 				by_prov[k] = a
-	armies = armies.filter(func(x): return gs.armies.has(int(x["id"])))
-	var cands := _war_candidates(gs, tag) if at_war else []
+	var cands := _strategic_targets(gs, tag) if at_war else []
 	for a in armies:
-		if not _idle(a):
+		if not gs.armies.has(int(a["id"])) or not _idle(a) or a.get("_ai_pending", false):
 			continue
+		VProfiler.count(gs, "ai_armies_evaluated")
 		var org := VArmySystem.army_organisation(gs, a)
 		var str_ratio := float(VArmySystem.army_strength(gs, a)) / maxf(1.0, float(a["brigades"].size() * gs.unit_manpower))
 		var here := gs.province(int(a["province"]))
 		if (org < 0.35 or str_ratio < 0.5) and here.get("controller", "") != tag and cap > 0:
-			VArmySystem.order_move(gs, a, cap)
+			_order(gs, a, cap)
 			continue
 		if org < 0.5:
 			continue
 		if not rebels.is_empty():
 			var target := _nearest_army(gs, a, rebels)
 			if target > 0:
-				VArmySystem.order_move(gs, a, target)
+				_order(gs, a, target)
 				continue
 		if not at_war:
 			continue
 		var tgt := _war_target(gs, a, tag, cands)
 		if tgt > 0:
-			if VArmySystem.order_move(gs, a, tgt) != "":
-				_try_naval_invasion(gs, a, tgt)
+			_order(gs, a, tgt, true)
 
 
 static func _nearest_army(gs: VGameState, a: Dictionary, targets: Array) -> int:
@@ -130,6 +172,24 @@ static func _nearest_army(gs: VGameState, a: Dictionary, targets: Array) -> int:
 			bd = dd
 			best = int(t["province"])
 	return best
+
+
+## Capa estratégica: destinos de guerra de la nación, cacheados STRATEGIC_DAYS días (o hasta que cambie
+## el acceso). La capa táctica filtra en cada uso los que ya no controla el enemigo.
+static func _strategic_targets(gs: VGameState, tag: String) -> Array:
+	var c: Dictionary = gs.countries[tag]
+	var sc: Dictionary = c.get("_ai_targets", {})
+	var d := gs.date.ordinal()
+	if sc.is_empty() or int(sc["ver"]) != gs.access_version or d - int(sc["day"]) >= STRATEGIC_DAYS:
+		sc = {"ver": gs.access_version, "day": d, "list": _war_candidates(gs, tag)}
+		c["_ai_targets"] = sc
+		VProfiler.count(gs, "ai_strategic_recalcs")
+	var en := VWarSystem.enemies_of(gs, tag)
+	var out := []
+	for id in sc["list"]:
+		if en.has(gs.provinces[id]["controller"]):
+			out.append(id)
+	return out
 
 
 ## Elige destino: provincias de estados objetivo sin controlar, si no la provincia enemiga más cercana.
@@ -164,31 +224,39 @@ static func _war_candidates(gs: VGameState, tag: String) -> Array:
 	return cands.keys()
 
 
+## Selección táctica barata: ordena por distancia² y evalúa el peligro solo hasta encontrar el primer
+## destino aceptable (mismo resultado que evaluar todos y quedarse con el más cercano seguro).
+## No dispara A*: la ruta se calcula una vez, solo para el destino elegido.
 static func _war_target(gs: VGameState, a: Dictionary, tag: String, cands: Array) -> int:
+	if cands.is_empty():
+		return -1
 	var power := VArmySystem.army_power(gs, a)
-	var best := -1
-	var bd := INF
 	var here: Vector2 = gs.provinces[int(a["province"])]["center"]
+	var scored := []
 	for id in cands:
-		if _danger(gs, a, int(id)) > power * 1.5:
-			continue
-		var dd := here.distance_squared_to(gs.provinces[id]["center"])
-		if dd < bd:
-			bd = dd
-			best = int(id)
-	return best
+		scored.append(Vector2(here.distance_squared_to(gs.provinces[id]["center"]), float(id)))
+	scored.sort()
+	for v in scored:
+		var id := int(v.y)
+		if _danger(gs, a, id) <= power * 1.5:
+			return id
+	return -1
 
 
+## Poder enemigo en la provincia y sus vecinas (índice por provincia: sin recorrer listas globales).
 static func _danger(gs: VGameState, a: Dictionary, prov: int) -> float:
+	var t := _danger_at(gs, a, prov)
+	for id in gs.provinces[prov]["neighbors"]:
+		if gs.is_land(id):
+			t += _danger_at(gs, a, id)
+	return t
+
+
+static func _danger_at(gs: VGameState, a: Dictionary, id: int) -> float:
 	var t := 0.0
-	var check := [prov]
-	check.append_array(gs.provinces[prov]["neighbors"])
-	for id in check:
-		if not gs.is_land(id):
-			continue
-		for o in VArmySystem.armies_in(gs, id):
-			if VCombatSystem.hostile(gs, a, o):
-				t += VArmySystem.army_power(gs, o)
+	for o in VArmySystem.armies_in(gs, id):
+		if VCombatSystem.hostile(gs, a, o):
+			t += VArmySystem.army_power(gs, o)
 	return t
 
 
@@ -274,9 +342,8 @@ static func _naval(gs: VGameState, tag: String) -> void:
 
 static func _enemy_fleet_power(gs: VGameState, tag: String, zone: int) -> float:
 	var t := 0.0
-	for fid in gs.fleets:
-		var f: Dictionary = gs.fleets[fid]
-		if int(f["location"]) == zone and VWarSystem.at_war_with(gs, tag, f["country"]):
+	for f in VUnitIndex.fleets_at(gs, zone):
+		if VWarSystem.at_war_with(gs, tag, f["country"]):
 			t += VNavalBattleResolver._power(gs, f)
 	return t
 
@@ -298,4 +365,4 @@ static func _rebel_army(gs: VGameState, a: Dictionary, f: Dictionary) -> void:
 	if not here.is_empty() and here["controller"] != VGameState.REBEL_TAG and here["owner"] == tag:
 		return  # primero ocupar donde está
 	if target > 0:
-		VArmySystem.order_move(gs, a, target)
+		_order(gs, a, target)

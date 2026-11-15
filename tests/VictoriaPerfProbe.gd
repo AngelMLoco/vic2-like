@@ -43,6 +43,10 @@ func _process(_d: float) -> bool:
 	print("production.process_province all: %.1f ms" % ((Time.get_ticks_usec() - t) / 1000.0))
 	t = Time.get_ticks_usec()
 	for id in ids:
+		VMoney.created(gs, 1.0, "x")
+	print("  VMoney.created x provinces: %.1f ms" % ((Time.get_ticks_usec() - t) / 1000.0))
+	t = Time.get_ticks_usec()
+	for id in ids:
 		VMobilitySystem.process_province(gs, id)
 	print("mobility all: %.1f ms" % ((Time.get_ticks_usec() - t) / 1000.0))
 	t = Time.get_ticks_usec()

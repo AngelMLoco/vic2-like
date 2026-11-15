@@ -11,15 +11,19 @@ extends RefCounted
 
 const STRATA_ORDER := {"poor": 0, "middle": 1, "rich": 2}
 const MIN_MOVE := 20
+const EMPTY := []
+const MIGRANT_JOBS := {"rgo_farm": true, "rgo_mine": true, "factory_worker": true, "factory_clerk": true, "artisan": true}
 
 
+## Reglas por tipo de origen, precompiladas: [destino, tasa, condiciones compiladas, clave de plaza o ""].
 static func _rules_by_type(gs: VGameState) -> Dictionary:
 	var cache: Dictionary = gs.market.get("_promotion_cache", {})
 	if cache.is_empty():
 		for r in gs.promotion_rules:
 			if not cache.has(r["from"]):
 				cache[r["from"]] = []
-			cache[r["from"]].append(r)
+			var cond: Dictionary = r.get("conditions", {})
+			cache[r["from"]].append([String(r["to"]), float(r.get("rate", 0.01)), VConditions.compile_pop(cond), String(cond.get("vacancy", ""))])
 		gs.market["_promotion_cache"] = cache
 	return cache
 
@@ -39,25 +43,27 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var ctx := {"vacancy": vac, "civilized": c.get("civilized", true), "military_spending": float(c["budget"].get("military", 0.0))}
 	var stats: Dictionary = c["acc_mobility"]
 	var moves := []
+	var rgo_wt := VProductionSystem.rgo_worker_type(gs, p["rgo"])
 	for pop in p["pops"]:
 		var t: String = pop["type"]
-		if not rules.has(t) or int(pop["size"]) < MIN_MOVE * 2:
+		var rl: Array = rules.get(t, EMPTY)
+		if rl.is_empty() or int(pop["size"]) < MIN_MOVE * 2:
 			continue
-		for rule in rules[t]:
-			var cond: Dictionary = rule.get("conditions", {})
-			var target: String = rule["to"]
-			if cond.has("vacancy") and cond["vacancy"] == "rgo":
-				vac["rgo"] = int(p.get("rgo_free", 0)) if VProductionSystem.rgo_worker_type(gs, p["rgo"]) == target else 0
-			if not VConditions.pop_ok(gs, pop, cond, tag, ctx):
+		for rule in rl:
+			var target: String = rule[0]
+			var vkey: String = rule[3]
+			if vkey == "rgo":
+				vac["rgo"] = int(p.get("rgo_free", 0)) if rgo_wt == target else 0
+			if not VConditions.pop_ok_compiled(gs, pop, rule[2], tag, ctx):
 				continue
-			var amount := int(float(pop["size"]) * minf(1.0, float(rule.get("rate", 0.01)) * 2.0))
-			if cond.has("vacancy"):
-				amount = mini(amount, int(vac.get(cond["vacancy"], 0)))
+			var amount := int(float(pop["size"]) * minf(1.0, float(rule[1]) * 2.0))
+			if vkey != "":
+				amount = mini(amount, int(vac.get(vkey, 0)))
 			if amount < MIN_MOVE:
 				continue
 			moves.append([pop, target, amount])
-			if cond.has("vacancy"):
-				vac[cond["vacancy"]] = int(vac[cond["vacancy"]]) - amount
+			if vkey != "":
+				vac[vkey] = int(vac[vkey]) - amount
 			break
 	for mv in moves:
 		var src: Dictionary = mv[0]
@@ -139,10 +145,10 @@ static func _transfer(gs: VGameState, src: Dictionary, dest_province: Dictionary
 static func _migrate(gs: VGameState, p: Dictionary, tag: String, c: Dictionary, stats: Dictionary) -> void:
 	var targets: Dictionary = c.get("_migration_targets", {})
 	var intl: Array = gs.market.get("_immigration_targets", [])
-	for pop in p["pops"].duplicate():
-		var pt: Dictionary = gs.pop_types.get(pop["type"], {})
-		var job: String = pt.get("job", "")
-		if not (job in ["rgo_farm", "rgo_mine", "factory_worker", "factory_clerk", "artisan"]):
+	# (los traslados añaden POPs a OTRAS provincias: se puede recorrer la lista sin copiarla)
+	for pop in p["pops"]:
+		var job: String = _job_of(gs, pop["type"])
+		if not MIGRANT_JOBS.has(job):
 			continue
 		var unemp := 1.0 - float(pop["employment"])
 		var life := float(pop["needs_satisfaction"]["life"])
@@ -187,6 +193,15 @@ static func _migrate(gs: VGameState, p: Dictionary, tag: String, c: Dictionary, 
 			break
 
 
+static func _job_of(gs: VGameState, type_id: String) -> String:
+	var jobs: Dictionary = gs.market.get("_job_by_type", {})
+	if jobs.is_empty():
+		for t in gs.pop_types:
+			jobs[t] = String(gs.pop_types[t].get("job", ""))
+		gs.market["_job_by_type"] = jobs
+	return jobs.get(type_id, "")
+
+
 static func accepts(gs: VGameState, tag: String, culture: String) -> bool:
 	var c: Dictionary = gs.countries[tag]
 	if culture == c["primary_culture"] or culture in c["accepted_cultures"]:
@@ -197,6 +212,26 @@ static func accepts(gs: VGameState, tag: String, culture: String) -> bool:
 	if policy == "limited_citizenship":
 		return gs.cultures.get(culture, {}).get("group", "") == gs.cultures.get(c["primary_culture"], {}).get("group", "?")
 	return false
+
+
+## Los n mejores [puntuación, id] por puntuación descendente (selección parcial, sin ordenar todo).
+## Desempate como sort_custom estable no garantizado: se conserva el primero encontrado.
+static func _top_ids(arr: Array, n: int) -> Array:
+	var best := []
+	for e in arr:
+		var v := float(e[0])
+		if best.size() == n and v <= float(best[-1][0]):
+			continue
+		var i := best.size()
+		while i > 0 and float(best[i - 1][0]) < v:
+			i -= 1
+		best.insert(i, e)
+		if best.size() > n:
+			best.pop_back()
+	var ids := []
+	for e in best:
+		ids.append(e[1])
+	return ids
 
 
 ## Cálculo mensual de destinos: provincias atractivas por tipo de empleo y naciones atractivas.
@@ -228,12 +263,7 @@ static func monthly_targets(gs: VGameState) -> void:
 			lists["any"].append([base + rgo_free * 0.5, id])
 		var out := {}
 		for k in lists:
-			var arr: Array = lists[k]
-			arr.sort_custom(func(a, b): return a[0] > b[0])
-			var ids := []
-			for e in arr.slice(0, 6):
-				ids.append(e[1])
-			out[k] = ids
+			out[k] = _top_ids(lists[k], 6)
 		c["_migration_targets"] = out
 		var att := float(c.get("avg_life", 0.8)) - float(c.get("unemployment", 0.0)) - float(c.get("avg_militancy", 0.0)) * 0.05
 		country_scores.append([att, tag])
