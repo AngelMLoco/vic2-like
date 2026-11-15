@@ -383,8 +383,8 @@ consciencia suben al final, como en M3.2; 23 naciones tienen riesgo de rebelión
 
 ### Frecuencia para el jugador
 
-Antes del despertar y en paz, FRK recibe unas 2 ventanas al año (la prueba midió 6 en 3 años). Con guerra o
-crisis suben a 3–6. Las de tipo *normal* tienen un tope de 2 por nación y mes; las *major*, *notification* y
+Antes del despertar y en paz, FRK recibe unas 2 ventanas al año (la prueba midió 6 en 3 años); con guerra o
+crisis se esperan más, pero no se ha medido. Las de tipo *normal* tienen un tope de 2 por nación y mes; las *major*, *notification* y
 *hidden* no cuentan para ese tope.
 
 ### Diagnóstico: deflación a los 50 años (resuelto)
