@@ -341,3 +341,73 @@ mismo resultado que evaluarlos todos. Una decisión dispara como mucho una búsq
 `VProfiler` registra llamadas, total, media real y máximo por sección, además de contadores (rutas, nodos,
 aciertos de caché, IA). `tests/VictoriaPerformanceBenchmark` mide 1, 5 y 10 años de la misma partida y
 compara la huella de la simulación con una línea base (ver Testing).
+
+## M3.2 — Almacén de POPs (estructura de arrays) y estabilidad política
+
+### `population/VPopStore.gd` (`gs.pops`)
+
+Un POP es un **slot entero**. Cada campo caliente es un array global: tamaño, efectivo, banco, renta, empleo,
+alfabetización, conciencia, militancia, necesidades, paro, empuje de movimiento e ideología (matriz plana
+`slot × n_ideo`). Los campos fríos van en arrays aparte: issues como diccionario compartido de solo lectura,
+producto artesano, destinos de migración/promoción y enlaces de brigada. Las provincias guardan sus slots en
+`p["pop_slots"]`.
+
+* **Por qué `Array[int]`/`Array[float]` y no `Packed*Array`** (medido, 20.000 lecturas+escrituras):
+  `Dictionary` por POP 4,7 ms · `obj.packed[i]` 3,4 ms · `Array` tipado con alias local 0,9 ms. Un Packed es un
+  valor con copia-en-escritura: un alias local (`var cash := store.cash`) se separa del almacén en la primera
+  escritura, y escribir a través del miembro cuesta casi lo mismo que el diccionario. Los `Array` tipados son
+  referencias, así que los bucles calientes toman alias locales y escriben en el almacén directamente.
+* **Ids numéricos:** tipo, cultura, religión, ideología y empleador son enteros. Cada tabla tiene su nombre ↔ id,
+  y los tipos con reglas propias se resuelven una vez (`T_FARMERS`, `T_SOLDIERS`…). Los bucles calientes no
+  comparan cadenas.
+* **Datos por tipo:** estrato, fracción de gasto, factor de alfabetización, trabajador manual, empleo, sueldo
+  estatal, peso de voto y migrante, en arrays indexados por `type_id`.
+* **Alta y baja:** `allocate()` usa la lista libre (nunca se compacta) y `free_slot()`. `merge(src, dst)` hace
+  medias ponderadas, suma tamaño y dinero, traslada los enlaces de brigada y deja el id de `src` como alias
+  de `dst`.
+* **Ids estables:** `id_to_slot` en O(1), incluidos los alias. Las brigadas (`source_pop_id`) y las facciones
+  rebeldes (`supporting_pops`) siguen funcionando aunque el POP se fusione.
+* **Compatibilidad:** `get_pop_details(slot)` construye un diccionario temporal para la UI (un POP a la vez).
+  `get_pop_summary`, `get_pop_field`, `get_pop_type_name`, y `VPopulationSystem.sizes_by`, `ideology_mix`,
+  `weighted_average` y `needs_average` siguen sirviendo a la UI con nombres.
+* **Guardado v4:** columnar (`to_save`/`from_save`). Las issues van como tabla de diccionarios distintos más un
+  índice, y la carga reconstruye las listas de las provincias, los alias y los enlaces de brigada.
+* **`verify()`:** comprueba listas de provincias, slots libres, ids y población (lo usa `VPopStoreTest`).
+
+### Sistemas sobre el almacén
+
+* **`VPopulationSystem.process_province`:** alias locales de los arrays, necesidades en una matriz por
+  (país × `type_id` × 6), demanda por niveles en una matriz (país × tipo × 3) y agregados nacionales con arrays
+  por tipo y estrato. Ningún diccionario por POP.
+* **`VProductionSystem.process_province`:** una pasada por POP con códigos enteros. El sueldo estatal y el gasto
+  imputado se precalculan por tipo y los impuestos se calculan en línea.
+* **`VMobilitySystem`:** reglas de promoción por `type_id` y condiciones precompiladas sobre el almacén.
+  `_transfer` mueve personas al POP coincidente (mismo tipo, cultura y religión) o crea uno nuevo.
+* **Política, rebeldes, guerra (jingoísmo), auditoría monetaria y UI:** leen el almacén.
+* **Fusión anual** (`merge_similar`): solo une POPs de la misma provincia, tipo, cultura y religión con issues,
+  ideología, alfabetización, militancia y conciencia parecidas. Como `_transfer` ya reutiliza el POP
+  coincidente, en la práctica no aparecen duplicados (0 fusiones en 50 años). El número de POPs crece despacio
+  por combinaciones nuevas (≈20.000 → ≈23.000 en 30 años), sin fragmentación.
+
+### Militancia: diagnóstico y equilibrio
+
+`VPopulationSystem` acumula en cada paso lento las contribuciones mensuales a la militancia, ponderadas por
+tamaño: vida, diario, paro, lujo, decaimiento base, relajación, movimientos, cansancio bélico, modificadores y
+reformas. `gs.market["mil_diag"]` guarda la media del último mes y `VictoriaBalanceTest` la imprime cada año.
+
+Diagnóstico antes de corregir (30 años):
+* Todas las fuentes son independientes del nivel de militancia. El único freno era una base constante de
+  −0,015/mes, y el paro y el diario escalan con la conciencia, que crece con la alfabetización.
+* La mayoría de los POPs estaban topados en 0 (neto negativo), mientras que un subconjunto con neto positivo
+  (pobreza, la reforma «reuniones prohibidas», guerra, movimientos) crecía linealmente sin límite.
+* El neto medio salía negativo y aun así la media mundial subía.
+* Además, el radicalismo de un movimiento con apoyo entre el 3 % y el 8 % quedaba congelado y seguía
+  empujando la militancia aunque el movimiento ya no creciera.
+
+Correcciones (sin bonificaciones globales):
+* **Relajación proporcional** (`militancy_relaxation`): −k × militancia al mes. Hay un equilibrio estable
+  mil* = fuentes netas / k, en lugar de una deriva lineal hacia 10.
+* **Reforma de subsidio de paro:** reduce la parte de la militancia causada por el paro
+  (`unemployment_relief_factor` × nivel de la reforma × presupuesto social, con un máximo del 80 %).
+* **Movimientos que no crecen:** su radicalismo se enfría 0,01 por trimestre.
+* **Cansancio bélico:** ya decaía 1 punto al mes en paz (de 30 a 0 en 2,5 años); no se ha cambiado.

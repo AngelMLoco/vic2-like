@@ -70,6 +70,15 @@ Benchmark fijo (`tests/VictoriaPerformanceBenchmark`): de 18,6 s a 10,5 s por a�
 diario baja de 367 ms a 87 ms. El objetivo de < 8 s/año **no se ha alcanzado**: el coste restante es el modelo
 de POPs como diccionarios en GDScript (ver Testing → M3.1).
 
+## M3.2 — Almacén de POPs y estabilidad política — completada (rendimiento al 97 % del objetivo)
+
+POPs en estructura de arrays (`VPopStore`, ids numéricos, lista libre, fusión, alias de ids, enlaces de
+Soldier POP en O(1)), guardado v4 columnar, sistemas calientes sin diccionarios por POP, diagnóstico de
+militancia por componentes, relajación proporcional de militancia y conciencia, reforma de subsidio de paro con
+efecto sobre la militancia por paro y movimientos que se enfrían si no crecen. De 10,5 a 8,2 s por año.
+El objetivo de < 8 s **no se ha alcanzado**; el informe sobre C# está en Testing → M3.2 y queda pendiente
+de decisión.
+
 ## Siguiente paso (milestone 4)
 
 Eventos y decisiones GFM-like (scripted + condicionales, cadenas, flags), contenido de fantasía en capas y el

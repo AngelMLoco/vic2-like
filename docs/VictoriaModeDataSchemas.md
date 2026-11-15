@@ -127,3 +127,35 @@ País: `diplo_points, military_access[], guarantees[], truces{tag: mes}, wars[id
 Provincia: `controller` (puede ser `REB`), `occupation`, `occupation_by`, `blockaded_by`, `rebel_faction`.
 
 `save_version` = 3; las partidas v2 se rechazan con un mensaje.
+
+## M3.2 — Almacén de POPs y guardado v4
+
+Los POPs ya no son diccionarios dentro de cada provincia. Viven en `VPopStore` (`gs.pops`), con un array por
+campo e índice = slot. Cada provincia guarda la lista ordenada de sus slots en `p["pop_slots"]`. Los ids estables
+(`id`) se usan para los enlaces externos: `brigade.source_pop_id` y `rebel_faction.supporting_pops`.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id`, `province`, `type_id`, `culture_id`, `religion_id`, `size`, `employer`, `unemployed_months`, `migration_target` | `Array[int]` | `id = -1` en slots libres (`free_list`) |
+| `cash`, `bank`, `income`, `income_acc`, `employment`, `literacy`, `consciousness`, `militancy`, `life`, `everyday`, `luxury`, `movement_push` | `Array[float]` | |
+| `ideology` | `Array[float]` plano | `slot * n_ideo + k`, en el orden de `ideologies.json` |
+| `issues` | `Array` de diccionarios | compartidos y de solo lectura por (ideología dominante, tipo, reglas cumplidas) |
+| `product`, `promotion_target` | `Array[String]` | |
+| `brigades` | `Array` (`null` o lista de ids de brigada) | Soldier POPs |
+
+Tablas de ida y vuelta: `type_names`/`type_index`, `culture_names`, `religion_names`, `ideo_names`, `employer_names`
+(empleadores internados: "", "rgo", "estado", "inversión", "fábrica", "rgo_owner", "artisan:<producto>").
+`id_to_slot` resuelve también los ids de POPs fusionados, que apuntan al POP que los absorbió.
+
+`get_pop_details(slot)` devuelve un diccionario temporal con los campos clásicos (`type`, `size`, `culture`,
+`needs_satisfaction`, `ideology`, `issues`…) para la UI y la depuración.
+
+**Guardado:** `save_version` = 4. La clave `pops` contiene columnas (`id[]`, `province[]`, `type_id[]`, `size[]`,
+`cash[]`…, `ideology[]` plana), las tablas de nombres, `issue_table` + `issue_idx` (un diccionario por
+combinación distinta), `brigades {índice: [ids]}`, `aliases {id fusionado: id destino}`, `next_id` y `stats`.
+Las provincias ya no guardan POPs. Las partidas v3 se rechazan con un mensaje.
+
+`economy_rules.json` añade:
+* `militancy_relaxation` (0,01): fracción de la militancia que se disipa cada mes.
+* `unemployment_relief_factor` (2,0): cuánto reduce el subsidio de paro (reforma × presupuesto social) la
+  militancia causada por el paro, con un máximo del 80 %.

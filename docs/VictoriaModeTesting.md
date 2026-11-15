@@ -230,3 +230,87 @@ de diccionario por POP (≈ 20.000 POPs), a ≈ 0,15–0,3 µs cada una. Bajar d
   entre 2× y 3× en esos sistemas, que llevaría el año a ≈ 6–7 s.
 * O mover el bucle mensual de POPs a C# o GDExtension, con una ganancia esperada de 10× o más en esos bucles.
   El año quedaría en ≈ 3–5 s, pero añade una cadena de compilación al proyecto.
+
+## M3.2 — Almacén de POPs y estabilidad
+
+```bash
+# Pruebas del almacén: crear, leer/escribir, mover, promocionar, fusionar, borrar, reutilizar slots,
+# guardar/cargar v4, enlace brigada ↔ Soldier POP, población de provincias y agregados nacionales
+"$GODOT" --headless --path . res://tests/VPopStoreTest.tscn
+```
+
+**Último resultado:** `VPopStoreTest` 0 fallos · `VictoriaM3Test` 0 fallos (incluye el rechazo de partidas v3) ·
+`VictoriaSmokeTest` 0 fallos · `VictoriaBalanceTest` 20, 30 y 50 años sin problemas.
+
+### 20, 30 y 50 años (`VictoriaBalanceTest`, 0 problemas)
+
+| Año | Pobl. (M) | Vida | Diario | Paro | Milit. | Conc. | Fábricas | Guerras | Brigadas máx. | Rebeldes (riesgo) | POPs |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 10 | 740 | 0,80 | 0,36 | 0,03 | 0,41 | 0,30 | 227 | 28 | 91 | 0 (0) | 21.729 |
+| 20 | 786 | 0,83 | 0,38 | 0,06 | 0,39 | 0,26 | 381 | 51 | 101 | 7 (2) | 22.430 |
+| 30 | 842 | 0,77 | 0,33 | 0,09 | 0,24 | 0,37 | 511 | 70 | 147 | 3 (9) | 23.041 |
+| 40 | 892 | 0,74 | 0,34 | 0,11 | 0,26 | 0,72 | 594 | 82 | 160 | 10 (14) | 23.615 |
+| 50 | 939 | 0,70 | 0,31 | 0,14 | 0,47 | 1,19 | 605 | 92 | 130 | 26 (19) | 24.105 |
+
+* La militancia queda acotada (0,24–0,47) sin deriva.
+* La conciencia sigue a la alfabetización hacia un equilibrio: sin la relajación llegaba a 2,76 a los 50 años
+  y seguía subiendo.
+* No se fusionó ningún POP en 50 años: los traslados reutilizan el POP coincidente, así que no hay
+  fragmentación.
+* Tendencias a vigilar en M4: el paro sube despacio (0,03 → 0,14) y las rebeliones aumentan a partir de los
+  40 años.
+
+### Rendimiento: `c01f49b` frente a M3.2 (mismo equipo y misma partida, 10 años)
+
+| Medida (s/año) | c01f49b | M3.2 | Cambio |
+|---|---|---|---|
+| **Total por año (media de 10 años)** | **10,51** | **8,22** | −22 % |
+| Año 1 / año más lento | 8,9 / 11,8 | 6,3 / 9,4 | |
+| Población (cubos + cierre de mes) | 3,15 | 1,96 | −38 % |
+| Producción por provincia (RGO, artesanos, empleo) | 1,79 | 1,29 | −28 % |
+| Movilidad | 1,28 | 0,98 | −24 % |
+| Suministro militar | 1,19 | 0,96 | −20 % |
+| Capa militar diaria | 2,98 | 2,65 | |
+| Cierre de mes (media / máx. ms) | 125 / 176 | 106 / 190 | |
+| Tick diario (media / máx. ms) | 24,5 / 87 | 18,8 / 81 | |
+
+Cuando una optimización no podía cambiar resultados (cachés exactas, alias, códigos enteros), la huella de la
+simulación quedó idéntica entre ejecuciones; así se comprobó cada paso.
+
+### Objetivo < 8 s/año: no alcanzado (8,2 s)
+
+Los tres mayores costes restantes (tramo de años 5–10):
+1. Capa militar diaria: 2,65 s (suministro 0,96 · IA terrestre 0,64 · refuerzo 0,26 · armada 0,24 · movimiento 0,21).
+2. Producción: 2,2 s (RGO/artesanos/empleo 1,29 · fábricas 0,33 · inversión y mercado mensuales).
+3. Población: 1,96 s (≈6 µs por POP y mes, ≈21.700 POPs).
+
+Después de pasar a estructura de arrays, el coste por POP lo dominan las operaciones del propio intérprete:
+unas 45 lecturas y escrituras de arrays, unas 25 operaciones aritméticas y unas 8 llamadas a funciones
+integradas por POP y mes. Las micro-optimizaciones posteriores ya daban ganancias del 1–2 %, dentro del ruido.
+
+### ¿Hace falta C#/GDExtension? Informe (no se ha migrado nada)
+
+* **Qué mover:**
+  * `VPopulationSystem.process_province`: necesidades, consecuencias, deriva e issues.
+  * `VProductionSystem.process_province` y `process_state_instance`.
+  * `VMobilitySystem.process_province`.
+  * Opcionalmente, el bucle por ejército de `VSupplySystem.daily`.
+  
+  Son funciones puras sobre arrays: el almacén ya está en estructura de arrays, así que el cambio es local.
+* **API entre GDScript y C#:** el almacén (`VPopStore`) pasaría a ser un objeto C# con los mismos arrays
+  como `float[]`/`int[]`, y GDScript seguiría accediendo por slot (`get_pop_details`, campos sueltos).
+  Por provincia y mes se pasarían a C# los parámetros de país ya preparados: la matriz de necesidades, los
+  impuestos, los modificadores y el contexto de mercado como arrays por índice de bien. Las reglas (tipos,
+  promoción, issues) se cargarían una vez desde los mismos JSON.
+* **Ganancia esperada:** del orden de 10–30× en esos bucles. Población, producción y movilidad (≈4,2 s/año)
+  pasarían a ≈0,3 s, y el año a ≈4–5 s. Con el suministro, ≈3,5–4,5 s.
+* **Coste:**
+  * Hay que usar el editor y la exportación «.NET» de Godot (el ejecutable actual no tiene mono) y el SDK
+    de .NET 8.
+  * El juego exportado crece unos 70 MB por el runtime.
+  * Las exportaciones web de Godot 4 con C# aún no están soportadas.
+  * Habría que mantener dos lenguajes y pruebas cruzadas.
+  * Una GDExtension en C++ evita el runtime, pero exige compilar por plataforma.
+* **Recomendación:** la simulación ya está a ≈3 % del mínimo pedido y es determinista. Si el objetivo
+  de 3–6 s/año es firme, merece la pena mover esos tres o cuatro bucles a C# con la API de arriba. Si basta con
+  ≈8 s, no hace falta todavía. Pendiente de decisión.
