@@ -1,0 +1,25 @@
+{
+ "lore_type": "country",
+ "_doc": "Naciones: origen, gobierno, culturas, religiones, rivales, aliados, reclamaciones históricas. tag = TAG jugable de countries.json del escenario definitivo.",
+ "entries": [
+  {
+   "id": "",
+   "tag": "",
+   "name": "",
+   "origin": "",
+   "government": "",
+   "cultures": [],
+   "religions": [],
+   "rivals": [],
+   "allies": [],
+   "historical_claims": [],
+   "magic_branches": {
+    "technology": {
+     "level": 0,
+     "paths": []
+    }
+   },
+   "summary": ""
+  }
+ ]
+}

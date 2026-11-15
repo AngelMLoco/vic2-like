@@ -1,0 +1,54 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (diplomacy). Espacio de nombres core.diplomacy.*",
+ "events": [
+  {
+   "id": "core.diplomacy.border_dispute",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "target": "lowest_relation_neighbor",
+   "art": "frontier_diplomacy",
+   "title": "Disputa fronteriza",
+   "desc": "Un incidente en un paso de montaña reaviva viejas reclamaciones sobre la frontera con nuestro vecino.",
+   "trigger": {"at_war": false, "target_relation_below": -20, "target": {"at_war": false}},
+   "mtth": {"months": 24},
+   "cooldown": 120,
+   "important": true,
+   "options": [
+    {"name": "Presionar nuestra reclamación", "effects": {"create_casus_belli": "humiliate", "add_infamy": 1, "change_relation": -30, "target": {"trigger_event": {"id": "core.diplomacy.claim_pressed", "days": 20}}}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "military_score": 50}]}},
+    {"name": "Proponer una comisión mixta", "effects": {"change_relation": 40, "add_prestige": -1}, "ai_weight": 5},
+    {"name": "Someterlo al arbitraje de una gran potencia", "effects": {"change_relation": 20, "add_prestige": 2, "set_country_flag": "SOUGHT_ARBITRATION"}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.diplomacy.claim_pressed",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "frontier_diplomacy",
+   "title": "Nos presionan en la frontera",
+   "desc": "Nuestro vecino exige concesiones en la frontera disputada y moviliza a sus guarniciones.",
+   "options": [
+    {"name": "Ceder para evitar la guerra", "effects": {"add_prestige": -5, "change_relation": 30}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "at_war": true}]}},
+    {"name": "Rechazar las exigencias", "effects": {"change_relation": -40, "create_casus_belli": "humiliate", "add_prestige": 2}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "core.diplomacy.border_incident",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "quarterly",
+   "target": "random_neighbor",
+   "art": "frontier_diplomacy",
+   "title": "Incidente en la frontera",
+   "desc": "Una patrulla nuestra y otra extranjera se han tiroteado de madrugada. Nadie sabe quién disparó primero.",
+   "trigger": {"at_war": false},
+   "mtth": {"months": 36},
+   "cooldown": 36,
+   "options": [
+    {"name": "Exigir disculpas", "effects": {"change_relation": -20, "add_prestige": 2}, "ai_weight": 5},
+    {"name": "Ofrecer una comisión de investigación", "effects": {"change_relation": 15}, "ai_weight": 5}
+   ]
+  }
+ ]
+}

@@ -1,0 +1,4 @@
+{
+ "_doc": "Escuelas / sendas mágicas (M5: SOLO ESQUEMA; las escuelas finales se definen en el lore). El NIVEL de una rama (country.magic_branches.<rama> = n o {\"level\": n}) mide capacidad; la ESCUELA es una senda concreta dentro de la rama ({\"level\": 2, \"paths\": [\"<id de escuela>\"]}). Cuando haya escuelas aquí, el cargador comprobará que las sendas declaradas existen y pertenecen a su rama; las tecnologías, eventos y unidades podrán exigirlas con la condición magic_path. Ejemplo de entrada: {\"id\": \"battlemage\", \"branch\": \"military\", \"name\": \"…\", \"min_level\": 1, \"effects\": {}}",
+ "schools": []
+}

@@ -1,0 +1,15 @@
+{
+ "lore_type": "character",
+ "_doc": "Personajes (FUTURO: no simulados todavía).",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "country": "",
+   "role": "",
+   "born": 0,
+   "traits": [],
+   "dynasty": ""
+  }
+ ]
+}

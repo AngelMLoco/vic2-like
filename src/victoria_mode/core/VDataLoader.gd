@@ -8,23 +8,24 @@ const ROOT := "res://data/victoria_mode/"
 static var _history_wars: Array = []
 
 
-static func new_game() -> VGameState:
+## scenario_id: escenario/bookmark de scenarios/scenarios.json ("" = el de por defecto).
+static func new_game(scenario_id: String = "") -> VGameState:
 	var gs := VGameState.new()
 	var t0 := Time.get_ticks_msec()
+	_load_scenario(gs, scenario_id)
 	_load_definitions(gs)
 	_load_map(gs)
 	_load_countries(gs)
+	var hist := VJson.load_dict(ROOT + String(gs.scenario.get("history", "history/start_136.json")))
+	_apply_province_history(gs, hist)
 	gs.rebuild_territory()
-	_apply_history(gs)
-	VMagicSystem.apply_prototype_branches(gs, ROOT)
-	VEventSystem.load_definitions(gs, ROOT)
-	VDecisionSystem.load_definitions(gs, ROOT)
-	for e in gs.data_errors:
-		push_error("[datos] " + str(e))
+	_apply_history(gs, hist)
+	load_content(gs)
 	gs.pops.setup(gs)
 	VPopulationSystem.generate_initial(gs)
 	VPoliticsSystem.setup_new_game(gs)
 	VTechnologySystem.setup_new_game(gs)
+	_apply_late_history(gs, hist)
 	for tag in gs.countries:
 		VModifiers.recompute(gs, tag)
 	VMarketSystem.setup_new_game(gs)
@@ -40,6 +41,35 @@ static func new_game() -> VGameState:
 	print("[VictoriaMode] mundo cargado en %d ms: %d provincias terrestres, %d estados, %d países" % [
 		Time.get_ticks_msec() - t0, gs.first_sea_id - 1, gs.states.size(), gs.countries.size()])
 	return gs
+
+
+## Escenario: fecha, historia y paquetes de contenido (no se asume el año 136).
+static func _load_scenario(gs: VGameState, scenario_id: String) -> void:
+	var d := VJson.load_dict(ROOT + "scenarios/scenarios.json")
+	var want: String = scenario_id if scenario_id != "" else String(d.get("default", ""))
+	for sc in d.get("scenarios", []):
+		if sc.get("id", "") == want:
+			gs.scenario = sc
+	if gs.scenario.is_empty():
+		gs.data_errors.append("scenarios.json: escenario desconocido «%s»" % want)
+		gs.scenario = {"id": want, "history": "history/start_136.json"}
+	gs.scenario_id = String(gs.scenario.get("id", want))
+	gs.content_packs = []
+	for p in gs.scenario.get("content_packs", []):
+		gs.content_packs.append(String(p))
+
+
+## Contenido de los paquetes activos (también al cargar una partida): reglas y ramas mágicas, actitudes de
+## religiones y culturas, eventos, decisiones, crónica, manifiesto de arte y biblia de lore.
+static func load_content(gs: VGameState) -> void:
+	VContentPacks.validate(gs, ROOT)
+	VMagicSystem.apply_prototype_branches(gs, ROOT)
+	VEventSystem.load_definitions(gs, ROOT)
+	VDecisionSystem.load_definitions(gs, ROOT)
+	VChronicle.load_templates(gs, ROOT)
+	VLoreLoader.load_all(gs, ROOT)
+	for e in gs.data_errors:
+		push_error("[datos] " + str(e))
 
 
 static func _index(arr: Array, key: String = "id") -> Dictionary:
@@ -221,8 +251,71 @@ static func _load_countries(gs: VGameState) -> void:
 		gs.country_order.append(tag)
 
 
-static func _apply_history(gs: VGameState) -> void:
-	var hist := VJson.load_dict(ROOT + "history/start_136.json")
+## Propiedad, control y núcleos por provincia declarados por la historia (antes de construir los estados).
+##   "provinces": {"<id>": {"owner": TAG, "controller": TAG, "cores": [TAG…]}}
+static func _apply_province_history(gs: VGameState, hist: Dictionary) -> void:
+	var ph: Dictionary = hist.get("provinces", {})
+	for k in ph:
+		var p := gs.province(int(k))
+		if p.is_empty():
+			gs.data_errors.append("historia: provincia desconocida %s" % k)
+			continue
+		var h: Dictionary = ph[k]
+		if h.has("owner"):
+			p["owner"] = String(h["owner"])
+			p["controller"] = String(h["owner"])
+		if h.has("controller"):
+			p["controller"] = String(h["controller"])
+		if h.has("cores"):
+			p["cores"] = h["cores"].duplicate()
+
+
+## Historia que necesita los sistemas ya preparados: tecnologías, inventos, reformas, banderas, variables,
+## modificadores permanentes y ramas mágicas por nación; banderas globales y rivalidades.
+static func _apply_late_history(gs: VGameState, hist: Dictionary) -> void:
+	for f in hist.get("flags", []):
+		gs.flags[String(f)] = true
+	for pair in hist.get("rivals", []):
+		if gs.countries.has(pair[0]) and gs.countries.has(pair[1]):
+			for i in 2:
+				var a: String = pair[i]
+				var b: String = pair[1 - i]
+				var rv: Array = gs.countries[a].get("rivals", [])
+				if not (b in rv):
+					rv.append(b)
+				gs.countries[a]["rivals"] = rv
+			_set_relation(gs, pair[0], pair[1], mini(int(gs.countries[pair[0]]["relations"].get(pair[1], 0)), -100))
+	var per: Dictionary = hist.get("countries", {})
+	for tag in per:
+		if not gs.countries.has(tag):
+			gs.data_errors.append("historia: país desconocido «%s»" % tag)
+			continue
+		var h: Dictionary = per[tag]
+		var c: Dictionary = gs.countries[tag]
+		for t in h.get("technologies", []):
+			if gs.technologies.has(t):
+				VTechnologySystem.complete(gs, tag, t)
+			else:
+				gs.data_errors.append("historia %s: tecnología desconocida «%s»" % [tag, t])
+		for inv in h.get("inventions", []):
+			VTechnologySystem.activate_invention(gs, tag, inv)
+		for rid in h.get("reforms", {}):
+			if gs.reforms.has(rid):
+				c["reforms"][rid] = int(h["reforms"][rid])
+			else:
+				gs.data_errors.append("historia %s: reforma desconocida «%s»" % [tag, rid])
+		for f in h.get("flags", []):
+			VScopedState.set_country_flag(gs, tag, String(f))
+		for n in h.get("variables", {}):
+			VScopedState.change_variable(gs, tag, n, float(h["variables"][n]), true)
+		for m in h.get("modifiers", []):
+			var md: Dictionary = m if m is Dictionary else {"id": m}
+			VScopedState.add_country_modifier(gs, tag, md["id"], int(md.get("months", 0)), "history", md.get("effects", {}))
+		for b in h.get("magic_branches", {}):
+			c["magic_branches"][b] = h["magic_branches"][b]
+
+
+static func _apply_history(gs: VGameState, hist: Dictionary) -> void:
 	if hist.has("start_date"):
 		gs.date = VDate.from_dict(hist["start_date"])
 	# capitales: la indicada o la provincia propia más poblada
@@ -235,8 +328,9 @@ static func _apply_history(gs: VGameState) -> void:
 			if pop > best_pop:
 				best_pop = pop
 				best = id
-		if c.get("capital") != null and gs.province(int(c["capital"])).get("owner", "") == tag:
-			best = int(c["capital"])
+		var cap_h = hist.get("countries", {}).get(tag, {}).get("capital", c.get("capital"))
+		if cap_h != null and gs.province(int(cap_h)).get("owner", "") == tag:
+			best = int(cap_h)
 		c["capital"] = best
 		if best > 0 and gs.provinces[best]["coastal"]:
 			gs.provinces[best]["naval_base"] = 1
@@ -265,6 +359,11 @@ static func _apply_history(gs: VGameState) -> void:
 		if not gs.countries.has(tag):
 			continue
 		var h: Dictionary = per_country[tag]
+		if h.has("government"):
+			gs.countries[tag]["government"] = String(h["government"])
+		for fld in ["literacy", "prestige", "treasury"]:
+			if h.has(fld):
+				gs.countries[tag][fld] = float(h[fld])
 		gs.countries[tag]["military"] = {"brigades": int(h.get("brigades", 0)), "ships": int(h.get("ships", 0))}
 		var levels := int(h.get("factory_levels", 0))
 		var instances := gs.country_state_instances(tag)

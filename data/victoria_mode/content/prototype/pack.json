@@ -1,0 +1,6 @@
+{
+ "id": "prototype",
+ "name": "Prototipo (Tierra, año 136)",
+ "description": "PROTOTYPE / replace later. Contenido TEMPORAL ligado a la geografía de pruebas: cadenas country.<tag>.* y perfiles de ramas mágicas. Se conserva para pruebas; el lore definitivo irá en el paquete fantasy.",
+ "requires": ["core"]
+}

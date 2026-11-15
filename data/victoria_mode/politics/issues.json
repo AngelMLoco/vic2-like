@@ -166,6 +166,32 @@
      "name": "Abolir"
     }
    ]
+  },
+  {
+   "id": "magic_policy",
+   "name": "Política mágica",
+   "positions": [
+    {
+     "id": "magic_prohibited",
+     "name": "Prohibición"
+    },
+    {
+     "id": "magic_tolerated",
+     "name": "Libertad sin regulación"
+    },
+    {
+     "id": "magic_licensed",
+     "name": "Licencias"
+    },
+    {
+     "id": "magic_promoted",
+     "name": "Fomento público"
+    },
+    {
+     "id": "magic_state_control",
+     "name": "Monopolio estatal"
+    }
+   ]
   }
  ],
  "conditional": [

@@ -452,7 +452,8 @@
    "artisan": false,
    "workforce": {
     "craftsmen": 9000,
-    "clerks": 1000
+    "clerks": 1000,
+    "magi": 1200
    },
    "build_cost": {
     "lumber": 30,
@@ -476,7 +477,8 @@
    "artisan": false,
    "workforce": {
     "craftsmen": 8000,
-    "clerks": 2000
+    "clerks": 2000,
+    "magi": 2500
    },
    "build_cost": {
     "lumber": 30,
@@ -500,7 +502,8 @@
    "artisan": false,
    "workforce": {
     "craftsmen": 8000,
-    "clerks": 2000
+    "clerks": 2000,
+    "magi": 1800
    },
    "build_cost": {
     "lumber": 30,

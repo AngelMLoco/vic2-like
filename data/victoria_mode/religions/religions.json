@@ -1,113 +1,131 @@
 {
- "_doc": "Religiones. 'group' permite tolerancias y conversiones futuras.",
+ "_doc": "Religiones. 'group' permite tolerancias y conversiones futuras. M5: magic_attitude (sacred | accepted | regulated | suspicious | heretical) = PROTOTYPE, no es lore: modula la promoción a magos y la tensión religiosa (magic/magic_rules.json).",
  "religions": [
   {
    "id": "aureliana",
    "name": "Culto Aureliano",
    "group": "pantheon",
-   "color": "e8c547"
+   "color": "e8c547",
+   "magic_attitude": "regulated"
   },
   {
    "id": "druidica",
    "name": "Senda Druídica",
    "group": "pantheon",
-   "color": "4f8f3a"
+   "color": "4f8f3a",
+   "magic_attitude": "sacred"
   },
   {
    "id": "vanica",
    "name": "Fe Vánica",
    "group": "pantheon",
-   "color": "6c8fbf"
+   "color": "6c8fbf",
+   "magic_attitude": "accepted"
   },
   {
    "id": "perunica",
    "name": "Fe del Trueno",
    "group": "pantheon",
-   "color": "8a5bb0"
+   "color": "8a5bb0",
+   "magic_attitude": "accepted"
   },
   {
    "id": "olimpica",
    "name": "Culto Olímpico",
    "group": "pantheon",
-   "color": "f2f2f2"
+   "color": "f2f2f2",
+   "magic_attitude": "accepted"
   },
   {
    "id": "baalita",
    "name": "Culto de Baal",
    "group": "semitic",
-   "color": "b0563c"
+   "color": "b0563c",
+   "magic_attitude": "suspicious"
   },
   {
    "id": "kemetica",
    "name": "Culto Solar de Kemet",
    "group": "semitic",
-   "color": "f0a830"
+   "color": "f0a830",
+   "magic_attitude": "sacred"
   },
   {
    "id": "llama_eterna",
    "name": "Fe de la Llama Eterna",
    "group": "dualist",
-   "color": "e0622a"
+   "color": "e0622a",
+   "magic_attitude": "heretical"
   },
   {
    "id": "tengrista",
    "name": "Tengrismo Celeste",
    "group": "shamanic",
-   "color": "4fb8c4"
+   "color": "4fb8c4",
+   "magic_attitude": "sacred"
   },
   {
    "id": "vedica",
    "name": "Dharma Védico",
    "group": "dharmic",
-   "color": "e07a2f"
+   "color": "e07a2f",
+   "magic_attitude": "accepted"
   },
   {
    "id": "dharmica",
    "name": "Senda Óctuple",
    "group": "dharmic",
-   "color": "f2d16b"
+   "color": "f2d16b",
+   "magic_attitude": "regulated"
   },
   {
    "id": "tianming",
    "name": "Mandato Celeste",
    "group": "eastern",
-   "color": "c73a3a"
+   "color": "c73a3a",
+   "magic_attitude": "regulated"
   },
   {
    "id": "kami",
    "name": "Senda de los Kami",
    "group": "eastern",
-   "color": "e46a8c"
+   "color": "e46a8c",
+   "magic_attitude": "sacred"
   },
   {
    "id": "animista",
    "name": "Animismo",
    "group": "shamanic",
-   "color": "6b8e4e"
+   "color": "6b8e4e",
+   "magic_attitude": "sacred"
   },
   {
    "id": "ancestral",
    "name": "Culto de los Ancestros",
    "group": "shamanic",
-   "color": "8c6a3f"
+   "color": "8c6a3f",
+   "magic_attitude": "accepted"
   },
   {
    "id": "gran_espiritu",
    "name": "Gran Espíritu",
    "group": "shamanic",
-   "color": "9c7b5a"
+   "color": "9c7b5a",
+   "magic_attitude": "sacred"
   },
   {
    "id": "quinto_sol",
    "name": "Culto del Quinto Sol",
    "group": "mesoamerican",
-   "color": "2e9c8a"
+   "color": "2e9c8a",
+   "magic_attitude": "suspicious"
   },
   {
    "id": "inti",
    "name": "Culto de Inti",
    "group": "mesoamerican",
-   "color": "d4a017"
+   "color": "d4a017",
+   "magic_attitude": "accepted"
   }
  ]
 }

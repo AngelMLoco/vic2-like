@@ -1,0 +1,14 @@
+{
+ "lore_type": "era",
+ "_doc": "Eras / bookmarks futuros (Era I, Era II…). start_year en el calendario del mundo.",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "start_year": 0,
+   "end_year": 0,
+   "summary": "",
+   "scenario": ""
+  }
+ ]
+}

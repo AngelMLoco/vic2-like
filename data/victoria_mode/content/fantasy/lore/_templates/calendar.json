@@ -1,0 +1,17 @@
+{
+ "lore_type": "calendar",
+ "_doc": "Calendario: meses, días por mes, nombre de la era.",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "months": [
+    {
+     "name": "",
+     "days": 30
+    }
+   ],
+   "era_suffix": ""
+  }
+ ]
+}

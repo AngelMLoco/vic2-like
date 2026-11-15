@@ -1,0 +1,171 @@
+{
+ "_doc": "Cadenas económicas (M5): auge especulativo y crac, despegue industrial y nueva clase industrial, cierre de fábricas, dependencia comercial. Las banderas recuerdan la vía elegida (BOOM_UNCHECKED / BOOM_REGULATED, STATE_INDUSTRY / PRIVATE_INDUSTRY, PROTECTIONIST_TURN / FREE_TRADE_TURN). Espacio de nombres core.economy.*",
+ "events": [
+  {
+   "id": "core.economy.speculative_boom",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "quarterly",
+   "art": "market_trade",
+   "title": "Fiebre especulativa",
+   "desc": "Las acciones de ferrocarriles y fábricas se duplican en meses. Criadas y párrocos invierten sus ahorros; los banqueros prestan a cualquiera que tenga un proyecto.",
+   "trigger": {"not_country_flag": "BOOM_ACTIVE", "at_war": false, "factory_count": 8, "unemployment_below": 0.05},
+   "mtth": {"months": 60},
+   "cooldown": 120,
+   "options": [
+    {"name": "Que el mercado corra", "effects": {"set_country_flag": ["BOOM_ACTIVE", "BOOM_UNCHECKED"], "add_country_modifier": {"id": "speculative_mania", "months": 24}}, "follow_up": {"id": "core.economy.market_crash", "months": 20}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": ["liberal", "radical"]}]}},
+    {"name": "Subir los tipos y vigilar la bolsa", "effects": {"set_country_flag": ["BOOM_ACTIVE", "BOOM_REGULATED"], "add_country_modifier": {"id": "industrial_stimulus", "months": 12}}, "follow_up": {"id": "core.economy.soft_landing", "months": 20}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": ["conservador", "socialista"]}]}}
+   ]
+  },
+  {
+   "id": "core.economy.market_crash",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "market_trade",
+   "title": "El crac",
+   "desc": "Un banco suspende pagos y el pánico hace el resto. En una semana se evaporan fortunas; las fábricas despiden y los acreedores se agolpan en las ventanillas.",
+   "trigger": {"country_flag": "BOOM_UNCHECKED"},
+   "important": true,
+   "chronicle": "El crac de {year} arruinó a miles de inversores en {country}.",
+   "options": [
+    {"name": "Rescatar a los bancos", "effects": {"add_treasury_ratio": -0.2, "add_country_modifier": {"id": "banking_panic", "months": 12}, "clear_country_flag": ["BOOM_ACTIVE", "BOOM_UNCHECKED"]}, "ai_weight": 5},
+    {"name": "Dejar caer a los especuladores", "effects": {"add_country_modifier": {"id": "industrial_crisis", "months": 24}, "close_factory": "any", "add_militancy": {"value": 0.3, "strata": "poor"}, "clear_country_flag": "BOOM_UNCHECKED"}, "follow_up": {"id": "core.economy.crash_aftermath", "months": 6}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.economy.crash_aftermath",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "workers_strike",
+   "title": "Después del crac",
+   "desc": "Seis meses después, las fábricas siguen medio vacías. Los economistas discuten si el Estado debe gastar o apretarse el cinturón.",
+   "trigger": {"country_flag": "BOOM_ACTIVE"},
+   "options": [
+    {"name": "Obras públicas", "effects": {"add_country_modifier": {"id": "public_works", "months": 24}, "add_treasury_ratio": -0.1, "clear_country_flag": "BOOM_ACTIVE"}, "ai_weight": 5},
+    {"name": "Austeridad", "effects": {"add_treasury_ratio": 0.05, "add_militancy": {"value": 0.4, "strata": "poor"}, "clear_country_flag": "BOOM_ACTIVE"}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.economy.soft_landing",
+   "scope": "country",
+   "type": "notification",
+   "cadence": "follow_up",
+   "art": "market_trade",
+   "title": "Aterrizaje suave",
+   "desc": "La euforia se desinfla sin quiebras. Los que pedían más libertad para la bolsa callan; la prudencia ha salido barata.",
+   "trigger": {"country_flag": "BOOM_REGULATED"},
+   "options": [
+    {"name": "La prudencia tiene premio", "effects": {"add_prestige": 2, "clear_country_flag": ["BOOM_ACTIVE", "BOOM_REGULATED"]}}
+   ]
+  },
+  {
+   "id": "core.economy.industrial_takeoff",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "factory_industry",
+   "title": "El despegue industrial",
+   "desc": "Una docena de fábricas, ferrocarriles en construcción, campesinos que llegan a la ciudad. El país está cambiando: hay que decidir quién dirige el cambio.",
+   "trigger": {"not_country_flag": "INDUSTRIAL_PATH", "factory_count": 12},
+   "mtth": {"months": 24},
+   "once": true,
+   "important": true,
+   "options": [
+    {"name": "Industrialización dirigida por el Estado", "effects": {"set_country_flag": ["INDUSTRIAL_PATH", "STATE_INDUSTRY"], "add_country_modifier": {"id": "industrial_stimulus", "months": 36}, "change_budget": {"tax_rich": 0.05}}, "follow_up": {"id": "core.economy.new_industrial_class", "months": 24}, "chronicle": "{country} emprendió una industrialización dirigida por el Estado.", "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["autoritario", "comunitarista", "socialista", "tradicionalista"]}]}},
+    {"name": "Que la dirijan los capitalistas", "effects": {"set_country_flag": ["INDUSTRIAL_PATH", "PRIVATE_INDUSTRY"], "add_country_modifier": {"id": "capitalist_confidence", "months": 36}}, "follow_up": {"id": "core.economy.new_industrial_class", "months": 24}, "chronicle": "{country} confió su industrialización a la iniciativa privada.", "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["liberal", "conservador", "radical"]}]}}
+   ]
+  },
+  {
+   "id": "core.economy.new_industrial_class",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "press_salon",
+   "title": "La nueva clase industrial",
+   "desc": "Fabricantes, ingenieros y contables forman una clase nueva, rica y lectora. Fundan periódicos y casinos, y empiezan a pedir algo más que beneficios.",
+   "trigger": {"country_flag": "INDUSTRIAL_PATH"},
+   "options": [
+    {"name": "Darles voz en la política", "trigger": {"country_flag": "PRIVATE_INDUSTRY"}, "effects": {"change_reform": {"voting": 1}, "add_consciousness": {"value": 0.2, "strata": "middle"}}, "ai_weight": 5},
+    {"name": "Ponerlos al servicio del plan", "trigger": {"country_flag": "STATE_INDUSTRY"}, "effects": {"add_militancy": {"value": 0.3, "strata": "middle"}, "add_country_modifier": {"id": "industrial_stimulus", "months": 12}}, "ai_weight": 5},
+    {"name": "Títulos y condecoraciones", "effects": {"add_prestige": 1, "add_militancy": {"value": -0.2, "strata": "rich"}}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.economy.company_towns",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "workers_strike",
+   "title": "Pueblos de la compañía",
+   "desc": "Las grandes empresas levantan barrios enteros: casas, tiendas y escuelas que pertenecen a la fábrica, y salarios que se cobran en vales de la propia compañía.",
+   "trigger": {"country_flag": "PRIVATE_INDUSTRY", "factory_count": 20},
+   "mtth": {"months": 48},
+   "cooldown": 120,
+   "options": [
+    {"name": "Regular las condiciones de trabajo", "effects": {"change_reform": {"safety_regulations": 1}, "add_militancy": {"value": -0.2, "strata": "poor"}}, "ai_weight": 4},
+    {"name": "No interferir en la empresa", "effects": {"add_country_modifier": {"id": "capitalist_confidence", "months": 24}, "add_militancy": {"value": 0.3, "strata": "poor"}}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "core.economy.closure_protest",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "factory_closed",
+   "art": "workers_strike",
+   "title": "Una fábrica cierra sus puertas",
+   "desc": "Cientos de familias se quedan sin salario de un día para otro. Los despedidos se concentran ante el ayuntamiento y piden que alguien haga algo.",
+   "trigger": {"unemployment": 0.06},
+   "chance": 0.35,
+   "cooldown": 18,
+   "options": [
+    {"name": "Subvencionar la reapertura", "effects": {"add_treasury_ratio": -0.05, "add_country_modifier": {"id": "industrial_stimulus", "months": 6}, "add_militancy": {"value": -0.2, "strata": "poor"}}, "ai_weight": 4},
+    {"name": "Es el mercado", "effects": {"add_militancy": {"value": 0.3, "strata": "poor"}}, "follow_up": {"id": "core.economy.closure_exodus", "months": 3}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "core.economy.closure_exodus",
+   "scope": "country",
+   "type": "notification",
+   "cadence": "follow_up",
+   "art": "city_harbor",
+   "title": "Éxodo obrero",
+   "desc": "Los despedidos hacen las maletas: unos hacia otras ciudades, otros hacia el puerto y el extranjero.",
+   "options": [
+    {"name": "Que encuentren trabajo", "effects": {"add_consciousness": {"value": 0.1, "strata": "poor"}}}
+   ]
+  },
+  {
+   "id": "core.economy.trade_dependency",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "quarterly",
+   "art": "market_trade",
+   "title": "Dependemos de fuera",
+   "desc": "El carbón o el grano llegan de puertos extranjeros, y cada subida de precios allí se nota aquí en las calderas y en el pan.",
+   "trigger": {"factory_count": 5, "or": [{"good_shortage": {"grain": 0.8}}, {"good_shortage": {"coal": 0.8}}, {"good_shortage": {"iron": 0.8}}]},
+   "mtth": {"months": 36},
+   "cooldown": 60,
+   "options": [
+    {"name": "Aranceles para proteger lo nuestro", "effects": {"change_budget": {"tariffs": 0.1}, "set_country_flag": "PROTECTIONIST_TURN", "clear_country_flag": "FREE_TRADE_TURN"}, "follow_up": {"id": "core.economy.smuggling", "months": 12}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["conservador", "tradicionalista", "socialista"]}]}},
+    {"name": "Tratados de libre comercio", "effects": {"add_country_modifier": {"id": "open_ports", "months": 24}, "set_country_flag": "FREE_TRADE_TURN", "clear_country_flag": "PROTECTIONIST_TURN"}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["liberal", "radical"]}]}}
+   ]
+  },
+  {
+   "id": "core.economy.smuggling",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "market_trade",
+   "title": "Contrabando en las costas",
+   "desc": "Los aranceles han hecho rico a cualquiera con una barca y pocos escrúpulos. Las aduanas recaudan menos de lo esperado.",
+   "trigger": {"country_flag": "PROTECTIONIST_TURN"},
+   "options": [
+    {"name": "Más aduaneros", "effects": {"add_treasury_ratio": -0.03, "add_militancy": {"value": 0.1, "strata": "poor"}}, "ai_weight": 5},
+    {"name": "Bajar un poco los aranceles", "effects": {"change_budget": {"tariffs": -0.05}}, "ai_weight": 4}
+   ]
+  }
+ ]
+}

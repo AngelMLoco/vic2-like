@@ -152,6 +152,15 @@ var decision_defs := {}
 var magic_rules := {}
 var data_errors: Array = []
 var event_state := {}
+## M5: escenario (bookmark) y paquetes de contenido activos; plantillas de crónica, manifiesto de arte,
+## biblia de lore (validada, no simula) y actitudes mágicas de religiones/culturas. Todo de datos, no se guarda
+## salvo scenario_id y content_packs (para recargar la misma combinación).
+var scenario_id := ""
+var scenario := {}
+var content_packs: Array = []
+var chronicle_templates := {}
+var art_manifest := {}
+var lore := {}
 ## POPs: almacén en estructura de arrays (VPopStore). Las provincias guardan p["pop_slots"].
 var pops := VPopStore.new()
 

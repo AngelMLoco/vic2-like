@@ -1,0 +1,14 @@
+{
+ "lore_type": "religion",
+ "_doc": "Religiones: doctrina, actitud ante la magia (sacred | accepted | regulated | suspicious | heretical), lugares sagrados.",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "doctrine": "",
+   "magic_attitude": "accepted",
+   "holy_sites": [],
+   "summary": ""
+  }
+ ]
+}

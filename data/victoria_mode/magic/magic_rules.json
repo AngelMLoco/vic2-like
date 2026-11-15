@@ -1,0 +1,88 @@
+{
+ "_doc": "Reglas de la capa mágica (motor, no lore): despertar, yacimientos y modelo de magos.",
+ "rules": {
+  "deposit_good": "mana_crystal",
+  "deposit_chance": 0.02,
+  "deposit_output": 1.0,
+  "terrain_weight": {
+   "mountains": 2.5,
+   "hills": 1.6,
+   "forest": 1.3,
+   "jungle": 1.4,
+   "marsh": 1.5,
+   "desert": 1.2,
+   "tundra": 1.1,
+   "arctic": 1.0,
+   "woods": 1.1,
+   "steppe": 0.9,
+   "plains": 0.6,
+   "farmlands": 0.5
+  },
+  "mage_type": "magi",
+  "mage_sources": [
+   "clergy",
+   "clerks",
+   "aristocrats",
+   "bureaucrats"
+  ],
+  "mage_min_literacy": 0.25,
+  "mage_min_branch": 1,
+  "mage_model": {
+   "_doc": "Modelo de capacidad (VMageModel). objetivo = población × base_share × f_rama × f_alfabetización × f_potencial × f_religión/cultura × (1 + mage_capacity) + academias × academy_capacity. La promoción cubre cada mes una fracción (convergence) de la diferencia objetivo − actual; por encima del objetivo no hay promoción y los magos sin empleo se degradan o emigran.",
+   "base_share": 0.0004,
+   "no_branch_factor": 0.08,
+   "branch_base": 0.3,
+   "branch_per_level": 0.35,
+   "literacy_ref": 0.3,
+   "literacy_min": 0.2,
+   "literacy_max": 2.0,
+   "academy_capacity": 3000,
+   "academy_promotion": 0.35,
+   "academy_posts": 3000,
+   "academy_research": 2.0,
+   "convergence": 0.035,
+   "min_promotion": 30,
+   "max_pop_share_per_month": 0.01,
+   "demotion_rate": 0.05,
+   "demote_to": "clerks",
+   "excess_tolerance": 1.1,
+   "emigration_rate": 0.03,
+   "emigration_push_min": 0.2,
+   "destinations": 6,
+   "factory_wage_multiplier": 1.4,
+   "religion_attitudes": {
+    "sacred": {
+     "promotion": 1.4,
+     "tension": -0.002
+    },
+    "accepted": {
+     "promotion": 1.0,
+     "tension": 0.0
+    },
+    "regulated": {
+     "promotion": 0.85,
+     "tension": 0.0015
+    },
+    "suspicious": {
+     "promotion": 0.6,
+     "tension": 0.004
+    },
+    "heretical": {
+     "promotion": 0.3,
+     "tension": 0.008
+    }
+   },
+   "culture_traditions": {
+    "strong": 1.4,
+    "common": 1.0,
+    "rare": 0.7,
+    "none": 0.5
+   },
+   "tension_magi_share_ref": 0.0005,
+   "jobs_weight": 0.8,
+   "practice_share": 0.00012,
+   "practice_pay": 0.6,
+   "unemployment_demotion": 0.35
+  }
+ }
+}

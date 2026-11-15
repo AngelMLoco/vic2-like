@@ -1,0 +1,14 @@
+{
+ "lore_type": "magic_institution",
+ "_doc": "Instituciones mágicas (academias, órdenes, gremios). kind: academy | order | guild | church | state.",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "kind": "",
+   "country": "",
+   "founded": 0,
+   "summary": ""
+  }
+ ]
+}

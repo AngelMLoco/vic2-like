@@ -1,0 +1,128 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (politics). Espacio de nombres core.politics.*",
+ "events": [
+  {
+   "id": "core.politics.reform_petition",
+   "scope": "country",
+   "type": "normal",
+   "art": "press_salon",
+   "title": "Petición de reforma",
+   "desc": "Una petición con miles de firmas exige ampliar el derecho de voto. Los clubes políticos la leen en voz alta en las esquinas.",
+   "trigger": {"movement_support": {"voting": 0.06}, "consciousness": 0.5, "reform_max": {"voting": 2}},
+   "mtth": {"months": 12, "modifiers": [{"factor": 0.5, "movement_support": {"voting": 0.15}}]},
+   "cooldown": 60,
+   "important": true,
+   "options": [
+    {"name": "Prometer la reforma", "effects": {"add_militancy": {"value": -0.3, "strata": "middle"}}, "follow_up": {"id": "core.politics.conservative_backlash", "months": 2}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.5, "ruling_ideology": "liberal"}, {"factor": 0.3, "ruling_ideology": "tradicionalista"}]}},
+    {"name": "Rechazar la petición", "effects": {"add_militancy": {"value": 0.5, "strata": "middle"}, "add_consciousness": {"value": 0.2}}, "follow_up": {"id": "core.politics.protests", "months": 2}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": "conservador"}, {"factor": 2.0, "ruling_ideology": "tradicionalista"}]}}
+   ]
+  },
+  {
+   "id": "core.politics.conservative_backlash",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "parliament",
+   "title": "Resistencia conservadora",
+   "desc": "Terratenientes y obispos cierran filas: la reforma, dicen, abriría la puerta al desorden.",
+   "important": true,
+   "options": [
+    {"name": "Imponer la reforma", "effects": {"change_reform": {"voting": 1}, "add_militancy": {"value": 0.6, "strata": "rich"}, "add_country_modifier": {"id": "reform_euphoria", "months": 12}}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": "liberal"}]}},
+    {"name": "Buscar un compromiso", "effects": {"set_country_flag": "REFORM_COMPROMISE", "add_militancy": {"value": 0.2, "strata": "middle"}, "add_prestige": 1}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "core.politics.protests",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "street_protest",
+   "title": "Protestas en la capital",
+   "desc": "Barricadas en los barrios artesanos. La guardia nacional duda de a quién debe obedecer.",
+   "important": true,
+   "options": [
+    {"name": "Conceder el derecho de reunión", "trigger": {"reform_max": {"public_meetings": 0}}, "effects": {"change_reform": {"public_meetings": 1}, "add_militancy": -0.4}, "ai_weight": 4},
+    {"name": "Reprimir", "effects": {"add_country_modifier": {"id": "martial_law", "months": 12}, "add_militancy": {"value": 0.6, "strata": "poor"}, "kill_population": 0.0003}, "follow_up": {"id": "core.politics.repression_aftermath", "months": 4}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "government": "monarquia_absoluta"}]}},
+    {"name": "Convocar elecciones anticipadas", "effects": {"add_prestige": -3, "add_country_modifier": {"id": "political_turmoil", "months": 6}, "add_militancy": -0.2}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.politics.repression_aftermath",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "street_protest",
+   "title": "Las cárceles se llenan",
+   "desc": "Los tribunales trabajan día y noche. En la clandestinidad, los clubes se radicalizan.",
+   "trigger": {"militancy": 1.5},
+   "options": [
+    {"name": "Amnistía", "effects": {"add_militancy": -0.5, "add_prestige": -2}, "ai_weight": 5},
+    {"name": "Mano dura", "effects": {"add_consciousness": 0.4}, "ai_weight": {"base": 3, "modifiers": [{"factor": 3.0, "rebel_risk": true}]}}
+   ]
+  },
+  {
+   "id": "core.politics.election_aftermath",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "election_finished",
+   "art": "parliament",
+   "title": "Tras las elecciones",
+   "desc": "Los periódicos discuten el resultado de las urnas; los perdedores denuncian irregularidades.",
+   "chance": 0.5,
+   "cooldown": 6,
+   "options": [
+    {"name": "Investigar las denuncias", "effects": {"add_prestige": -1, "add_militancy": -0.2}, "ai_weight": 4},
+    {"name": "Las urnas han hablado", "effects": {"add_consciousness": {"value": 0.1, "strata": "middle"}}, "ai_weight": 6}
+   ]
+  },
+  {
+   "id": "core.politics.reform_celebration",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "reform_passed",
+   "art": "street_protest",
+   "title": "La reforma se celebra en las calles",
+   "desc": "Los partidarios de la reforma llenan las plazas. Sus adversarios, las sacristías.",
+   "chance": 0.5,
+   "cooldown": 6,
+   "options": [
+    {"name": "Un día de fiesta nacional", "effects": {"add_country_modifier": {"id": "reform_euphoria", "months": 6}, "add_treasury_ratio": -0.01}, "ai_weight": 6},
+    {"name": "Ni una concesión más", "effects": {"add_militancy": {"value": 0.2, "strata": "middle"}, "add_prestige": 1}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.politics.press_scandal",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "quarterly",
+   "art": "press_salon",
+   "title": "Escándalo en la prensa",
+   "desc": "Un periódico publica las cuentas privadas de un ministro. La oposición pide su cabeza.",
+   "trigger": {"consciousness": 0.4, "reform_min": {"press": 1}},
+   "mtth": {"months": 18},
+   "cooldown": 24,
+   "options": [
+    {"name": "Destituir al ministro", "effects": {"add_prestige": -2, "add_militancy": -0.2}, "ai_weight": 6},
+    {"name": "Cerrar el periódico", "effects": {"add_consciousness": {"value": 0.2, "strata": "middle"}, "add_militancy": {"value": 0.2, "strata": "middle"}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.politics.court_intrigue",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "quarterly",
+   "art": "parliament",
+   "title": "Intrigas en el gobierno",
+   "desc": "Dos facciones del gabinete se acusan mutuamente ante el jefe del Estado.",
+   "trigger": {"civilized": true},
+   "mtth": {"months": 30},
+   "cooldown": 30,
+   "options": [
+    {"name": "Apoyar a los reformistas", "effects": {"add_consciousness": {"value": 0.1, "strata": "middle"}, "add_prestige": 1}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": "liberal"}]}},
+    {"name": "Apoyar a la vieja guardia", "effects": {"add_militancy": {"value": 0.1, "strata": "middle"}, "add_country_modifier": {"id": "seclusion", "months": 6}}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": "conservador"}]}}
+   ]
+  }
+ ]
+}

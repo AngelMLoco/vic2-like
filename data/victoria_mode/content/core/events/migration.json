@@ -1,0 +1,20 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (migration). Espacio de nombres core.migration.*",
+ "events": [
+  {
+   "id": "core.migration.migration_boom",
+   "scope": "country",
+   "type": "notification",
+   "cadence": "yearly",
+   "art": "city_harbor",
+   "title": "Oleada de recién llegados",
+   "desc": "La prosperidad atrae a gentes de otras tierras.",
+   "trigger": {"avg_life": 0.88, "unemployment_below": 0.04, "at_war": false},
+   "mtth": {"months": 36},
+   "cooldown": 60,
+   "options": [
+    {"name": "Bienvenidos", "effects": {"add_country_modifier": {"id": "migration_boom", "months": 24}}}
+   ]
+  }
+ ]
+}

@@ -11,8 +11,8 @@ extends RefCounted
 ##   El índice de provincias mágicas por nación evita recorrer el mapa.
 ## · Economía: los yacimientos producen cristal arcano que entra al mercado (VMarketSystem.add_supply) y paga
 ##   a los trabajadores de la provincia; refinerías y talleres son fábricas normales (factories.json).
-## · Magos: tipo de POP de datos (pop_types.json). Aparecen por promoción rara desde POPs alfabetizados en
-##   provincias con potencial mágico de naciones con rama (VMobilitySystem._transfer: personas reales).
+## · Magos: tipo de POP de datos (pop_types.json). Su número tiende a la capacidad que la sociedad sostiene
+##   (VMageModel: objetivo, promoción, empleo, degradación y fuga de cerebros).
 
 const BRANCHES := ["technology", "economy", "military", "politics"]
 const BRANCH_NAMES := {"technology": "tecnología", "economy": "economía", "military": "ejército", "politics": "política"}
@@ -23,8 +23,31 @@ static func is_active(gs: VGameState) -> bool:
 	return gs.flags.get(FLAG, false)
 
 
+## Nivel de una rama. country.magic_branches admite dos formas por rama (M5):
+##   "military": 2                                   (solo capacidad: número de rutas)
+##   "military": {"level": 2, "paths": ["..."]}      (capacidad + escuelas/sendas concretas)
+## El nivel NO es la escuela: las escuelas finales se definirán en el lore (magic/magic_schools.json).
 static func branch_level(gs: VGameState, tag: String, branch: String) -> int:
-	return int(gs.countries.get(tag, {}).get("magic_branches", {}).get(branch, 0))
+	var v = gs.countries.get(tag, {}).get("magic_branches", {}).get(branch, 0)
+	if v is Dictionary:
+		return int(v.get("level", 0))
+	return int(v)
+
+
+## Sendas/escuelas declaradas en una rama (vacío si la rama solo tiene nivel).
+static func branch_paths(gs: VGameState, tag: String, branch: String) -> Array:
+	var v = gs.countries.get(tag, {}).get("magic_branches", {}).get(branch, 0)
+	if v is Dictionary:
+		return v.get("paths", [])
+	return []
+
+
+## Suma de niveles de todas las ramas (amplitud mágica de la nación).
+static func branch_total(gs: VGameState, tag: String) -> int:
+	var n := 0
+	for b in BRANCHES:
+		n += branch_level(gs, tag, b)
+	return n
 
 
 static func max_branch(gs: VGameState, tag: String) -> int:
@@ -45,21 +68,48 @@ static func tech_allowed(gs: VGameState, tag: String, t: Dictionary) -> bool:
 	return true
 
 
-## Ramas de prototipo (data/victoria_mode/magic/prototype_branches.json) sobre country.magic_branches.
+## Reglas (magic/magic_rules.json) y ramas por nación de los paquetes de contenido (magic_branches.json; en
+## el paquete prototype son perfiles PROTOTYPE) sobre el campo existente country.magic_branches.
 static func apply_prototype_branches(gs: VGameState, root: String) -> void:
-	var d := VJson.load_dict(root + "magic/prototype_branches.json")
-	for tag in d.get("branches", {}):
-		if not gs.countries.has(tag):
-			gs.data_errors.append("prototype_branches.json: país desconocido «%s»" % tag)
-			continue
-		var br: Dictionary = gs.countries[tag].get("magic_branches", {})
-		for b in d["branches"][tag]:
-			if not (b in BRANCHES):
-				gs.data_errors.append("prototype_branches.json: rama desconocida «%s»" % b)
+	gs.magic_rules = VJson.load_dict(root + "magic/magic_rules.json").get("rules", {})
+	for path in VContentPacks.each(gs, root, "magic_branches.json"):
+		var d := VJson.load_dict(path)
+		var where: String = VContentPacks.pack_of(path) + "/magic_branches.json"
+		for tag in d.get("branches", {}):
+			if not gs.countries.has(tag):
+				gs.data_errors.append("%s: país desconocido «%s»" % [where, tag])
 				continue
-			br[b] = int(d["branches"][tag][b])
-		gs.countries[tag]["magic_branches"] = br
-	gs.magic_rules = d.get("rules", {})
+			var br: Dictionary = gs.countries[tag].get("magic_branches", {})
+			for b in d["branches"][tag]:
+				if not (b in BRANCHES):
+					gs.data_errors.append("%s: rama desconocida «%s»" % [where, b])
+					continue
+				var v = d["branches"][tag][b]
+				if v is Dictionary:
+					if not v.has("level"):
+						gs.data_errors.append("%s: %s.%s sin «level»" % [where, tag, b])
+					br[b] = {"level": int(v.get("level", 0)), "paths": v.get("paths", [])}
+				else:
+					br[b] = int(v)
+			gs.countries[tag]["magic_branches"] = br
+	_validate_paths(gs, root)
+
+
+## Escuelas/sendas (magic/magic_schools.json): si hay escuelas definidas, las sendas declaradas deben existir y
+## pertenecer a su rama. Sin escuelas (estado actual, PROTOTYPE) las sendas son etiquetas libres.
+static func _validate_paths(gs: VGameState, root: String) -> void:
+	var schools := {}
+	for sc in VJson.load_dict(root + "magic/magic_schools.json").get("schools", []):
+		schools[String(sc.get("id", ""))] = String(sc.get("branch", ""))
+	if schools.is_empty():
+		return
+	for tag in gs.countries:
+		for b in gs.countries[tag].get("magic_branches", {}):
+			for path in branch_paths(gs, tag, b):
+				if not schools.has(path):
+					gs.data_errors.append("magic_branches %s.%s: escuela desconocida «%s»" % [tag, b, path])
+				elif schools[path] != b:
+					gs.data_errors.append("magic_branches %s.%s: la escuela «%s» pertenece a la rama «%s»" % [tag, b, path, schools[path]])
 
 
 # ------------------------------------------------------------------ despertar
@@ -69,7 +119,7 @@ static func activate(gs: VGameState) -> void:
 	gs.flags[FLAG] = true
 	gs.flags["magic_unlocked"] = true
 	_seed_deposits(gs)
-	VScopedState.chronicle(gs, "world", "magic_awakening", "", "La magia regresa al mundo", "", true)
+	VChronicle.record(gs, "", "magic", "La magia regresó al mundo.", true, "", "La magia regresa al mundo")
 	VEventSystem.notify(gs, "magic_activated", {})
 
 
@@ -155,51 +205,38 @@ static func country_monthly(gs: VGameState, tag: String) -> void:
 	if not is_active(gs):
 		return
 	var provs := country_magic_provinces(gs, tag)
-	if provs.is_empty():
-		return
+	if not provs.is_empty():
+		_deposits(gs, tag, provs)
+	VMageModel.country_monthly(gs, tag, provs)
+
+
+## Yacimientos → cristal al mercado; la renta va a los trabajadores de la provincia.
+static func _deposits(gs: VGameState, tag: String, provs: Array) -> void:
 	var r: Dictionary = gs.magic_rules
-	var c: Dictionary = gs.countries[tag]
 	var ps := gs.pops
 	var good: String = r.get("deposit_good", "arcane_crystal")
 	var out_per := float(r.get("deposit_output", 2.0)) * (1.0 + gs.mod(tag, "mana_extraction"))
 	var price := VMarketSystem.price(gs, good) * VMarketSystem.fill_sell(gs, tag, good)
-	var mage_t := int(ps.type_index.get(String(r.get("mage_type", "magi")), -1))
-	var mage_rate := float(r.get("mage_rate", 0.0015)) * (1.0 + gs.mod(tag, "mage_emergence"))
-	var min_lit := float(r.get("mage_min_literacy", 0.25))
-	var mage_branch := max_branch(gs, tag) >= int(r.get("mage_min_branch", 1))
-	var sources := {}
-	for st in r.get("mage_sources", ["clergy", "clerks"]):
-		sources[int(ps.type_index.get(st, -9))] = true
 	var paid := 0.0
 	for id in provs:
 		var p: Dictionary = gs.provinces[id]
-		var m: Dictionary = p["magic"]
-		# 1) extracción del yacimiento → mercado; la renta va a los trabajadores de la provincia
-		var dep := float(m.get("deposit", 0.0))
-		if dep > 0.0 and p["controller"] == tag:
-			var q := dep * out_per
-			VMarketSystem.add_supply(gs, tag, good, q)
-			var revenue := q * price
-			var workers := []
-			var wsize := 0
-			for s in p["pop_slots"]:
-				var t: int = ps.type_id[s]
-				if t == ps.T_LABOURERS or t == ps.T_FARMERS:
-					workers.append(s)
-					wsize += ps.size[s]
-			for s in workers:
-				var share := revenue * float(ps.size[s]) / float(wsize)
-				VBudgetSystem.credit_income(gs, tag, s, share)
-				paid += share
-		# 2) aparición de magos (rara): POPs alfabetizados de tipos fuente en provincias con potencial
-		if mage_branch and mage_t >= 0 and float(m.get("potential", 0.0)) > 0.0:
-			for s in p["pop_slots"].duplicate():
-				if sources.has(ps.type_id[s]) and ps.literacy[s] >= min_lit and ps.size[s] > 400:
-					var amount := int(float(ps.size[s]) * mage_rate * float(m["potential"]))
-					if amount >= 10:
-						VMobilitySystem._transfer(gs, s, p, ps.type_names[mage_t], amount)
-						var cs: Dictionary = c.get("acc_mobility", {})
-						cs["magi"] = int(cs.get("magi", 0)) + amount
+		var dep := float(p["magic"].get("deposit", 0.0))
+		if dep <= 0.0 or p["controller"] != tag:
+			continue
+		var q := dep * out_per
+		VMarketSystem.add_supply(gs, tag, good, q)
+		var revenue := q * price
+		var workers := []
+		var wsize := 0
+		for s in p["pop_slots"]:
+			var t: int = ps.type_id[s]
+			if t == ps.T_LABOURERS or t == ps.T_FARMERS:
+				workers.append(s)
+				wsize += ps.size[s]
+		for s in workers:
+			var share := revenue * float(ps.size[s]) / float(wsize)
+			VBudgetSystem.credit_income(gs, tag, s, share)
+			paid += share
 	if paid > 0.0:
 		VMoney.created(gs, paid, "magic_sales")
 

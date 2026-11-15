@@ -1,0 +1,260 @@
+{
+ "_doc": "Cadenas bélicas (M5). Reaccionan a la guerra real: grandes batallas (bajas en el contexto de battle_won/battle_lost), capital ocupada, guerras largas, cansancio, y el resultado de la paz (war_ended: victory / defeat / white_peace). Las opciones dejan banderas que cambian lo que ocurre después. Espacio de nombres core.war.*",
+ "events": [
+  {
+   "id": "core.war.great_victory",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "battle_won",
+   "art": "battlefield",
+   "title": "Una gran victoria",
+   "desc": "Los partes llegan de madrugada: el enemigo ha sido destrozado. Las campanas repican y los periódicos imprimen ediciones especiales con el nombre del general vencedor.",
+   "trigger": {"battle_losses": 15000, "at_war": true},
+   "chance": 0.6,
+   "cooldown": 24,
+   "options": [
+    {"name": "Un triunfo de toda la nación", "effects": {"add_prestige": 5, "add_war_exhaustion": -5, "add_militancy": {"value": -0.3, "strata": "poor"}, "set_country_flag": "VICTORIOUS_GENERAL"}, "follow_up": {"id": "core.war.general_ambition", "months": 8}, "chronicle": "{country} logró una gran victoria sobre {target}.", "ai_weight": 6},
+    {"name": "Aprovecharla: más reclutas al frente", "effects": {"add_war_exhaustion": -3, "add_country_modifier": {"id": "war_fervor", "months": 12}, "add_militancy": {"value": 0.1, "strata": "poor"}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.war.general_ambition",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "army_officers",
+   "title": "Un general con ambiciones",
+   "desc": "El vencedor de la última gran batalla recibe más aplausos que el gobierno. Se deja ver en los salones, opina sobre los presupuestos y sus oficiales le llaman ya «el salvador».",
+   "trigger": {"country_flag": "VICTORIOUS_GENERAL"},
+   "options": [
+    {"name": "Darle un ministerio", "effects": {"add_country_modifier": {"id": "military_reform", "months": 36}, "set_country_flag": "GENERAL_IN_GOVERNMENT", "clear_country_flag": "VICTORIOUS_GENERAL"}, "follow_up": {"id": "core.war.general_coup_rumors", "months": 18}, "ai_weight": 5},
+    {"name": "Destinarlo a una guarnición lejana", "effects": {"add_militancy": {"value": 0.4, "pop_type": ["officers", "soldiers"]}, "add_prestige": -2, "clear_country_flag": "VICTORIOUS_GENERAL"}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "core.war.general_coup_rumors",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "parliament",
+   "title": "Rumores de golpe",
+   "desc": "El ministro-general reúne a sus fieles en el casino de oficiales. La capital habla de un pronunciamiento si el descontento sigue creciendo.",
+   "trigger": {"country_flag": "GENERAL_IN_GOVERNMENT", "militancy": 1.5},
+   "important": true,
+   "options": [
+    {"name": "Purgar a sus partidarios", "effects": {"clear_country_flag": "GENERAL_IN_GOVERNMENT", "add_militancy": {"value": 0.8, "pop_type": "officers"}, "remove_country_modifier": "military_reform"}, "chronicle": "{country} purgó al ejército para frenar a un general ambicioso.", "ai_weight": 5},
+    {"name": "Concederle poderes de excepción", "effects": {"add_country_modifier": {"id": "martial_law", "months": 24}, "add_consciousness": 0.3, "add_militancy": {"value": -0.4, "strata": "poor"}}, "chronicle": "Un general gobernó {country} con poderes de excepción.", "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.war.great_defeat",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "battle_lost",
+   "art": "battlefield",
+   "title": "Desastre en el frente",
+   "desc": "Divisiones enteras han sido aniquiladas. Las listas de caídos ocupan páginas y en los cafés ya se pregunta quién tiene la culpa.",
+   "trigger": {"own_losses": 15000, "at_war": true},
+   "chance": 0.6,
+   "cooldown": 24,
+   "options": [
+    {"name": "Buscar culpables en el estado mayor", "effects": {"add_prestige": -3, "add_militancy": {"value": -0.2, "strata": "poor"}, "set_country_flag": "DEFEAT_INQUIRY"}, "follow_up": {"id": "core.war.defeat_inquiry", "months": 4}, "ai_weight": 5},
+    {"name": "¡A las armas! Leva general", "effects": {"add_war_exhaustion": 5, "add_country_modifier": {"id": "war_fervor", "months": 12}, "add_militancy": {"value": 0.3, "strata": "poor"}}, "ai_weight": 4},
+    {"name": "Preparar al país para la paz", "trigger": {"war_exhaustion": 15}, "effects": {"add_prestige": -4, "add_war_exhaustion": 8, "add_militancy": -0.2}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.war.defeat_inquiry",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "parliament",
+   "title": "La comisión de la derrota",
+   "desc": "Una comisión parlamentaria ha examinado la derrota: municiones que no llegaron, oficiales que no sabían leer un mapa, un ministerio que ignoró los avisos.",
+   "trigger": {"country_flag": "DEFEAT_INQUIRY"},
+   "options": [
+    {"name": "Publicar el informe y reformar el ejército", "effects": {"add_consciousness": 0.2, "add_country_modifier": {"id": "military_reform", "months": 36}, "clear_country_flag": "DEFEAT_INQUIRY"}, "chronicle": "{country} publicó el informe de su derrota y reformó el ejército.", "ai_weight": 6},
+    {"name": "Enterrarlo en un cajón", "effects": {"add_militancy": 0.2, "set_country_flag": "ARMY_DISCREDITED", "clear_country_flag": "DEFEAT_INQUIRY"}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.war.capital_fallen",
+   "scope": "country",
+   "type": "major",
+   "cadence": "on_action",
+   "on_action": "province_occupied",
+   "art": "occupation_ruins",
+   "title": "Ha caído la capital",
+   "desc": "Las tropas enemigas desfilan por las avenidas de la capital. Los ministerios arden o se rinden; el pueblo espera en silencio a saber qué hará su gobierno.",
+   "trigger": {"is_capital": true, "at_war": true},
+   "cooldown": 12,
+   "important": true,
+   "options": [
+    {"name": "El gobierno huye y resiste", "effects": {"set_country_flag": "GOVERNMENT_IN_EXILE", "add_prestige": -5, "add_country_modifier": {"id": "war_fervor", "months": 12}, "add_war_exhaustion": 5}, "chronicle": "El gobierno de {country} abandonó la capital y siguió luchando.", "ai_weight": 5},
+    {"name": "Negociar con el ocupante", "effects": {"set_country_flag": "CAPITAL_COLLABORATION", "add_prestige": -10, "add_war_exhaustion": 15}, "chronicle": "{country} negoció con el ocupante de su capital.", "ai_weight": 3},
+    {"name": "Llamar a la guerra del pueblo", "effects": {"set_country_flag": "PEOPLES_WAR", "add_province_modifier": {"id": "partisans", "months": 24}, "add_militancy": {"value": 0.3, "strata": "poor"}}, "chronicle": "{country} llamó a su pueblo a la guerrilla contra el invasor.", "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.war.capital_restored",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "war_ended",
+   "art": "street_protest",
+   "title": "La capital vuelve a ser nuestra",
+   "desc": "Termina la guerra y el gobierno vuelve a la capital. Hay cuentas pendientes: con quienes resistieron y con quienes colaboraron.",
+   "trigger": {"or": [{"country_flag": "GOVERNMENT_IN_EXILE"}, {"country_flag": "PEOPLES_WAR"}, {"country_flag": "CAPITAL_COLLABORATION"}]},
+   "options": [
+    {"name": "Homenaje a la resistencia", "trigger": {"or": [{"country_flag": "GOVERNMENT_IN_EXILE"}, {"country_flag": "PEOPLES_WAR"}]}, "effects": {"add_prestige": 5, "add_militancy": -0.3, "clear_country_flag": ["GOVERNMENT_IN_EXILE", "PEOPLES_WAR", "CAPITAL_COLLABORATION"]}, "chronicle": "{country} honró a quienes resistieron la ocupación.", "ai_weight": 6},
+    {"name": "Juicio a los colaboradores", "effects": {"add_prestige": 2, "add_militancy": {"value": 0.5, "strata": "rich"}, "clear_country_flag": ["GOVERNMENT_IN_EXILE", "PEOPLES_WAR", "CAPITAL_COLLABORATION"]}, "ai_weight": 4},
+    {"name": "Pasar página", "effects": {"add_consciousness": 0.2, "clear_country_flag": ["GOVERNMENT_IN_EXILE", "PEOPLES_WAR", "CAPITAL_COLLABORATION"]}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.war.long_war",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "monthly",
+   "art": "war_home_front",
+   "title": "Una guerra que no termina",
+   "desc": "Dos años de guerra. Las fábricas trabajan para el frente, el pan sube y las cartas de los soldados ya no hablan de volver por Navidad.",
+   "trigger": {"at_war": true, "war_months": 24},
+   "mtth": {"months": 6},
+   "cooldown": 24,
+   "options": [
+    {"name": "Racionamiento", "effects": {"add_country_modifier": {"id": "rationing", "months": 18}}, "follow_up": {"id": "core.war.home_front_strain", "months": 9}, "ai_weight": 5},
+    {"name": "Endeudarse para sostener el esfuerzo", "effects": {"add_treasury_ratio": 0.1, "add_country_modifier": {"id": "war_debt", "months": 48}}, "ai_weight": 4},
+    {"name": "Buscar una salida negociada", "effects": {"add_war_exhaustion": 10, "add_prestige": -3, "add_militancy": -0.2}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.war.home_front_strain",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "war_home_front",
+   "title": "La retaguardia no aguanta",
+   "desc": "Colas, huelgas en las fábricas de munición y madres que esperan noticias. El racionamiento ha mantenido el frente, pero el país se resiente.",
+   "trigger": {"at_war": true, "war_exhaustion": 15},
+   "options": [
+    {"name": "Leyes de emergencia", "effects": {"add_country_modifier": {"id": "martial_law", "months": 12}}, "ai_weight": 4},
+    {"name": "Concesiones a los obreros", "effects": {"add_treasury_ratio": -0.05, "add_country_modifier": {"id": "reform_euphoria", "months": 12}, "add_militancy": {"value": -0.3, "strata": "poor"}}, "ai_weight": 5},
+    {"name": "Resistir sin ceder", "effects": {"add_militancy": {"value": 0.4, "strata": "poor"}}, "follow_up": {"id": "core.war.mutiny", "months": 6}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.war.mutiny",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "army_officers",
+   "title": "Motín en el frente",
+   "desc": "Un regimiento se ha negado a atacar. Los soldados piden pan, permisos y el fin de las ofensivas inútiles; otros regimientos los miran.",
+   "trigger": {"at_war": true, "militancy": 1.8},
+   "important": true,
+   "options": [
+    {"name": "Fusilar a los cabecillas", "effects": {"add_militancy": {"value": 0.6, "pop_type": "soldiers"}, "add_war_exhaustion": -5}, "chronicle": "{country} aplastó un motín en el frente.", "ai_weight": 4},
+    {"name": "Atender sus quejas", "effects": {"add_militancy": {"value": -0.6, "pop_type": "soldiers"}, "add_war_exhaustion": 10, "add_prestige": -2}, "chronicle": "{country} cedió ante sus soldados amotinados.", "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "core.war.victorious_peace",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "war_ended",
+   "art": "street_protest",
+   "title": "Paz victoriosa",
+   "desc": "La paz firmada recoge lo que se ganó en el campo de batalla. Las tropas vuelven a casa entre flores; queda decidir qué hacer con el vencido.",
+   "trigger": {"war_result": "victory", "peace_goals": 1},
+   "chance": 0.7,
+   "options": [
+    {"name": "Desfile triunfal", "effects": {"add_prestige": 5, "add_militancy": -0.2, "set_country_flag": "RECENT_TRIUMPH"}, "chronicle": "{country} celebró con un gran desfile su victoria sobre {target}.", "ai_weight": 6},
+    {"name": "Magnanimidad con el vencido", "effects": {"change_relation": 40, "add_prestige": 2, "add_infamy": -2}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.war.humiliating_peace",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "war_ended",
+   "art": "parliament",
+   "title": "Una paz humillante",
+   "desc": "Los diplomáticos vuelven con un tratado que nadie quiere leer en voz alta: territorios, indemnizaciones, banderas arriadas. Hay quien jura venganza y quien pide reconstruir.",
+   "trigger": {"war_result": "defeat", "peace_goals": 1},
+   "chance": 0.8,
+   "important": true,
+   "options": [
+    {"name": "Jurar revancha", "effects": {"set_country_flag": "REVANCHISM", "add_country_modifier": {"id": "revanchism", "months": 120}, "change_relation": -50}, "chronicle": "{country} juró revancha contra {target}.", "ai_weight": 4},
+    {"name": "Aceptar la derrota y reconstruir", "effects": {"add_country_modifier": {"id": "reconstruction", "months": 60}, "add_prestige": -3}, "chronicle": "{country} aceptó la derrota y se volcó en la reconstrucción.", "ai_weight": 5},
+    {"name": "La culpa es del gobierno", "effects": {"add_militancy": 0.5, "add_consciousness": 0.3}, "ai_weight": 2}
+   ]
+  },
+  {
+   "id": "core.war.revanchist_league",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "army_officers",
+   "title": "La liga de la revancha",
+   "desc": "Asociaciones de veteranos, periódicos y diputados mantienen viva la herida de la última derrota. Exigen rearme y un día de ajuste de cuentas.",
+   "trigger": {"country_flag": "REVANCHISM", "at_war": false},
+   "mtth": {"months": 36},
+   "cooldown": 120,
+   "options": [
+    {"name": "Rearmarnos para el día de la revancha", "effects": {"add_country_modifier": {"id": "military_reform", "months": 36}, "add_treasury_ratio": -0.05}, "ai_weight": 5},
+    {"name": "Pasar página", "effects": {"clear_country_flag": "REVANCHISM", "remove_country_modifier": "revanchism", "add_militancy": -0.2}, "chronicle": "{country} renunció a la revancha.", "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.war.white_peace_disillusion",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "war_ended",
+   "art": "war_home_front",
+   "title": "¿Para qué sirvió?",
+   "desc": "La guerra termina sin vencedores ni vencidos. Las familias de los caídos preguntan para qué se combatió tanto tiempo.",
+   "trigger": {"war_result": "white_peace", "war_months": 0, "war_exhaustion": 10},
+   "chance": 0.5,
+   "options": [
+    {"name": "Honrar a los caídos", "effects": {"add_treasury_ratio": -0.02, "add_militancy": -0.2}, "ai_weight": 5},
+    {"name": "Exigir responsabilidades", "effects": {"add_consciousness": 0.3, "add_country_modifier": {"id": "political_turmoil", "months": 12}}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.war.casualty_lists",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "monthly",
+   "art": "war_home_front",
+   "title": "Las listas de bajas",
+   "desc": "Cada semana los periódicos publican columnas de nombres. En los barrios obreros casi todas las familias tienen a alguien en ellas.",
+   "trigger": {"at_war": true, "war_exhaustion": 30},
+   "mtth": {"months": 8},
+   "cooldown": 18,
+   "options": [
+    {"name": "Censurar las listas", "effects": {"set_country_flag": "WAR_CENSORSHIP", "add_militancy": 0.2}, "follow_up": {"id": "core.war.anti_war_movement", "months": 6}, "ai_weight": 4},
+    {"name": "Publicarlas íntegras", "effects": {"add_consciousness": 0.2, "add_war_exhaustion": 3, "add_militancy": -0.1}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "core.war.anti_war_movement",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "street_protest",
+   "title": "El movimiento contra la guerra",
+   "desc": "La censura no ha impedido que corran los nombres. Mítines pacifistas llenan teatros y algunos diputados exigen abrir negociaciones.",
+   "trigger": {"at_war": true, "country_flag": "WAR_CENSORSHIP"},
+   "options": [
+    {"name": "Encarcelar a los pacifistas", "effects": {"add_country_modifier": {"id": "martial_law", "months": 12}, "clear_country_flag": "WAR_CENSORSHIP"}, "ai_weight": 4},
+    {"name": "Abrir negociaciones", "effects": {"add_war_exhaustion": 10, "add_prestige": -3, "add_militancy": -0.3, "clear_country_flag": "WAR_CENSORSHIP"}, "chronicle": "Las protestas contra la guerra obligaron a {country} a buscar la paz.", "ai_weight": 5}
+   ]
+  }
+ ]
+}

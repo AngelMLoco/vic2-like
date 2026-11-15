@@ -1,6 +1,6 @@
 class_name VDecisionSystem
 extends RefCounted
-## Decisiones nacionales (data/victoria_mode/decisions/*.json y magic/decisions/*.json), separadas de los eventos.
+## Decisiones nacionales (content/<paquete>/decisions/*.json, ver VContentPacks), separadas de los eventos.
 ##
 ## Decisión: id, name, desc, category, tags (naciones), requires_flag (bandera global), visible {cond},
 ## available {cond}, cost {treasury, prestige, research}, effects, ai_weight (número o {base, modifiers}),
@@ -11,46 +11,39 @@ extends RefCounted
 static func load_definitions(gs: VGameState, root: String) -> void:
 	var errors: Array = gs.data_errors
 	gs.decision_defs = {}
-	for dir in ["decisions/", "magic/decisions/"]:
-		var d := DirAccess.open(root + dir)
-		if d == null:
-			continue
-		var files := []
-		for f in d.get_files():
-			if f.ends_with(".json"):
-				files.append(f)
-		files.sort()
-		for f in files:
-			for dec in VJson.load_array(root + dir + f, "decisions"):
-				var id: String = dec.get("id", "")
-				var where := "decisión %s" % id
-				if id == "" or gs.decision_defs.has(id):
-					errors.append("%s: decisión sin id o duplicada «%s»" % [f, id])
-					continue
-				var tags := {}
-				for t in dec.get("tags", []):
-					if not gs.countries.has(t):
-						errors.append("%s: país desconocido «%s»" % [where, t])
-					tags[t] = true
-				var aiw = dec.get("ai_weight", 1.0)
-				var ai_mods := []
-				var ai_base := float(aiw.get("base", 1.0)) if aiw is Dictionary else float(aiw)
-				if aiw is Dictionary:
-					for m in aiw.get("modifiers", []):
-						var cond: Dictionary = m.duplicate()
-						var fct := float(cond.get("factor", 1.0))
-						cond.erase("factor")
-						ai_mods.append([fct, VEventConditions.compile(gs, cond, errors, where + ".ai_weight")])
-				var cost: Dictionary = dec.get("cost", {})
-				for k in cost:
-					if not (k in ["treasury", "prestige", "research"]):
-						errors.append("%s: coste desconocido «%s»" % [where, k])
-				gs.decision_defs[id] = {"id": id, "name": dec.get("name", id), "desc": dec.get("desc", ""),
-					"category": dec.get("category", "political"), "tags": tags, "requires_flag": dec.get("requires_flag", ""),
-					"visible": VEventConditions.compile(gs, dec.get("visible", {}), errors, where + ".visible"),
-					"available": VEventConditions.compile(gs, dec.get("available", {}), errors, where + ".available"),
-					"cost": cost, "effects": VEventEffects.validate(gs, dec.get("effects", {}), errors, where),
-					"ai_base": ai_base, "ai_mods": ai_mods, "cooldown": int(dec.get("cooldown", 0)), "once": bool(dec.get("once", true))}
+	for path in VContentPacks.files(gs, root, "decisions/"):
+		var f: String = VContentPacks.pack_of(path) + "/" + path.get_file()
+		for dec in VJson.load_array(path, "decisions"):
+			var id: String = dec.get("id", "")
+			var where := "decisión %s" % id
+			if id == "" or gs.decision_defs.has(id):
+				errors.append("%s: decisión sin id o duplicada «%s»" % [f, id])
+				continue
+			var tags := {}
+			for t in dec.get("tags", []):
+				if not gs.countries.has(t):
+					errors.append("%s: país desconocido «%s»" % [where, t])
+				tags[t] = true
+			var aiw = dec.get("ai_weight", 1.0)
+			var ai_mods := []
+			var ai_base := float(aiw.get("base", 1.0)) if aiw is Dictionary else float(aiw)
+			if aiw is Dictionary:
+				for m in aiw.get("modifiers", []):
+					var cond: Dictionary = m.duplicate()
+					var fct := float(cond.get("factor", 1.0))
+					cond.erase("factor")
+					ai_mods.append([fct, VEventConditions.compile(gs, cond, errors, where + ".ai_weight")])
+			var cost: Dictionary = dec.get("cost", {})
+			for k in cost:
+				if not (k in ["treasury", "prestige", "research"]):
+					errors.append("%s: coste desconocido «%s»" % [where, k])
+			gs.decision_defs[id] = {"id": id, "name": dec.get("name", id), "desc": dec.get("desc", ""),
+				"category": dec.get("category", "political"), "tags": tags, "requires_flag": dec.get("requires_flag", ""),
+				"visible": VEventConditions.compile(gs, dec.get("visible", {}), errors, where + ".visible"),
+				"available": VEventConditions.compile(gs, dec.get("available", {}), errors, where + ".available"),
+				"cost": cost, "effects": VEventEffects.validate(gs, dec.get("effects", {}), errors, where),
+				"ai_base": ai_base, "ai_mods": ai_mods, "cooldown": int(dec.get("cooldown", 0)), "once": bool(dec.get("once", true)),
+				"chronicle": String(dec.get("chronicle", ""))}
 
 
 static func taken_month(gs: VGameState, tag: String, id: String) -> int:
@@ -105,7 +98,7 @@ static func take(gs: VGameState, tag: String, id: String) -> String:
 		es["decisions"][tag] = {}
 	es["decisions"][tag][id] = gs.month_index
 	VEventEffects.apply(gs, d["effects"], {"tag": tag, "source": "decision:" + id})
-	VScopedState.chronicle(gs, "decision", id, tag, d["name"], "", true)
+	VScopedState.chronicle(gs, "decision", id, tag, d["name"], "", true, "", VChronicle.format(gs, String(d.get("chronicle", "")), {"tag": tag}))
 	gs.log_event(tag, "Decisión: %s" % d["name"])
 	var st: Dictionary = es["stats"]
 	st["decisions"] = int(st.get("decisions", 0)) + 1

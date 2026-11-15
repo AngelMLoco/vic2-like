@@ -1,0 +1,18 @@
+{
+ "lore_type": "event_chain",
+ "_doc": "Guion de cadenas narrativas (diseño): etapas, disparadores y finales. Los eventos jugables se escriben en events/*.json con espacio de nombres country.<tag>.* o region.<id>.*",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "stages": [
+    {
+     "event": "",
+     "trigger": "",
+     "outcomes": []
+    }
+   ],
+   "endings": []
+  }
+ ]
+}

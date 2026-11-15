@@ -1,0 +1,13 @@
+{
+ "lore_type": "dynasty",
+ "_doc": "Dinastías (FUTURO: no simuladas todavía).",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "country": "",
+   "founded": 0,
+   "members": []
+  }
+ ]
+}

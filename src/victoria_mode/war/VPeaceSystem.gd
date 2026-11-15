@@ -146,7 +146,7 @@ static func apply(gs: VGameState, w: Dictionary, winner_side: String, goals: Arr
 		gs.countries[winner]["prestige"] = float(gs.countries[winner]["prestige"]) + prestige
 	if gs.countries.has(loser):
 		gs.countries[loser]["prestige"] = maxf(0.0, float(gs.countries[loser]["prestige"]) - prestige)
-	VWarSystem.end_war(gs, w, "Paz en la %s: %s" % [w["name"], "; ".join(lines)])
+	VWarSystem.end_war(gs, w, "Paz en la %s: %s" % [w["name"], "; ".join(lines)], {"winner_side": winner_side, "goals": goals.size()})
 
 
 static func _apply_goal(gs: VGameState, w: Dictionary, g: Dictionary) -> String:

@@ -93,6 +93,7 @@ var T_CAPITALISTS := -1
 var T_CLERGY := -1
 var T_SOLDIERS := -1
 var T_OFFICERS := -1
+var T_MAGI := -1
 
 ## estadísticas (desde el inicio de la partida o la carga)
 var stats := {"created": 0, "removed": 0, "merged": 0, "split": 0}
@@ -128,6 +129,7 @@ func setup(gs: VGameState) -> void:
 	T_CLERGY = int(type_index.get("clergy", -1))
 	T_SOLDIERS = int(type_index.get("soldiers", -1))
 	T_OFFICERS = int(type_index.get("officers", -1))
+	T_MAGI = int(type_index.get("magi", -1))
 
 
 func _type(gs: VGameState, t: String) -> int:

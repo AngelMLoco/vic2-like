@@ -1,0 +1,4 @@
+{
+ "_doc": "Orden de carga por defecto de los paquetes de contenido (si el escenario no declara content_packs). Ver src/victoria_mode/core/VContentPacks.gd y docs/VictoriaModeDataSchemas.md.",
+ "load_order": ["core", "prototype"]
+}

@@ -1,0 +1,14 @@
+{
+ "lore_type": "culture",
+ "_doc": "Culturas: grupo, relaciones, historia, tradición mágica (strong | common | rare | none).",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "group": "",
+   "magic_tradition": "common",
+   "relations": {},
+   "history": ""
+  }
+ ]
+}

@@ -29,32 +29,30 @@ const TARGETS := ["", "lowest_relation_neighbor", "highest_relation_neighbor", "
 const ON_ACTIONS := ["war_declared", "war_ended", "battle_won", "battle_lost", "province_occupied", "government_changed",
 	"reform_passed", "election_finished", "technology_researched", "invention_discovered", "country_enters_sphere",
 	"country_leaves_sphere", "rebellion_started", "rebellion_won", "factory_closed", "factory_built", "magic_activated",
-	"decision_taken"]
+	"decision_taken", "mage_brain_drain"]
 
 
 # ------------------------------------------------------------------ carga
 static func load_definitions(gs: VGameState, root: String) -> void:
 	var errors: Array = gs.data_errors
+	gs.art_manifest = {}
+	for apath in VContentPacks.each(gs, root, "art_manifest.json"):
+		for a in VJson.load_array(apath, "categories"):
+			if gs.art_manifest.has(a.get("art_key", "")):
+				errors.append("%s: art_key duplicado «%s»" % [apath.get_file(), a.get("art_key", "")])
+			gs.art_manifest[a.get("art_key", "")] = a
 	gs.event_modifiers = {}
-	for m in VJson.load_array(root + "events/modifiers.json", "modifiers"):
-		if gs.event_modifiers.has(m["id"]):
-			errors.append("modifiers.json: modificador duplicado «%s»" % m["id"])
-		gs.event_modifiers[m["id"]] = m
+	for mpath in VContentPacks.each(gs, root, "modifiers.json"):
+		for m in VJson.load_array(mpath, "modifiers"):
+			if gs.event_modifiers.has(m["id"]):
+				errors.append("%s: modificador duplicado «%s»" % [mpath.get_file(), m["id"]])
+			gs.event_modifiers[m["id"]] = m
 	var raw := []
-	for dir in ["events/", "magic/events/"]:
-		var path: String = root + dir
-		var d := DirAccess.open(path)
-		if d == null:
-			continue
-		var files := []
-		for f in d.get_files():
-			if f.ends_with(".json") and f != "modifiers.json":
-				files.append(f)
-		files.sort()
-		for f in files:
-			for ev in VJson.load_array(path + f, "events"):
-				ev["_file"] = f
-				raw.append(ev)
+	for path in VContentPacks.files(gs, root, "events/"):
+		var f: String = VContentPacks.pack_of(path) + "/" + path.get_file()
+		for ev in VJson.load_array(path, "events"):
+			ev["_file"] = f
+			raw.append(ev)
 	gs.event_defs = {}
 	for ev in raw:
 		var id: String = ev.get("id", "")
@@ -83,7 +81,12 @@ static func _compile_event(gs: VGameState, ev: Dictionary, errors: Array) -> Dic
 		"on_action": ev.get("on_action", ""), "requires_flag": ev.get("requires_flag", ""), "not_flag": ev.get("not_flag", ""),
 		"once": bool(ev.get("once", false)), "cooldown": int(ev.get("cooldown", 0)), "chance": float(ev.get("chance", -1.0)),
 		"candidates": ev.get("province_candidates", "capital"), "target": ev.get("target", ""), "important": bool(ev.get("important", ev.get("type", "") == "major")),
-		"tags": {}, "options": []}
+		"tags": {}, "options": [], "category": ev.get("category", ""), "chronicle": String(ev.get("chronicle", ""))}
+	e["category"] = VChronicle.category_of_event(e)
+	if not (e["category"] in VChronicle.CATEGORIES):
+		errors.append("%s: categoría desconocida «%s»" % [where, e["category"]])
+	if e["art"] != "" and not gs.art_manifest.is_empty() and not gs.art_manifest.has(e["art"]):
+		errors.append("%s: art_key «%s» no está en el manifiesto de arte" % [where, e["art"]])
 	if not (e["scope"] in SCOPES):
 		errors.append("%s: ámbito desconocido «%s»" % [where, e["scope"]])
 	if not (e["type"] in TYPES):
@@ -131,7 +134,7 @@ static func _compile_event(gs: VGameState, ev: Dictionary, errors: Array) -> Dic
 			ai_base = float(aiw)
 		e["options"].append({"name": o.get("name", "?"), "trigger": VEventConditions.compile(gs, o.get("trigger", {}), errors, ow + ".trigger"),
 			"effects": VEventEffects.validate(gs, o.get("effects", {}), errors, ow), "ai_base": ai_base, "ai_mods": ai_mods,
-			"follow_up": o.get("follow_up", {})})
+			"follow_up": o.get("follow_up", {}), "chronicle": String(o.get("chronicle", ""))})
 	return e
 
 
@@ -190,6 +193,7 @@ static func daily(gs: VGameState) -> void:
 			VProfiler.end(gs, "decisions", td)
 			var tm := VProfiler.begin()
 			VMagicSystem.country_monthly(gs, tag)
+			VMagicPolicy.ai_country(gs, tag, i)
 			VProfiler.end(gs, "magic", tm)
 	VProfiler.end(gs, "event_scheduler", t0)
 
@@ -200,6 +204,9 @@ static func monthly(gs: VGameState) -> void:
 		return
 	var t0 := VProfiler.begin()
 	VScopedState.expire(gs)
+	var tm := VProfiler.begin()
+	VMageModel.world_monthly(gs)
+	VProfiler.end(gs, "magic", tm)
 	var gi: Dictionary = gs.event_index["global"]
 	for e in gi["monthly"]:
 		_consider(gs, e, {})
@@ -387,6 +394,19 @@ static func fire(gs: VGameState, e: Dictionary, ctx: Dictionary) -> void:
 		VEventEffects.apply(gs, e["immediate"], ctx)
 	var player := gs.player_tag
 	var for_player: bool = player != "" and (tag == player or (e["scope"] == "global" and e["type"] == "major"))
+	# M5: métricas diferenciadas (jugador / IA visible / IA oculta / espacio de nombres / categoría)
+	_stat(gs, "type_" + String(e["type"]))
+	_stat(gs, "ns_" + String(e["id"]).get_slice(".", 0))
+	_stat(gs, "cat_" + String(e["category"]))
+	if for_player:
+		if e["type"] == "notification":
+			_stat(gs, "player_notification")
+		elif e["type"] == "hidden":
+			_stat(gs, "player_hidden")
+	elif e["type"] == "hidden":
+		_stat(gs, "ai_hidden")
+	else:
+		_stat(gs, "ai_visible")
 	if for_player and e["type"] in ["major", "normal"]:
 		_stat(gs, "player_major" if e["type"] == "major" else "player_normal")
 		if e["scope"] == "global":
@@ -424,8 +444,9 @@ static func apply_option(gs: VGameState, e: Dictionary, idx: int, ctx: Dictionar
 	ctx["source"] = e["id"]
 	VEventEffects.apply(gs, o["effects"], ctx)
 	var tag: String = ctx.get("tag", "")
-	if e["important"] or tag == gs.player_tag:
-		VScopedState.chronicle(gs, "event", e["id"], tag, e["title"], o["name"], e["important"])
+	if e["important"] or tag == gs.player_tag or e["chronicle"] != "" or o["chronicle"] != "":
+		var text: String = o["chronicle"] if o["chronicle"] != "" else e["chronicle"]
+		VScopedState.chronicle(gs, "event", e["id"], tag, e["title"], o["name"], e["important"], "", VChronicle.format(gs, text, ctx))
 	var fu: Dictionary = o["follow_up"]
 	if not fu.is_empty():
 		schedule(gs, fu["id"], ctx, int(fu.get("days", int(fu.get("months", 1)) * 30)))
@@ -490,6 +511,9 @@ static func _process_scheduled(gs: VGameState) -> void:
 static func notify(gs: VGameState, action: String, ctx: Dictionary) -> void:
 	if gs.event_index.is_empty() or gs.flags.get("events_disabled", false):
 		return
+	var tc := VProfiler.begin()
+	VChronicle.on_action(gs, action, ctx)
+	VProfiler.end(gs, "chronicle", tc)
 	var lst: Array = gs.event_index["on_action"].get(action, [])
 	VProfiler.count(gs, "on_actions")
 	if lst.is_empty():

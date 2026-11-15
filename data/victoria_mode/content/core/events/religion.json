@@ -1,0 +1,21 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (religion). Espacio de nombres core.religion.*",
+ "events": [
+  {
+   "id": "core.religion.religious_tension",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "quarterly",
+   "art": "church_religion",
+   "title": "Tensión religiosa",
+   "desc": "Sermones encendidos y panfletos anónimos: la vieja fe y las nuevas ideas chocan en púlpitos y cafés.",
+   "trigger": {"consciousness": 0.8, "militancy": 1.2},
+   "mtth": {"months": 24},
+   "cooldown": 60,
+   "options": [
+    {"name": "Proclamar la tolerancia", "effects": {"add_country_modifier": {"id": "religious_tolerance", "months": 24}, "add_prestige": 1}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": "liberal"}]}},
+    {"name": "Defender la fe establecida", "effects": {"add_country_modifier": {"id": "religious_zeal", "months": 24}, "add_militancy": {"value": -0.2, "strata": "poor"}}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": "tradicionalista"}]}}
+   ]
+  }
+ ]
+}

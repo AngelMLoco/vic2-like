@@ -609,7 +609,7 @@
    "strata": "middle",
    "color": "9a6af0",
    "literacy_mult": 3.0,
-   "job": "education",
+   "job": "arcane",
    "gov_wage": 140,
    "spend_fraction": 0.9,
    "vote_weight": 2,
@@ -656,7 +656,8 @@
      "enchanted_components": 0.05
     }
    },
-   "_prototype": "PROTOTYPE: primer tipo de POP mágico; funciones especiales pendientes"
+   "_prototype": "PROTOTYPE: primer tipo de POP mágico; funciones especiales pendientes",
+   "_doc": "M5: oficio «arcane». Empleo: plazas de fábricas mágicas (workforce.magi) y plazas del Estado (academias, administración mágica, ejército) calculadas por VMageModel; sin plaza = paro real. gov_wage es el sueldo de referencia de las plazas estatales."
   }
  ],
  "initial_distribution": {

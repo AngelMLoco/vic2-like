@@ -1,0 +1,55 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (magic_world). Espacio de nombres magic.world.*",
+ "events": [
+  {
+   "id": "magic.world.awakening",
+   "scope": "global",
+   "type": "major",
+   "art": "magic_awakening",
+   "title": "El mundo despierta",
+   "desc": "Una noche, en todos los rincones del mundo a la vez, los cristales de las minas empezaron a brillar, las agujas de las brújulas giraron enloquecidas y en mil aldeas alguien pronunció una palabra que nunca había aprendido. Nadie sabe por qué. Pero desde esa noche, nada volverá a ser igual.",
+   "trigger": {"year": 140, "not_flag": "GLOBAL_MAGIC_ACTIVATED"},
+   "mtth": {"months": 6},
+   "once": true,
+   "important": true,
+   "immediate": {"activate_magic": true},
+   "options": [
+    {"name": "Algo ha cambiado en el mundo", "effects": {}}
+   ]
+  },
+  {
+   "id": "magic.world.arcane_research",
+   "scope": "country",
+   "type": "normal",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "science_laboratory",
+   "title": "Los fenómenos arcanos",
+   "desc": "Nuestros sabios piden fondos para estudiar los fenómenos que se multiplican desde el Despertar.",
+   "trigger": {"magic_branch": {"technology": 1}},
+   "mtth": {"months": 3},
+   "once": true,
+   "important": true,
+   "options": [
+    {"name": "Financiar la investigación", "effects": {"set_country_flag": "ARCANE_RESEARCH_FUNDED", "add_treasury_ratio": -0.05, "start_research": "arcane_theory", "add_research_points": 400}, "ai_weight": {"base": 7, "modifiers": [{"factor": 0.3, "treasury_below": 300}]}},
+    {"name": "Esperar a ver qué hacen los demás", "effects": {"add_prestige": -1}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.world.ley_discovery",
+   "scope": "province",
+   "type": "normal",
+   "province_candidates": "magic",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "ley_landscape",
+   "title": "Un nexo de líneas ley",
+   "desc": "Los agrimensores detectan una convergencia de corrientes arcanas bajo esta provincia.",
+   "trigger": {"has_magic_deposit": true, "not_province_flag": "LEY_NEXUS_DISCOVERED"},
+   "mtth": {"months": 24},
+   "once": true,
+   "options": [
+    {"name": "Explotar el nexo", "effects": {"set_province_flag": "LEY_NEXUS_DISCOVERED", "add_province_modifier": {"id": "ley_nexus", "months": 0}, "add_magic_deposit": 0.5}, "ai_weight": 7},
+    {"name": "Declararlo lugar protegido", "effects": {"set_province_flag": "LEY_NEXUS_DISCOVERED", "add_prestige": 2}, "ai_weight": 3}
+   ]
+  }
+ ]
+}

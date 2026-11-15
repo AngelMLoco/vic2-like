@@ -1,0 +1,21 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (magic_military). Espacio de nombres magic.military.*",
+ "events": [
+  {
+   "id": "magic.military.experiment",
+   "scope": "country",
+   "type": "normal",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "arcane_battle",
+   "title": "Uso militar experimental",
+   "desc": "En el frente, un capitán ha usado a un mago para cegar a una batería enemiga. El Estado Mayor quiere más.",
+   "trigger": {"at_war": true, "magic_branch": {"military": 1}},
+   "mtth": {"months": 12},
+   "cooldown": 48,
+   "options": [
+    {"name": "Crear un programa de taumaturgia", "effects": {"add_country_modifier": {"id": "thaumaturgy_program", "months": 24}, "add_treasury_ratio": -0.03}, "ai_weight": 6},
+    {"name": "La guerra no es lugar para trucos", "effects": {"add_prestige": 1}, "ai_weight": 2}
+   ]
+  }
+ ]
+}

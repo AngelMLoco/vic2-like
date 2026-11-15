@@ -1,0 +1,6 @@
+{
+ "id": "core",
+ "name": "Núcleo sistémico",
+ "description": "Eventos, decisiones, modificadores y plantillas de crónica reutilizables por cualquier mundo. Espacios de nombres core.<categoría>.* y magic.<área>.*. No contiene lore ni referencias a naciones concretas.",
+ "requires": []
+}

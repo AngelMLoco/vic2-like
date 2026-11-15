@@ -1,0 +1,64 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (society). Espacio de nombres core.society.*",
+ "events": [
+  {
+   "id": "core.society.bread_riots",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "street_protest",
+   "title": "Motines del pan",
+   "desc": "La multitud ha asaltado los almacenes municipales. La guardia espera órdenes.",
+   "trigger": {"avg_life_below": 0.75},
+   "options": [
+    {"name": "Repartir el grano incautado", "effects": {"add_treasury_ratio": -0.04, "add_militancy": {"value": -0.3, "strata": "poor"}}, "ai_weight": 6},
+    {"name": "Restablecer el orden a cualquier precio", "effects": {"add_country_modifier": {"id": "martial_law", "months": 6}, "kill_population": 0.0005, "add_consciousness": {"value": 0.3, "strata": "poor"}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.society.worker_agitation",
+   "scope": "country",
+   "type": "normal",
+   "art": "workers_strike",
+   "title": "Agitación obrera",
+   "desc": "Los obreros de las fábricas se reúnen en tabernas y talleres. Se habla de cajas de resistencia, de jornadas de diez horas y de huelga general.",
+   "trigger": {"factory_count": 5, "militancy": 1.8, "reform_max": {"trade_unions": 1}},
+   "mtth": {"months": 12, "modifiers": [{"factor": 0.5, "militancy": 3.0}]},
+   "cooldown": 36,
+   "options": [
+    {"name": "Legalizar los sindicatos", "effects": {"change_reform": {"trade_unions": 1}, "add_militancy": {"value": -0.4, "strata": "poor"}}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": "liberal"}, {"factor": 0.3, "ruling_ideology": "conservador"}]}},
+    {"name": "Disolver las reuniones", "effects": {"add_country_modifier": {"id": "martial_law", "months": 6}, "add_consciousness": {"value": 0.3, "strata": "poor"}}, "ai_weight": 5},
+    {"name": "Ignorar a los agitadores", "effects": {"add_militancy": {"value": 0.3, "strata": "poor"}}, "follow_up": {"id": "core.society.general_strike", "months": 3}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.society.general_strike",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "workers_strike",
+   "title": "Huelga general",
+   "desc": "Las chimeneas no humean. Los telares están quietos y los almacenes vacíos.",
+   "trigger": {"militancy": 1.5},
+   "options": [
+    {"name": "Negociar con los comités", "effects": {"add_treasury_ratio": -0.05, "add_militancy": {"value": -0.5, "strata": "poor"}}, "ai_weight": 6},
+    {"name": "Resistir", "effects": {"add_country_modifier": {"id": "industrial_crisis", "months": 6}, "add_militancy": {"value": 0.3, "strata": "poor"}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.society.urban_growth",
+   "scope": "country",
+   "type": "notification",
+   "cadence": "yearly",
+   "art": "city_harbor",
+   "title": "Las ciudades crecen",
+   "desc": "Nuevos barrios obreros y bulevares burgueses cambian el rostro de nuestras ciudades.",
+   "trigger": {"factory_count": 15, "literacy": 0.25},
+   "mtth": {"months": 36},
+   "cooldown": 72,
+   "options": [
+    {"name": "Excelente", "effects": {"add_country_modifier": {"id": "urban_growth", "months": 36}}}
+   ]
+  }
+ ]
+}

@@ -181,10 +181,24 @@ static func rebuild_after_load(gs: VGameState) -> void:
 
 
 # ------------------------------------------------------------------ crónica
-## Historial de la partida (crónica): fecha, evento/decisión, nación, opción e importancia.
-static func chronicle(gs: VGameState, kind: String, id: String, tag: String, title: String, option: String, important: bool) -> void:
+## Historial de la partida (crónica): fecha, evento/decisión, nación, opción, importancia, categoría y texto
+## narrativo opcional. Ver VChronicle (filtros, plantillas e historia emergente).
+const DECISION_CATEGORY := {"industrial": "economy", "political": "politics", "diplomatic": "diplomacy",
+	"military": "war", "magic": "magic"}
+
+
+static func chronicle(gs: VGameState, kind: String, id: String, tag: String, title: String, option: String, important: bool, cat: String = "", text: String = "") -> void:
+	if cat == "":
+		if kind == "decision":
+			cat = DECISION_CATEGORY.get(String(gs.decision_defs.get(id, {}).get("category", "")), "politics")
+		elif gs.event_defs.has(id):
+			cat = VChronicle.category_of_event(gs.event_defs[id])
+		elif kind == "world":
+			cat = "magic" if id.begins_with("magic") else "politics"
+		else:
+			cat = "politics"
 	var h: Array = es(gs)["history"]
-	h.append({"date": gs.date.text(), "month": gs.month_index, "kind": kind, "id": id, "tag": tag, "title": title,
-		"option": option, "important": important})
-	if h.size() > 2000:
+	h.append({"date": gs.date.text(), "month": gs.month_index, "year": gs.date.year, "kind": kind, "id": id, "tag": tag,
+		"title": title, "option": option, "important": important, "cat": cat, "text": text})
+	while h.size() > VChronicle.MAX_ENTRIES:
 		h.remove_at(0)

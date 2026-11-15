@@ -1,0 +1,6 @@
+{
+ "id": "fantasy",
+ "name": "Chronicles of Aether",
+ "description": "Lore definitivo de Chronicles of Aether. VACÍO a propósito: el lore lo aporta el usuario. Plantillas en lore/_templates/ y esquema en docs/LoreBibleSchema.md. No se carga en el escenario de prototipo.",
+ "requires": ["core"]
+}

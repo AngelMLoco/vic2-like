@@ -15,8 +15,13 @@ const TIERS := ["life", "everyday", "luxury"]
 const POP_UNIT := 10000.0
 const EMPTY_D := {}
 ## Componentes de la militancia que se acumulan en el diagnóstico (gs.market["mil_diag"]).
+## M5: "modifiers" = modificadores permanentes (reformas, tecnologías, gobierno); "temporary_modifiers" =
+## modificadores temporales de eventos (nación y provincia); "magic" = tensión religiosa y regulación de la magia;
+## "events" (fuera del bucle) = efectos directos add_militancy/add_consciousness de eventos y decisiones.
 const MIL_PARTS := ["life", "everyday", "unemployment", "luxury", "base_decay", "relaxation", "movement",
-	"war_exhaustion", "modifiers", "reforms"]
+	"war_exhaustion", "modifiers", "reforms", "temporary_modifiers", "magic"]
+const CON_PARTS := ["literacy", "modifiers", "temporary_modifiers", "life", "everyday", "unemployment", "base_decay", "relaxation"]
+const EMPTY_F: Array[float] = []
 
 
 # ------------------------------------------------------------ generación
@@ -296,13 +301,21 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var growth_mod := float(mods.get("pop_growth", 0.0))
 	# cansancio bélico → militancia (hook del milestone 3)
 	var war_mil := float(c.get("war_exhaustion", 0.0)) / 100.0 * 0.05
-	# modificadores temporales de provincia (eventos): crecimiento, militancia, alfabetización, conciencia
+	# modificadores temporales (eventos): de nación (parte de mods, separada para el diagnóstico) y de provincia
+	# (los de nación ya están en mods; _tmp_* solo sirve para separarlos en el diagnóstico)
+	var c_tmp_mil := float(c.get("_tmp_mil", 0.0)) * 0.1
+	var pm_mil := 0.0
+	var tmp_con := float(c.get("_tmp_con", 0.0))
 	var pmods: Dictionary = p.get("pmods", EMPTY_D)
 	if not pmods.is_empty():
 		growth_mod += float(pmods.get("pop_growth", 0.0))
-		war_mil += float(pmods.get("militancy", 0.0))
+		pm_mil = float(pmods.get("militancy", 0.0))
 		lit_rate *= 1.0 + float(pmods.get("literacy_growth", 0.0))
 		con_mod += float(pmods.get("consciousness_growth", 0.0))
+		tmp_con += float(pmods.get("consciousness_growth", 0.0))
+	# M5: militancia adicional por tipo de POP (magia: regulación y tensión religiosa; VMageModel)
+	var mil_extra: Array[float] = c.get("_mil_extra", EMPTY_F)
+	var n_extra := mil_extra.size()
 	# reformas sociales: el subsidio de paro cubre parte del descontento causado por el paro
 	var unemp_relief := clampf(gs.mod(owner, "unemployment_benefit") * float(budget.get("social", 0.0)) * float(c.get("pay_ratio", 1.0)) * float(gs.economy_rules.get("unemployment_relief_factor", 0.0)), 0.0, 0.8)
 	var mil_relax := float(gs.economy_rules.get("militancy_relaxation", 0.0))
@@ -354,7 +367,17 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var d_war := 0.0
 	var d_mods := 0.0
 	var d_reform := 0.0
+	var d_tmp := 0.0
+	var d_magic := 0.0
 	var d_w := 0.0
+	var c_lit := 0.0
+	var c_mods := 0.0
+	var c_tmp := 0.0
+	var c_life := 0.0
+	var c_every := 0.0
+	var c_unemp := 0.0
+	var c_base := 0.0
+	var c_relax := 0.0
 	# el diagnóstico se muestrea un mes de cada tres (no afecta a la simulación)
 	var diag_on := gs.month_index % 3 == 0
 	for s: int in slots:
@@ -461,6 +484,7 @@ static func process_province(gs: VGameState, id: int) -> void:
 			con = clampf(con, 0.0, 10.0)
 			a_con[s] = con
 			var mil := a_mil[s]
+			var m_magic := mil_extra[t] if t < n_extra else 0.0
 			# contribuciones a la militancia (por paso de 1 mes; el paso lento las duplica)
 			var m_life := 0.06 * maxf(0.0, 0.5 - life)
 			var m_every := 0.02 * maxf(0.0, 0.3 - every) * (con / 5.0)
@@ -471,7 +495,7 @@ static func process_province(gs: VGameState, id: int) -> void:
 			var m_push := a_push[s]
 			# relajación: el descontento se disipa en proporción a su nivel (equilibrio estable, no deriva)
 			var m_relax := -mil_relax * mil
-			var dmil := m_life + m_every + m_unemp_raw + m_reform + m_lux - 0.015 + m_mods + m_push + war_mil + m_relax
+			var dmil := m_life + m_every + m_unemp_raw + m_reform + m_lux - 0.015 + m_mods + m_push + war_mil + pm_mil + m_magic + m_relax
 			a_mil[s] = clampf(mil + 2.0 * dmil, 0.0, 10.0)
 			if diag_on:
 				var fw := float(a_size[s])
@@ -484,8 +508,18 @@ static func process_province(gs: VGameState, id: int) -> void:
 				d_relax += m_relax * fw
 				d_move += m_push * fw
 				d_war += war_mil * fw
-				d_mods += m_mods * fw
+				d_mods += (m_mods - c_tmp_mil) * fw
+				d_tmp += (c_tmp_mil + pm_mil) * fw
+				d_magic += m_magic * fw
 				d_w += fw
+				c_lit += 0.03 * lit * fw
+				c_mods += 0.03 * lit * (con_mod - 1.0 - tmp_con) * fw
+				c_tmp += 0.03 * lit * tmp_con * fw
+				c_life += 0.04 * maxf(0.0, 0.8 - life) * fw
+				c_every += 0.02 * maxf(0.0, 0.5 - every) * fw
+				c_unemp += 0.01 * unemp * fw
+				c_base += -0.02 * fw
+				c_relax += -con_relax * con * fw
 			d_lit_v = lit
 			d_con_v = con
 		else:
@@ -553,11 +587,12 @@ static func process_province(gs: VGameState, id: int) -> void:
 	agg["life"] = float(agg["life"]) + s_life
 	agg["every"] = float(agg.get("every", 0.0)) + s_every
 	if d_w > 0.0:
-		var diag: Array[float] = gs.market.get("mil_diag_acc", [] as Array[float])
-		if diag.size() != MIL_PARTS.size() + 1:
+		var diag: Array[float] = gs.market.get("_mil_diag_acc", [] as Array[float])
+		var nd := MIL_PARTS.size() + CON_PARTS.size() + 1
+		if diag.size() != nd:
 			diag = []
-			diag.resize(MIL_PARTS.size() + 1)
-			gs.market["mil_diag_acc"] = diag
+			diag.resize(nd)
+			gs.market["_mil_diag_acc"] = diag
 		diag[0] += d_life
 		diag[1] += d_every
 		diag[2] += d_unemp
@@ -568,29 +603,82 @@ static func process_province(gs: VGameState, id: int) -> void:
 		diag[7] += d_war
 		diag[8] += d_mods
 		diag[9] += d_reform
-		diag[10] += d_w
+		diag[10] += d_tmp
+		diag[11] += d_magic
+		var o := MIL_PARTS.size()
+		diag[o] += c_lit
+		diag[o + 1] += c_mods
+		diag[o + 2] += c_tmp
+		diag[o + 3] += c_life
+		diag[o + 4] += c_every
+		diag[o + 5] += c_unemp
+		diag[o + 6] += c_base
+		diag[o + 7] += c_relax
+		diag[nd - 1] += d_w
 	VMoney.destroyed(gs, spent_total, "pop_purchases")
 	p["population"] = s_tot  # (= recalc_province: suma de tamaños tras el crecimiento)
 	p["avg_life"] = life_sum / poor_size if poor_size > 0.0 else 1.0
 	p["unemployment"] = unemp_sum / poor_size if poor_size > 0.0 else 0.0
 
 
-## Diagnóstico de militancia del último mes completo: contribución media mensual por componente
-## (ponderada por población; positivo = sube la militancia). Lo cierra VWorldSimulation.on_month.
+## Diagnóstico de militancia y conciencia del último mes muestreado: contribución media mensual por componente
+## (ponderada por población; positivo = sube). Lo cierra VWorldSimulation.on_month.
+##   gs.market["mil_diag"] / ["con_diag"]: último muestreo; ["diag_cum"]: sumas acumuladas desde el inicio
+##   (promedio = suma / n). "events" = efectos directos de eventos/decisiones (VEventEffects), por mes.
 static func close_militancy_diagnosis(gs: VGameState) -> void:
-	var diag: Array[float] = gs.market.get("mil_diag_acc", [] as Array[float])
-	if diag.size() != MIL_PARTS.size() + 1 or diag[MIL_PARTS.size()] <= 0.0:
+	var diag: Array[float] = gs.market.get("_mil_diag_acc", [] as Array[float])
+	var nd := MIL_PARTS.size() + CON_PARTS.size() + 1
+	if diag.size() != nd or diag[nd - 1] <= 0.0:
 		return
-	var w := diag[MIL_PARTS.size()]
+	var w := diag[nd - 1]
+	# efectos directos de eventos desde el último cierre, por persona y mes
+	var ev: Array = gs.market.get("_ev_diag", [0.0, 0.0])
+	var months := maxi(1, gs.month_index - int(gs.market.get("_ev_diag_month", gs.month_index - 3)))
+	var world_pop := 0.0
+	for tag in gs.country_order:
+		world_pop += float(gs.countries[tag].get("population", 0))
+	var ev_mil := float(ev[0]) / maxf(1.0, world_pop) / float(months)
+	var ev_con := float(ev[1]) / maxf(1.0, world_pop) / float(months)
+	gs.market["_ev_diag"] = [0.0, 0.0]
+	gs.market["_ev_diag_month"] = gs.month_index
 	var out := {}
 	var net := 0.0
 	for i in MIL_PARTS.size():
 		out[MIL_PARTS[i]] = diag[i] / w
 		net += diag[i] / w
+	out["events"] = ev_mil
+	out["net"] = net + ev_mil
+	var outc := {}
+	var netc := 0.0
+	for i in CON_PARTS.size():
+		var v := diag[MIL_PARTS.size() + i] / w
+		outc[CON_PARTS[i]] = v
+		netc += v
+	outc["events"] = ev_con
+	outc["net"] = netc + ev_con
+	for i in nd:
 		diag[i] = 0.0
-	out["net"] = net
-	diag[MIL_PARTS.size()] = 0.0
 	gs.market["mil_diag"] = out
+	gs.market["con_diag"] = outc
+	var cum: Dictionary = gs.market.get("diag_cum", {"n": 0, "mil": {}, "con": {}})
+	cum["n"] = int(cum["n"]) + 1
+	for k in out:
+		cum["mil"][k] = float(cum["mil"].get(k, 0.0)) + float(out[k])
+	for k in outc:
+		cum["con"][k] = float(cum["con"].get(k, 0.0)) + float(outc[k])
+	gs.market["diag_cum"] = cum
+
+
+## Promedio acumulado del diagnóstico ("mil" o "con") desde el inicio de la partida.
+static func cumulative_diagnosis(gs: VGameState, which: String) -> Dictionary:
+	var cum: Dictionary = gs.market.get("diag_cum", {})
+	var n := int(cum.get("n", 0))
+	var out := {}
+	if n <= 0:
+		return out
+	for k in cum.get(which, {}):
+		out[k] = float(cum[which][k]) / float(n)
+	return out
 
 
 static func _process_unowned(gs: VGameState, p: Dictionary) -> void:

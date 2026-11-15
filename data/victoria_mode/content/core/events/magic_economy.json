@@ -1,0 +1,37 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (magic_economy). Espacio de nombres magic.economy.*",
+ "events": [
+  {
+   "id": "magic.economy.crystal_black_market",
+   "scope": "country",
+   "type": "normal",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "market_trade",
+   "title": "Mercado negro de cristales",
+   "desc": "El cristal de maná vale su peso en oro y los contrabandistas lo saben.",
+   "trigger": {"good_available": "mana_crystal", "good_price": {"mana_crystal": 1.4}},
+   "mtth": {"months": 36},
+   "cooldown": 60,
+   "options": [
+    {"name": "Regular el comercio de cristal", "effects": {"add_country_modifier": {"id": "crystal_controls", "months": 24}, "add_prestige": 1}, "ai_weight": 5},
+    {"name": "Hacer la vista gorda", "effects": {"add_treasury_ratio": 0.02, "add_militancy": 0.1, "set_country_flag": "CRYSTAL_SMUGGLING"}, "ai_weight": 4, "follow_up": {"id": "magic.economy.smuggling_ring", "months": 12}}
+   ]
+  },
+  {
+   "id": "magic.economy.arcane_boom",
+   "scope": "country",
+   "type": "notification",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "cadence": "yearly",
+   "art": "arcane_industry",
+   "title": "Auge arcano",
+   "desc": "Las refinerías de maná trabajan a pleno rendimiento.",
+   "trigger": {"factory_type_count": {"mana_refinery": 1}},
+   "mtth": {"months": 12},
+   "cooldown": 60,
+   "options": [
+    {"name": "Prosperidad", "effects": {"add_country_modifier": {"id": "arcane_boom", "months": 24}}}
+   ]
+  }
+ ]
+}

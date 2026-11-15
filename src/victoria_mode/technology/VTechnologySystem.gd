@@ -34,6 +34,8 @@ static func research_points(gs: VGameState, tag: String) -> float:
 	var clergy := float(c.get("_clergy_literacy", 0.0))
 	var clerks := float(c.get("_clerks_literacy", 0.0))
 	var base := clergy / 10000.0 * 3.0 + clerks / 10000.0 * 6.0 + float(c.get("literacy", 0.0)) * 20.0
+	# M5: magos de las academias (investigación arcana; VMageModel._state_posts)
+	base += float(c.get("_magi_research", 0.0)) / 10000.0 * 6.0
 	var edu := 0.5 + float(c["budget"].get("education", 0.0))
 	return base * edu * (1.0 + float(c.get("prestige", 0.0)) / 200.0) * (1.0 + gs.mod(tag, "research"))
 
@@ -82,6 +84,9 @@ static func monthly(gs: VGameState, tag: String, is_player: bool) -> void:
 		if not av.is_empty():
 			c["research"] = av[(gs.month_index + tag.hash()) % mini(3, av.size())]
 	if c["research"] != "":
+		# M5: la regulación mágica acelera o frena la investigación de tecnologías mágicas
+		if String(gs.technologies[c["research"]].get("category", "")) == "magic":
+			rp *= maxf(0.1, 1.0 + gs.mod(tag, "magic_research"))
 		c["research_progress"] = float(c["research_progress"]) + rp
 		var cost := float(gs.technologies[c["research"]]["cost"])
 		if float(c["research_progress"]) >= cost:

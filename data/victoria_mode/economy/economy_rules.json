@@ -60,5 +60,5 @@
  "factory_cash_buffer_months": 3.0,
  "militancy_relaxation": 0.005,
  "unemployment_relief_factor": 2.0,
- "consciousness_relaxation": 0.005
+ "consciousness_relaxation": 0.01
 }

@@ -1,0 +1,37 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (technology). Espacio de nombres core.technology.*",
+ "events": [
+  {
+   "id": "core.technology.scientific_breakthrough",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "technology_researched",
+   "art": "science_laboratory",
+   "title": "Un avance científico",
+   "desc": "La nueva tecnología abre caminos que nadie había previsto. Nuestros sabios piden continuar.",
+   "chance": 0.5,
+   "cooldown": 6,
+   "options": [
+    {"name": "Financiar la siguiente investigación", "effects": {"add_treasury_ratio": -0.03, "add_research_points": 300}, "ai_weight": 6},
+    {"name": "Publicarlo y recoger la gloria", "effects": {"add_prestige": 2}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.technology.national_exhibition",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "factory_industry",
+   "title": "Exposición nacional",
+   "desc": "Máquinas, tejidos y cuadros: la exposición nacional muestra al mundo nuestro progreso.",
+   "trigger": {"literacy": 0.15, "at_war": false},
+   "mtth": {"months": 24},
+   "cooldown": 48,
+   "options": [
+    {"name": "Una gran exposición", "effects": {"add_treasury_ratio": -0.03, "add_prestige": 4}, "ai_weight": 5},
+    {"name": "Algo modesto", "effects": {"add_prestige": 1}, "ai_weight": 5}
+   ]
+  }
+ ]
+}

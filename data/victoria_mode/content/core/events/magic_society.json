@@ -1,0 +1,323 @@
+{
+ "_doc": "Sociedad mágica (M5): magos públicos, miedo y persecución, integración, academias y nueva élite, gremios, magos sin empleo, fuga de cerebros, religión contra magia, ejército y guerras por el cristal. Los disparadores leen el estado real de la magia (magos, proporción, paro de magos, regulación, actitud religiosa, yacimientos, fábricas mágicas). PROTOTYPE de mecánica, no lore. Espacios de nombres magic.social.*, magic.economy.*, magic.politics.*, magic.military.*",
+ "events": [
+  {
+   "id": "magic.social.public_mages",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "mage_portrait",
+   "title": "Los magos salen a la luz",
+   "desc": "Ya son más de mil. Algunos ofrecen sus servicios en los periódicos: sanación, búsqueda de agua, protección de cosechas. Otros siguen escondiéndose de sus vecinos.",
+   "trigger": {"not_country_flag": "MAGI_PUBLIC", "magi": 1000},
+   "mtth": {"months": 12},
+   "once": true,
+   "options": [
+    {"name": "Celebrar el don como un orgullo nacional", "effects": {"set_country_flag": "MAGI_PUBLIC", "add_prestige": 2, "add_militancy": [{"value": -0.3, "pop_type": "magi"}, {"value": 0.2, "pop_type": "clergy"}]}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "magic_regulation": ["magic_promoted", "magic_tolerated"]}]}},
+    {"name": "Exigirles registro y discreción", "effects": {"set_country_flag": ["MAGI_PUBLIC", "MAGI_REGISTERED"], "add_country_modifier": {"id": "mage_registry", "months": 0}}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "magic_regulation": ["magic_licensed", "magic_state_control"]}]}}
+   ]
+  },
+  {
+   "id": "magic.social.village_fear",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "monthly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "magic_fear",
+   "title": "Miedo en las aldeas",
+   "desc": "Una vaca muerta, un niño enfermo, una tormenta fuera de temporada: en algunas aldeas culpan a la vecina que «tiene el don». El párroco no ayuda a calmar los ánimos.",
+   "trigger": {"not_country_flag": "WITCH_HUNTS", "magi": 500, "or": [{"religion_magic_attitude": ["regulated", "suspicious", "heretical"]}, {"country_flag": "MAGI_FEARED"}]},
+   "mtth": {"months": 30, "modifiers": [{"factor": 0.6, "religion_magic_attitude": ["suspicious", "heretical"]}, {"factor": 0.7, "country_flag": "CHURCH_ALLIANCE"}, {"factor": 1.6, "country_flag": "MAGI_PROTECTED"}]},
+   "cooldown": 36,
+   "options": [
+    {"name": "Proteger a los magos", "effects": {"set_country_flag": "MAGI_PROTECTED", "add_militancy": {"value": 0.3, "pop_type": "clergy"}, "add_consciousness": 0.05}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "magic_regulation": ["magic_promoted", "magic_state_control"]}]}},
+    {"name": "Que actúe la justicia local", "effects": {"set_country_flag": "WITCH_HUNTS", "add_militancy": {"value": 0.6, "pop_type": "magi"}}, "follow_up": {"id": "magic.social.witch_hunt", "months": 4}, "ai_weight": {"base": 3, "modifiers": [{"factor": 2.5, "religion_magic_attitude": ["suspicious", "heretical"]}, {"factor": 2.0, "ruling_ideology": "tradicionalista"}]}}
+   ]
+  },
+  {
+   "id": "magic.social.witch_hunt",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "magic_fear",
+   "title": "Caza de brujos",
+   "desc": "Lo que empezó en una aldea se ha extendido por comarcas enteras. Hay magos linchados, casas quemadas y familias que cruzan la frontera de noche.",
+   "trigger": {"country_flag": "WITCH_HUNTS"},
+   "important": true,
+   "options": [
+    {"name": "Detener la caza con el ejército", "effects": {"clear_country_flag": "WITCH_HUNTS", "set_country_flag": "MAGI_PROTECTED", "add_militancy": {"value": 0.4, "pop_type": "clergy"}}, "chronicle": "{country} desplegó el ejército para detener la caza de brujos.", "ai_weight": 5},
+    {"name": "Prohibir la magia para calmar los ánimos", "effects": {"set_magic_regulation": "magic_prohibited", "mage_emigration": 0.15, "add_militancy": {"value": -0.3, "pop_type": "clergy"}}, "follow_up": {"id": "magic.social.persecution_aftermath", "months": 12}, "chronicle": "{country} persiguió a sus magos; muchos huyeron al extranjero.", "ai_weight": {"base": 3, "modifiers": [{"factor": 2.5, "religion_magic_attitude": ["suspicious", "heretical"]}]}}
+   ]
+  },
+  {
+   "id": "magic.social.persecution_aftermath",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "magic_fear",
+   "title": "Después de la persecución",
+   "desc": "Las hogueras se han apagado. Los magos que quedan viven escondidos y los que se fueron enriquecen a nuestros vecinos. Algunos ministros empiezan a dudar.",
+   "trigger": {"magic_regulation": ["magic_prohibited"], "country_flag": "WITCH_HUNTS"},
+   "options": [
+    {"name": "La prohibición se mantiene", "effects": {"add_country_modifier": {"id": "religious_zeal", "months": 24}, "clear_country_flag": "WITCH_HUNTS"}, "ai_weight": 5},
+    {"name": "Una amnistía discreta y licencias", "effects": {"set_magic_regulation": "magic_licensed", "clear_country_flag": "WITCH_HUNTS", "add_militancy": {"value": 0.3, "pop_type": "clergy"}}, "chronicle": "{country} levantó la prohibición de la magia y concedió licencias a los magos.", "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "magic.social.church_condemns_magic",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "church_religion",
+   "title": "El clero condena la magia",
+   "desc": "Desde todos los púlpitos se lee la misma carta: la magia es una afrenta a lo sagrado y el Estado que la consiente es cómplice. Los magos responden con un manifiesto.",
+   "trigger": {"not_country_flag": "CHURCH_MAGIC_SETTLED", "magi": 2000, "religion_magic_attitude": ["regulated", "suspicious", "heretical"]},
+   "mtth": {"months": 48, "modifiers": [{"factor": 0.5, "country_flag": "CHURCH_ALLIANCE"}, {"factor": 0.6, "magic_regulation": ["magic_promoted"]}]},
+   "cooldown": 120,
+   "options": [
+    {"name": "Con el clero", "effects": {"change_reform": {"magic_regulation": -1}, "add_militancy": [{"value": 0.4, "pop_type": "magi"}, {"value": -0.3, "pop_type": "clergy"}]}, "ai_weight": {"base": 3, "modifiers": [{"factor": 2.0, "country_flag": "CHURCH_ALLIANCE"}]}},
+    {"name": "Con los magos", "effects": {"add_militancy": {"value": 0.5, "pop_type": "clergy"}, "add_consciousness": 0.1, "set_country_flag": "CHURCH_MAGIC_SETTLED"}, "chronicle": "En {country} el Estado se puso del lado de los magos frente al clero.", "ai_weight": 3},
+    {"name": "Un concordato: licencias y templos protegidos", "effects": {"set_magic_regulation": "magic_licensed", "add_treasury_ratio": -0.03, "set_country_flag": "CHURCH_MAGIC_SETTLED"}, "chronicle": "{country} firmó un concordato entre la fe y la magia.", "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "magic.social.unemployed_magi",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "monthly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "mage_portrait",
+   "title": "Magos sin trabajo",
+   "desc": "Las academias forman más magos de los que el país sabe emplear. Hay magos que adivinan el futuro en ferias por unas monedas, y otros que ya hablan de marcharse o de algo peor.",
+   "trigger": {"magi": 2000, "magi_unemployment": 0.3},
+   "mtth": {"months": 12},
+   "cooldown": 24,
+   "options": [
+    {"name": "Plazas públicas para los magos", "effects": {"add_country_modifier": {"id": "arcane_public_works", "months": 36}, "add_treasury_ratio": -0.05}, "chronicle": "{country} creó empleos públicos para sus magos sin trabajo.", "ai_weight": 5},
+    {"name": "Reclutarlos para el ejército", "trigger": {"magic_branch": {"military": 1}}, "effects": {"add_country_modifier": {"id": "thaumaturgy_program", "months": 36}, "add_militancy": {"value": 0.1, "pop_type": "magi"}}, "ai_weight": 4},
+    {"name": "Que busquen fortuna en otra parte", "effects": {"mage_emigration": 0.08, "add_militancy": {"value": 0.5, "pop_type": "magi"}}, "follow_up": {"id": "magic.social.mage_riots", "months": 6}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.social.mage_riots",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "street_protest",
+   "title": "Disturbios arcanos",
+   "desc": "Una manifestación de magos sin empleo termina mal: escaparates que estallan sin que nadie los toque, guardias que no se atreven a acercarse.",
+   "trigger": {"magi_unemployment": 0.25},
+   "important": true,
+   "options": [
+    {"name": "Represión", "effects": {"add_militancy": {"value": 1.0, "pop_type": "magi"}, "mage_emigration": 0.1, "add_country_modifier": {"id": "martial_law", "months": 6}}, "chronicle": "Los disturbios de los magos fueron reprimidos en {country}.", "ai_weight": 4},
+    {"name": "Ceder: más fomento de la magia", "effects": {"change_reform": {"magic_regulation": 1}, "add_country_modifier": {"id": "arcane_public_works", "months": 36}, "add_treasury_ratio": -0.05}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "magic.politics.academy_first_class",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "arcane_academy",
+   "title": "La primera promoción",
+   "desc": "La academia arcana gradúa a sus primeros alumnos. El rector pregunta al gobierno cómo elegir a los siguientes: por el don, o por la familia.",
+   "trigger": {"not_country_flag": "ACADEMY_ADMISSIONS"},
+   "options": [
+    {"name": "Becas para todos los talentos", "effects": {"set_country_flag": ["ACADEMY_ADMISSIONS", "ACADEMY_OPEN"], "add_country_modifier": {"id": "academy_scholarships", "months": 60}, "add_treasury_ratio": -0.03}, "chronicle": "La academia arcana de {country} abrió sus puertas a todos los talentos.", "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["liberal", "radical", "socialista", "comunitarista"]}]}},
+    {"name": "Solo para hijos de buena familia", "effects": {"set_country_flag": ["ACADEMY_ADMISSIONS", "ACADEMY_ELITE"], "add_prestige": 2, "add_militancy": {"value": -0.2, "strata": "rich"}}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["tradicionalista", "conservador", "autoritario"]}]}}
+   ]
+  },
+  {
+   "id": "magic.social.new_arcane_elite",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "arcane_academy",
+   "title": "La nueva aristocracia del don",
+   "desc": "Los magos de la academia cobran como ministros, se casan entre ellos y fundan sus propios clubes. En los barrios obreros se dice que el don se ha convertido en otra forma de ser rico.",
+   "trigger": {"country_flag": "ARCANE_ACADEMY_FOUNDED", "magi_share": 0.001},
+   "mtth": {"months": 36},
+   "once": true,
+   "options": [
+    {"name": "Abrir la magia al pueblo", "trigger": {"not_country_flag": "ACADEMY_ELITE"}, "effects": {"add_consciousness": {"value": 0.2, "strata": "poor"}, "add_country_modifier": {"id": "academy_scholarships", "months": 60}}, "ai_weight": 5},
+    {"name": "Un privilegio de los mejores", "effects": {"set_country_flag": "ARCANE_ELITE", "add_militancy": [{"value": 0.3, "strata": "poor"}, {"value": -0.3, "pop_type": "magi"}]}, "chronicle": "En {country} los magos se convirtieron en una nueva élite.", "ai_weight": {"base": 4, "modifiers": [{"factor": 2.5, "country_flag": "ACADEMY_ELITE"}]}}
+   ]
+  },
+  {
+   "id": "magic.economy.mage_guild",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "arcane_academy",
+   "title": "El gremio de los magos",
+   "desc": "Los magos que ejercen por su cuenta se han organizado: tarifas comunes, exámenes de ingreso, un sello en la puerta. Piden al gobierno que reconozca su gremio.",
+   "trigger": {"not_country_flag": "GUILD_DECIDED", "magi": 3000, "magic_regulation": ["magic_tolerated", "magic_licensed", "magic_promoted"]},
+   "mtth": {"months": 36},
+   "once": true,
+   "options": [
+    {"name": "Reconocer el gremio", "effects": {"set_country_flag": ["GUILD_DECIDED", "MAGE_GUILD"], "add_country_modifier": {"id": "mage_guild", "months": 0}}, "chronicle": "{country} reconoció el gremio de los magos.", "ai_weight": 5},
+    {"name": "Disolverlo: nada de oficios cerrados", "effects": {"set_country_flag": "GUILD_DECIDED", "add_militancy": {"value": 0.6, "pop_type": "magi"}}, "ai_weight": {"base": 3, "modifiers": [{"factor": 2.0, "ruling_ideology": ["liberal", "autoritario"]}]}}
+   ]
+  },
+  {
+   "id": "magic.economy.guild_monopoly",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "market_trade",
+   "title": "El gremio cierra el oficio",
+   "desc": "El gremio ya no examina: veta. Solo entran los hijos y aprendices de sus miembros, y sus tarifas suben cada año. Los fabricantes se quejan del precio de los servicios arcanos.",
+   "trigger": {"country_flag": "MAGE_GUILD", "magi_unemployment_below": 0.15},
+   "mtth": {"months": 60},
+   "cooldown": 120,
+   "options": [
+    {"name": "Romper el monopolio", "effects": {"remove_country_modifier": "mage_guild", "clear_country_flag": "MAGE_GUILD", "add_militancy": {"value": 0.5, "pop_type": "magi"}}, "chronicle": "{country} rompió el monopolio del gremio de magos.", "ai_weight": 4},
+    {"name": "Es su oficio", "effects": {"add_country_modifier": {"id": "industrial_crisis", "months": 6}, "add_militancy": {"value": -0.2, "pop_type": "magi"}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "magic.economy.smuggling_ring",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "market_trade",
+   "title": "Una red de contrabando de cristal",
+   "desc": "La vista gorda ha engordado a una red que saca cristal de las minas sin pagar impuestos, y que soborna a jueces y aduaneros.",
+   "trigger": {"country_flag": "CRYSTAL_SMUGGLING"},
+   "options": [
+    {"name": "Desmantelarla", "effects": {"add_treasury_ratio": -0.02, "add_country_modifier": {"id": "crystal_controls", "months": 24}, "clear_country_flag": "CRYSTAL_SMUGGLING"}, "chronicle": "{country} desmanteló una red de contrabando de cristal arcano.", "ai_weight": 5},
+    {"name": "Cobrarle su parte", "effects": {"add_treasury_ratio": 0.03, "add_consciousness": 0.1}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.economy.arcane_fortunes",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "arcane_industry",
+   "title": "Fortunas arcanas",
+   "desc": "Los dueños de las refinerías y los talleres arcanos son los nuevos millonarios. Sus obreros respiran el polvo violeta por un salario corriente.",
+   "trigger": {"magic_factories": 2},
+   "mtth": {"months": 36},
+   "cooldown": 120,
+   "options": [
+    {"name": "Un impuesto sobre los beneficios arcanos", "effects": {"change_budget": {"tax_rich": 0.05}, "add_militancy": [{"value": -0.2, "strata": "poor"}, {"value": 0.3, "strata": "rich"}]}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["socialista", "comunitarista", "radical"]}]}},
+    {"name": "Es el precio del progreso", "effects": {"add_country_modifier": {"id": "arcane_boom", "months": 24}, "add_militancy": {"value": 0.3, "strata": "poor"}}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["liberal", "conservador"]}]}}
+   ]
+  },
+  {
+   "id": "magic.politics.brain_drain",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "mage_brain_drain",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "city_harbor",
+   "title": "Los magos se van",
+   "desc": "Cientos de magos han hecho las maletas: allí les pagan mejor, nadie los persigue y hay academias. El ministro de Instrucción pide medidas.",
+   "chance": 0.6,
+   "cooldown": 24,
+   "options": [
+    {"name": "Mejores sueldos y laboratorios", "effects": {"change_budget": {"education": 0.1}, "add_country_modifier": {"id": "mage_stipends", "months": 36}}, "ai_weight": 5},
+    {"name": "Que se vayan", "effects": {"add_prestige": -2}, "ai_weight": 3},
+    {"name": "Aflojar las restricciones", "trigger": {"magic_regulation": ["magic_prohibited", "magic_state_control"]}, "effects": {"change_reform": {"magic_regulation": 1}}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.politics.foreign_talent",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "arcane_academy",
+   "title": "Talento extranjero",
+   "desc": "Magos de otros países llegan con sus libros y sus acentos. Las academias los reciben con los brazos abiertos; no todos los vecinos lo hacen.",
+   "trigger": {"mage_immigration": 1000},
+   "mtth": {"months": 12},
+   "cooldown": 36,
+   "options": [
+    {"name": "Cátedras y nacionalidad", "effects": {"add_country_modifier": {"id": "mage_stipends", "months": 24}, "add_research_points": 400}, "ai_weight": 5},
+    {"name": "Vigilarlos", "effects": {"add_militancy": {"value": 0.2, "pop_type": "magi"}}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.military.battlemage_corps",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "arcane_battle",
+   "title": "El cuerpo de magos de batalla",
+   "desc": "El programa de taumaturgia ha dado sus frutos: hay magos capaces de levantar escudos sobre una batería o de cegar a un regimiento. El estado mayor quiere un cuerpo propio.",
+   "trigger": {"country_flag": "THAUMATURGY_PROGRAM", "magi": 3000},
+   "mtth": {"months": 24},
+   "once": true,
+   "important": true,
+   "options": [
+    {"name": "Crear el cuerpo de magos de batalla", "effects": {"add_country_modifier": {"id": "battlemage_corps", "months": 0}, "add_militancy": {"value": -0.2, "pop_type": "magi"}}, "chronicle": "{country} creó el primer cuerpo de magos de batalla.", "ai_weight": 5},
+    {"name": "Solo sanación y reconocimiento", "effects": {"add_country_modifier": {"id": "military_reform", "months": 24}}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.military.arms_race",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "army_officers",
+   "title": "Carrera de armamentos arcana",
+   "desc": "Nuestros espías informan de que un vecino entrena magos para la guerra. En el ministerio se discute si hacer lo mismo o buscar garantías diplomáticas.",
+   "trigger": {"not_country_flag": "THAUMATURGY_PROGRAM", "magic_branch": {"military": 1}, "any_neighbor": {"country_flag": "THAUMATURGY_PROGRAM"}},
+   "mtth": {"months": 24},
+   "once": true,
+   "options": [
+    {"name": "Nuestro propio programa", "effects": {"set_country_flag": "THAUMATURGY_PROGRAM", "add_country_modifier": {"id": "thaumaturgy_program", "months": 0}, "add_treasury_ratio": -0.05}, "chronicle": "{country} entró en la carrera de armamentos arcana.", "ai_weight": 5},
+    {"name": "Fortificar la frontera", "effects": {"add_country_modifier": {"id": "military_reform", "months": 24}}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "magic.military.crystal_claims",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "ley_landscape",
+   "target": "lowest_relation_neighbor",
+   "title": "Sed de cristal",
+   "desc": "Nuestras refinerías se paran por falta de cristal, mientras al otro lado de la frontera hay vetas que nadie explota bien. Los industriales piden que el gobierno «resuelva» el problema.",
+   "trigger": {"magic_factories": 1, "arcane_deposits_below": 1, "at_war": false, "target": {"arcane_deposits": 1}},
+   "mtth": {"months": 48},
+   "cooldown": 120,
+   "options": [
+    {"name": "Reclamar las minas", "effects": {"create_casus_belli": {"cb": "war_reparations"}, "add_infamy": 2, "change_relation": -30}, "chronicle": "La sed de cristal enfrentó a {country} con {target}.", "ai_weight": {"base": 3, "modifiers": [{"factor": 2.0, "ruling_ideology": ["autoritario", "tradicionalista"]}]}},
+    {"name": "Comprar en el mercado", "effects": {"add_treasury_ratio": -0.03}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "magic.social.accident_inquiry",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "industrial_disaster",
+   "title": "La investigación del accidente",
+   "desc": "Los peritos concluyen que el accidente arcano pudo evitarse: nadie vigilaba quién manipulaba el cristal ni cómo.",
+   "options": [
+    {"name": "Licencias obligatorias", "trigger": {"magic_regulation": ["magic_tolerated"]}, "effects": {"change_reform": {"magic_regulation": 1}}, "ai_weight": 5},
+    {"name": "Inspectores en los yacimientos", "effects": {"add_treasury_ratio": -0.02, "add_militancy": -0.1}, "ai_weight": 4},
+    {"name": "Fue una desgracia", "effects": {"add_militancy": 0.1}, "ai_weight": 2}
+   ]
+  }
+ ]
+}

@@ -263,6 +263,10 @@ static func can_change_reform(gs: VGameState, tag: String, rid: String, directio
 	if not gov.get("can_reform", true):
 		res["reason"] = "Esta forma de gobierno no permite reformas."
 		return res
+	var rflag: String = r.get("requires_flag", "")
+	if rflag != "" and not gs.flags.get(rflag, false):
+		res["reason"] = "Todavía no es una cuestión política (requiere «%s»)." % rflag
+		return res
 	var caps: Dictionary = gov.get("reform_caps", {})
 	if direction > 0 and caps.has(rid) and new_lvl > int(caps[rid]):
 		res["reason"] = "El gobierno (%s) no permite superar «%s»." % [gov.get("name", ""), r["levels"][int(caps[rid])]["name"]]
@@ -278,7 +282,10 @@ static func can_change_reform(gs: VGameState, tag: String, rid: String, directio
 	var pressure := clampf(float(c.get("avg_militancy", 0.0)) / 4.0, 0.0, 1.0)
 	for ideo in uh:
 		var s := float(gs.ideologies.get(ideo, {}).get("reform_support", {}).get(kind, 0.0)) * float(direction)
-		if direction > 0 and gs.ideologies.get(ideo, {}).get("group", "") == "conservative" and ideo != "tradicionalista":
+		if kind == "magic":
+			# M5: la regulación mágica no es «más o menos reforma»: cada ideología apoya acercarla a su postura
+			s = VMagicPolicy.ideology_support(gs, ideo, lvl, new_lvl)
+		elif direction > 0 and gs.ideologies.get(ideo, {}).get("group", "") == "conservative" and ideo != "tradicionalista":
 			s += pressure * 0.8
 		if s > 0.0:
 			support += float(uh[ideo]) * s
@@ -286,10 +293,13 @@ static func can_change_reform(gs: VGameState, tag: String, rid: String, directio
 			against += float(uh[ideo]) * -s
 	if direction > 0:
 		var mv: Dictionary = c.get("movements", {}).get(rid, {})
-		support += float(mv.get("support", 0.0)) * 2.0 + float(mv.get("radicalism", 0.0)) * 0.2
+		# M5: un movimiento radicalizado presiona a la cámara (conceder antes de la rebelión)
+		support += float(mv.get("support", 0.0)) * 2.0 + float(mv.get("radicalism", 0.0)) * 0.6
 	# el partido gobernante también pesa
 	var rp := ruling_party(gs, tag)
 	var rps := float(gs.ideologies.get(rp.get("ideology", ""), {}).get("reform_support", {}).get(kind, 0.0)) * float(direction)
+	if kind == "magic":
+		rps = VMagicPolicy.ideology_support(gs, String(rp.get("ideology", "")), lvl, new_lvl) * 3.0
 	support += maxf(0.0, rps) * 0.15
 	against += maxf(0.0, -rps) * 0.15
 	res["support"] = support
@@ -375,6 +385,8 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 	var iidx := _issue_index(gs)
 	for rid in gs.reform_order:
 		var r: Dictionary = gs.reforms[rid]
+		if not r.get("movement", true):
+			continue  # M5: reformas sin movimiento genérico (regulación mágica)
 		var issue: String = r.get("issue", "")
 		specs.append([rid, issue, int(cur[rid]), r["levels"].size() - 1, iidx.get(issue, {}),
 			float(mvs.get(rid, {}).get("radicalism", 0.0)) * 0.03])
@@ -410,6 +422,8 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 			ps.movement_push[s] = push
 	var names: Dictionary = gs.reform_meta.get("movement_names", {})
 	for rid in gs.reform_order:
+		if not gs.reforms[rid].get("movement", true):
+			continue
 		var share := float(support.get(rid, 0.0)) / total
 		var mv: Dictionary = mvs.get(rid, {"name": names.get(rid, rid), "support": 0.0, "organisation": 0.0, "radicalism": 0.0, "months": 0})
 		mv["support"] = share

@@ -1,0 +1,18 @@
+{
+ "_doc": "Plantillas de la crónica para la historia emergente (VChronicle.on_action). Clave = on_action o variante (capital_occupied, war_ended_<resultado>, magic_technology). cat: politics | war | economy | diplomacy | society | magic. important: también aparece en la crónica de las demás naciones. Marcadores: {country} {target} {war} {province} {reform} {level} {tech} {year}.",
+ "templates": {
+  "war_declared": {"cat": "war", "text": "{country} declaró la guerra a {target}: comenzó la {war}.", "text_target": "{target} nos declaró la guerra: comenzó la {war}."},
+  "capital_occupied": {"cat": "war", "text": "La capital de {country}, {province}, cayó en manos de {target}.", "important": true},
+  "war_ended_victory": {"cat": "war", "text": "{country} venció a {target} y terminó la {war} con una paz victoriosa."},
+  "war_ended_defeat": {"cat": "war", "text": "{country} fue derrotado por {target}: la paz que puso fin a la {war} fue una humillación."},
+  "war_ended_white_peace": {"cat": "war", "text": "La {war} terminó sin vencedores entre {country} y {target}."},
+  "reform_passed": {"cat": "politics", "text": "{country} reformó su {reform}: {level}."},
+  "government_changed": {"cat": "politics", "text": "Cambio de gobierno en {country}."},
+  "rebellion_started": {"cat": "politics", "text": "Estalló una rebelión armada en {country}."},
+  "rebellion_won": {"cat": "politics", "text": "Los rebeldes triunfaron en {country} e impusieron sus exigencias.", "important": true},
+  "country_enters_sphere": {"cat": "diplomacy", "text": "{country} entró en la esfera de influencia de {target}."},
+  "country_leaves_sphere": {"cat": "diplomacy", "text": "{country} salió de la esfera de influencia de {target}."},
+  "magic_technology": {"cat": "magic", "text": "Los estudiosos de {country} dominaron un nuevo saber arcano: {tech}."},
+  "mage_brain_drain": {"cat": "magic", "text": "Una ola de magos abandonó {country} rumbo a {target}."}
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "lore_type": "world",
+ "_doc": "Mundo: nombre, premisa, tono. Una sola entrada.",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "premise": "",
+   "tone": "",
+   "themes": [],
+   "notes": ""
+  }
+ ]
+}

@@ -17,12 +17,14 @@ const KEYS := ["add_treasury", "add_treasury_ratio", "add_prestige", "add_infamy
 	"add_population", "kill_population", "spawn_rebels", "create_casus_belli", "start_war", "add_war_exhaustion",
 	"add_influence", "add_to_sphere", "remove_from_sphere", "trigger_event", "change_budget", "activate_magic",
 	"add_magic_deposit", "discover_magic_deposit", "convert_pops", "log",
+	"set_magic_regulation", "mage_emigration", "chronicle",
 	"target", "owner", "capital", "every_owned_province", "random_owned_province"]
 
 
 ## efectos que admiten una lista de valores (una clave JSON no puede repetirse)
 const LISTABLE := ["set_flag", "clear_flag", "set_country_flag", "clear_country_flag", "set_province_flag",
-	"clear_province_flag", "add_country_modifier", "remove_country_modifier", "add_province_modifier"]
+	"clear_province_flag", "add_country_modifier", "remove_country_modifier", "add_province_modifier",
+	"add_militancy", "add_consciousness"]
 
 
 # ------------------------------------------------------------------ validación
@@ -91,6 +93,18 @@ static func validate(gs: VGameState, eff, errors: Array, where: String) -> Dicti
 			"change_owner", "change_controller":
 				if v is String and not (v in ["target", "from", "self"]) and not gs.countries.has(v):
 					errors.append("%s: país desconocido «%s»" % [where, v])
+			"set_magic_regulation":
+				if VMagicPolicy.level_index(gs, String(v)) < 0:
+					errors.append("%s: nivel de regulación mágica desconocido «%s»" % [where, v])
+			"add_militancy", "add_consciousness":
+				if v is Dictionary and v.has("pop_type"):
+					for pt2 in (v["pop_type"] if v["pop_type"] is Array else [v["pop_type"]]):
+						if not gs.pop_types.has(pt2):
+							errors.append("%s: tipo de POP desconocido «%s»" % [where, pt2])
+			"chronicle":
+				var d5: Dictionary = v if v is Dictionary else {"text": v}
+				if d5.has("cat") and not (String(d5["cat"]) in VChronicle.CATEGORIES):
+					errors.append("%s: categoría de crónica desconocida «%s»" % [where, d5["cat"]])
 		out[k] = v
 	return out
 
@@ -294,6 +308,16 @@ static func apply(gs: VGameState, eff: Dictionary, ctx: Dictionary) -> void:
 				VMagicSystem.convert_pops(gs, tag, prov, v)
 			"log":
 				gs.log_event(tag, String(v))
+			"set_magic_regulation":
+				# decreto: fija el nivel sin pasar por la cámara (la vía parlamentaria es change_reform)
+				VMagicPolicy.set_level(gs, tag, String(v))
+			"mage_emigration":
+				VMageModel.force_emigration(gs, tag, float(v))
+			"chronicle":
+				var d4: Dictionary = v if v is Dictionary else {"text": v}
+				var src := String(ctx.get("source", ""))
+				var cat: String = d4.get("cat", VChronicle.category_of_event(gs.event_defs.get(src, {"id": src})))
+				VChronicle.record(gs, tag, cat, VChronicle.format(gs, String(d4["text"]), ctx), bool(d4.get("important", false)), src)
 
 
 ## Gasto del Estado por eventos/decisiones (subsidios, obras, programas): el dinero sale del tesoro y llega a
@@ -317,20 +341,34 @@ static func spend(gs: VGameState, tag: String, amount: float) -> void:
 			ps.income_acc[s] += share
 
 
-## Militancia/conciencia de los POPs del ámbito (provincia o nación). v: número o {"value", "strata"}.
+## Militancia/conciencia de los POPs del ámbito (provincia o nación).
+## v: número o {"value", "strata", "pop_type"} (pop_type: tipo o lista de tipos, p. ej. "magi").
+## El cambio real (×tamaño) se acumula en el diagnóstico de militancia/conciencia como «events».
 static func _change_pops(gs: VGameState, tag: String, prov: int, field: String, v) -> void:
 	var amount := float(v.get("value", 0.0)) if v is Dictionary else float(v)
 	var strata := -1
 	if v is Dictionary and v.has("strata"):
 		strata = VPopStore.STRATA.find(String(v["strata"]))
 	var ps := gs.pops
+	var types := {}
+	if v is Dictionary and v.has("pop_type"):
+		for pt in (v["pop_type"] if v["pop_type"] is Array else [v["pop_type"]]):
+			types[int(ps.type_index.get(pt, -9))] = true
 	var arr: Array[float] = ps.militancy if field == "militancy" else ps.consciousness
 	var provs: Array = [prov] if prov > 0 else gs.countries.get(tag, {}).get("provinces", [])
+	var moved := 0.0
 	for id in provs:
 		for s in gs.provinces[id]["pop_slots"]:
 			if strata >= 0 and ps.t_strata[ps.type_id[s]] != strata:
 				continue
-			arr[s] = clampf(arr[s] + amount, 0.0, 10.0)
+			if not types.is_empty() and not types.has(ps.type_id[s]):
+				continue
+			var old := arr[s]
+			arr[s] = clampf(old + amount, 0.0, 10.0)
+			moved += (arr[s] - old) * float(ps.size[s])
+	var ev: Array = gs.market.get("_ev_diag", [0.0, 0.0])
+	ev[0 if field == "militancy" else 1] = float(ev[0 if field == "militancy" else 1]) + moved
+	gs.market["_ev_diag"] = ev
 
 
 static func _scale_population(gs: VGameState, tag: String, prov: int, factor: float) -> void:

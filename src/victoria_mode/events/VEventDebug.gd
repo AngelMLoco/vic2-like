@@ -1,9 +1,9 @@
 class_name VEventDebug
 extends RefCounted
 ## Consola de depuración de contenido (pruebas y desarrollo; sin esperar años de partida):
-##   VEventDebug.run(gs, "fire_event magic.awakening")
-##   VEventDebug.run(gs, "fire_event emergent.food_crisis FRK")
-##   VEventDebug.run(gs, "fire_event magic.ley_discovery PRS 1234")      (provincia)
+##   VEventDebug.run(gs, "fire_event magic.world.awakening")
+##   VEventDebug.run(gs, "fire_event core.economy.food_crisis FRK")
+##   VEventDebug.run(gs, "fire_event magic.world.ley_discovery PRS 1234")      (provincia)
 ##   VEventDebug.run(gs, "take_decision found_arcane_academy PRS")
 ##   VEventDebug.run(gs, "activate_magic")
 ##   VEventDebug.run(gs, "list_available_decisions FRK")

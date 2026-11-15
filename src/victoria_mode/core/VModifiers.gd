@@ -25,9 +25,15 @@ static func recompute(gs: VGameState, tag: String) -> void:
 		if lvl >= 0 and lvl < levels.size():
 			_add(mods, levels[lvl].get("effects", {}))
 	# M4: modificadores de eventos, decisiones y magia (temporales o permanentes)
+	var tmp := {}
 	for m in VScopedState.country_modifiers(gs, tag):
-		_add(mods, VScopedState.modifier_effects(gs, m))
+		var eff := VScopedState.modifier_effects(gs, m)
+		_add(mods, eff)
+		_add(tmp, eff)
 	c["mods"] = mods
+	# M5: parte de militancia/conciencia de los modificadores de eventos (diagnóstico)
+	c["_tmp_mil"] = float(tmp.get("militancy_growth", 0.0))
+	c["_tmp_con"] = float(tmp.get("consciousness_growth", 0.0))
 
 
 static func _add(mods: Dictionary, effects: Dictionary) -> void:

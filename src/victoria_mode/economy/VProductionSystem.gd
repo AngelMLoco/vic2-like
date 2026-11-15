@@ -476,8 +476,11 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 	var craftsmen := []
 	var clerks := []
 	var capitalists := []
+	var magi := []
 	var cr_total := 0
 	var cl_total := 0
+	var mg_total := 0
+	var t_magi := gs.pops.T_MAGI
 	var infra := 0.0
 	var inst_pop := 0
 	for id in si["provinces"]:
@@ -493,27 +496,37 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 				cl_total += gs.pops.size[ps_s]
 			elif tt == gs.pops.T_CAPITALISTS:
 				capitalists.append(ps_s)
+			elif tt == t_magi:
+				magi.append(ps_s)
+				mg_total += gs.pops.size[ps_s]
 	infra /= maxf(1.0, float(si["provinces"].size()))
 	si["_pop"] = inst_pop
 	# plazas
 	var cr_slots := 0.0
 	var cl_slots := 0.0
+	var mg_slots := 0.0
 	for f in si["factories"]:
 		if not f["open"]:
 			continue
 		var wf: Dictionary = gs.factory_types.get(f["type"], {}).get("workforce", {})
 		cr_slots += float(wf.get("craftsmen", 9000)) * int(f["level"]) * float(f["hiring"])
 		cl_slots += float(wf.get("clerks", 1000)) * int(f["level"]) * float(f["hiring"])
+		mg_slots += float(wf.get("magi", 0)) * int(f["level"]) * float(f["hiring"])
 	var cr_fill := minf(1.0, float(cr_total) / cr_slots) if cr_slots > 0.0 else 0.0
 	var cl_fill := minf(1.0, float(cl_total) / cl_slots) if cl_slots > 0.0 else 0.0
 	si["vacancy_craftsmen"] = int(maxf(0.0, cr_slots - float(cr_total)))
 	si["vacancy_clerks"] = int(maxf(0.0, cl_slots - float(cl_total)))
+	# M5: magos en fábricas mágicas (workforce.magi): sin magos la fábrica rinde menos
+	var mg_fill := minf(1.0, float(mg_total) / mg_slots) if mg_slots > 0.0 else 0.0
+	si["vacancy_magi"] = int(maxf(0.0, mg_slots - float(mg_total)))
 	var needs: Dictionary = c.get("_needs", {})
 	var wage_mult := float(rules.get("factory_wage_multiplier", 1.6)) * (1.0 + gs.mod(tag, "factory_wage"))
 	var cr_cost: Array = needs.get("craftsmen", {}).get("cost", [5.0, 5.0, 5.0])
 	var cl_cost: Array = needs.get("clerks", {}).get("cost", [15.0, 15.0, 15.0])
 	var cr_wage := (float(cr_cost[0]) + float(cr_cost[1])) * wage_mult
 	var cl_wage := (float(cl_cost[0]) + float(cl_cost[1])) * wage_mult
+	var mg_wage := cl_wage * float(VMageModel.rules(gs).get("factory_wage_multiplier", 1.4))
+	var magic_eff := 1.0 + gs.mod(tag, "magic_factory_efficiency")
 	var occ := 0
 	for id in si["provinces"]:
 		if gs.provinces[id]["controller"] != tag:
@@ -525,6 +538,7 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 	var stock_months := float(rules.get("factory_input_stock_months", 1.0))
 	var wages_cr := 0.0
 	var wages_cl := 0.0
+	var wages_mg := 0.0
 	var profit_total := 0.0
 	var policy := economic_policy(gs, tag)
 	var can_subsidize: bool = policy in rules.get("subsidy_policies", [])
@@ -559,6 +573,12 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 			f["unstaffed_months"] = 0
 		var clerk_ratio := emp_cl / max_cl if max_cl > 0.0 else 0.0
 		var recipes := float(rates.get(f["type"], 0.0)) * int(f["level"]) * staffing * (0.75 + 0.5 * clerk_ratio) * eff_base
+		var max_mg := float(wf.get("magi", 0)) * int(f["level"])
+		var emp_mg := 0.0
+		if max_mg > 0.0:
+			emp_mg = max_mg * float(f["hiring"]) * mg_fill
+			recipes *= (0.35 + 0.65 * emp_mg / max_mg) * maxf(0.1, magic_eff)
+		f["magi_employed"] = int(emp_mg)
 		# insumos: consumir del stock, reponer comprando al mercado
 		var stock: Dictionary = f["stock"]
 		var avail := 1.0
@@ -587,9 +607,11 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 		VMoney.destroyed(gs, input_cost, "factory_inputs")
 		var w_cr := emp_cr / UNIT * cr_wage
 		var w_cl := emp_cl / UNIT * cl_wage
+		var w_mg := emp_mg / UNIT * mg_wage
 		wages_cr += w_cr
 		wages_cl += w_cl
-		var expenses := input_cost + w_cr + w_cl
+		wages_mg += w_mg
+		var expenses := input_cost + w_cr + w_cl + w_mg
 		var profit := revenue - expenses
 		f["output"] = produced
 		f["revenue"] = revenue
@@ -642,6 +664,8 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 		ps.employer[s] = VPopStore.EMP_FACTORY if cl_emp_frac > 0.0 else VPopStore.EMP_NONE
 		if cl_total > 0:
 			VBudgetSystem.credit_income(gs, tag, s, wages_cl * float(ps.size[s]) / float(cl_total))
+	if mg_total > 0:
+		_pay_magi(gs, tag, c, magi, mg_total, mg_slots, wages_mg)
 	# beneficio a capitalistas del estado (si no hay, a los del país)
 	if profit_total > 0.0:
 		if capitalists.is_empty():
@@ -655,6 +679,44 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 		else:
 			c["treasury"] = float(c["treasury"]) + profit_total * 0.5
 			VMoney.destroyed(gs, profit_total * 0.5, "profit_without_owner")
+
+
+## M5: empleo y salario de los magos de la partición: primero las plazas de fábricas mágicas (salario de la
+## fábrica), después las plazas del Estado (academias, administración, ejército; VMageModel._state_posts) con
+## la misma tasa de cobertura en toda la nación. Acumula [magos, empleo privado, empleo estatal, vida] del mes.
+static func _pay_magi(gs: VGameState, tag: String, c: Dictionary, magi: Array, mg_total: int, mg_slots: float, wages_mg: float) -> void:
+	var ps := gs.pops
+	var priv := minf(1.0, mg_slots / float(mg_total))
+	var ms: Dictionary = c.get("_magi_state", {})
+	var st_frac := (1.0 - priv) * float(ms.get("fill", 0.0))
+	var pay_unit := float(ms.get("pay", 0.0))
+	var split: Dictionary = ms.get("split", {})
+	var acc: Array = c.get("_magi_acc_cur", [0.0, 0.0, 0.0, 0.0])
+	var state_pay := 0.0
+	var life := 0.0
+	for s in magi:
+		var sz := float(ps.size[s])
+		ps.employment[s] = priv + st_frac
+		ps.employer[s] = VPopStore.EMP_FACTORY if priv > 0.0 else (VPopStore.EMP_STATE if st_frac > 0.0 else VPopStore.EMP_NONE)
+		if wages_mg > 0.0:
+			VBudgetSystem.credit_income(gs, tag, s, wages_mg * sz / float(mg_total))
+		var pay := sz / UNIT * st_frac * pay_unit
+		if pay > 0.0:
+			VBudgetSystem.credit_income(gs, tag, s, pay)
+			state_pay += pay
+		life += sz * ps.life[s]
+	for k in split:
+		var part := state_pay * float(split[k])
+		if k == "practice":
+			# práctica privada: la pagan los ricos de la nación (VMageModel._charge_practice)
+			c["_practice_due"] = float(c.get("_practice_due", 0.0)) + part
+		else:
+			VBudgetSystem.add_expense(gs, tag, k, part)
+	acc[0] = float(acc[0]) + float(mg_total)
+	acc[1] = float(acc[1]) + float(mg_total) * priv
+	acc[2] = float(acc[2]) + float(mg_total) * st_frac
+	acc[3] = float(acc[3]) + life
+	c["_magi_acc_cur"] = acc
 
 
 static func economic_policy(gs: VGameState, tag: String) -> String:

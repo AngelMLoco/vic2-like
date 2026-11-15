@@ -1,0 +1,56 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (magic_social). Espacio de nombres magic.social.*",
+ "events": [
+  {
+   "id": "magic.social.first_mage",
+   "scope": "country",
+   "type": "normal",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "mage_portrait",
+   "title": "El primer mago documentado",
+   "desc": "Un registro parroquial anota, con letra temblorosa, que un hombre del lugar hizo arder una vela sin tocarla ante testigos.",
+   "trigger": {"magi": 1},
+   "once": true,
+   "important": true,
+   "options": [
+    {"name": "Que lo estudien en la universidad", "effects": {"add_prestige": 3, "add_research_points": 200, "set_country_flag": "MAGI_STUDIED"}, "ai_weight": 6},
+    {"name": "Que lo examine el clero", "effects": {"add_militancy": -0.1, "set_country_flag": "MAGI_FEARED"}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "religion_magic_attitude": ["suspicious", "heretical"]}]}},
+    {"name": "Registrar a todo el que tenga el don", "effects": {"set_country_flag": "MAGI_REGISTERED", "add_country_modifier": {"id": "mage_registry", "months": 0}}, "ai_weight": {"base": 3, "modifiers": [{"factor": 2.0, "magic_branch": {"politics": 1}}]}}
+   ],
+   "chronicle": "En {country} se documentó el primer mago."
+  },
+  {
+   "id": "magic.social.arcane_accident",
+   "scope": "province",
+   "type": "normal",
+   "province_candidates": "magic",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "industrial_disaster",
+   "title": "Accidente arcano",
+   "desc": "Una explosión de luz violeta ha arrasado un taller de experimentación. Los supervivientes no recuerdan qué intentaban hacer.",
+   "trigger": {"has_magic_deposit": true, "owner": {"magi": 200}},
+   "mtth": {"months": 60},
+   "cooldown": 60,
+   "options": [
+    {"name": "Atender a las víctimas", "effects": {"kill_population": 0.003, "add_province_modifier": {"id": "arcane_accident", "months": 12}, "add_treasury_ratio": -0.02}, "ai_weight": 6, "follow_up": {"id": "magic.social.accident_inquiry", "months": 3}},
+    {"name": "Ocultar lo sucedido", "effects": {"kill_population": 0.003, "add_province_modifier": {"id": "arcane_accident", "months": 18}, "add_consciousness": 0.1}, "ai_weight": 4, "follow_up": {"id": "magic.social.accident_inquiry", "months": 3}}
+   ]
+  },
+  {
+   "id": "magic.social.religious_fear",
+   "scope": "country",
+   "type": "normal",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "art": "magic_fear",
+   "title": "Miedo religioso a la magia",
+   "desc": "Desde los púlpitos se clama contra la hechicería. Las multitudes rodean las casas de los magos.",
+   "trigger": {"magi": 300, "religion_magic_attitude": ["regulated", "suspicious", "heretical"], "not": {"magic_regulation": ["magic_prohibited"]}},
+   "mtth": {"months": 36, "modifiers": [{"factor": 0.5, "ruling_ideology": "tradicionalista"}]},
+   "cooldown": 72,
+   "options": [
+    {"name": "Proteger a los magos", "effects": {"add_country_modifier": {"id": "religious_tolerance", "months": 24}, "add_militancy": {"value": 0.3, "strata": "poor"}}, "ai_weight": 4},
+    {"name": "Escuchar a la Iglesia", "effects": {"add_country_modifier": {"id": "religious_fear", "months": 24}}, "ai_weight": 5}
+   ]
+  }
+ ]
+}

@@ -1,101 +1,125 @@
 {
- "_doc": "Culturas del escenario de prueba (Tierra, año 136). 'religion' es la religión por defecto de los POPs de esa cultura. 'color' es opcional: si falta se deriva del id.",
+ "_doc": "Culturas del escenario de prueba (Tierra, año 136). 'religion' es la religión por defecto de los POPs de esa cultura. 'color' es opcional: si falta se deriva del id. M5: groups[].magic_tradition (strong | common | rare | none) = PROTOTYPE; una cultura puede sobrescribirlo con su propio magic_tradition.",
  "groups": [
   {
    "id": "celtica",
-   "name": "Céltica"
+   "name": "Céltica",
+   "magic_tradition": "strong"
   },
   {
    "id": "latina",
-   "name": "Latina"
+   "name": "Latina",
+   "magic_tradition": "common"
   },
   {
    "id": "germanica",
-   "name": "Germánica"
+   "name": "Germánica",
+   "magic_tradition": "common"
   },
   {
    "id": "nordica",
-   "name": "Nórdica"
+   "name": "Nórdica",
+   "magic_tradition": "common"
   },
   {
    "id": "finougria",
-   "name": "Fino-úgrica"
+   "name": "Fino-úgrica",
+   "magic_tradition": "strong"
   },
   {
    "id": "eslava",
-   "name": "Eslava"
+   "name": "Eslava",
+   "magic_tradition": "common"
   },
   {
    "id": "helenica",
-   "name": "Helénica"
+   "name": "Helénica",
+   "magic_tradition": "common"
   },
   {
    "id": "semitica",
-   "name": "Semítica"
+   "name": "Semítica",
+   "magic_tradition": "rare"
   },
   {
    "id": "afroasiatica",
-   "name": "Afroasiática"
+   "name": "Afroasiática",
+   "magic_tradition": "common"
   },
   {
    "id": "nilotica",
-   "name": "Nilótica"
+   "name": "Nilótica",
+   "magic_tradition": "common"
   },
   {
    "id": "irania",
-   "name": "Irania"
+   "name": "Irania",
+   "magic_tradition": "common"
   },
   {
    "id": "estepa",
-   "name": "Estepa"
+   "name": "Estepa",
+   "magic_tradition": "strong"
   },
   {
    "id": "indica",
-   "name": "Índica"
+   "name": "Índica",
+   "magic_tradition": "strong"
   },
   {
    "id": "dharmica",
-   "name": "Dhármica"
+   "name": "Dhármica",
+   "magic_tradition": "common"
   },
   {
    "id": "sinica",
-   "name": "Sínica"
+   "name": "Sínica",
+   "magic_tradition": "common"
   },
   {
    "id": "nipona",
-   "name": "Nipona"
+   "name": "Nipona",
+   "magic_tradition": "common"
   },
   {
    "id": "austronesia",
-   "name": "Austronesia"
+   "name": "Austronesia",
+   "magic_tradition": "strong"
   },
   {
    "id": "oceanica",
-   "name": "Oceánica"
+   "name": "Oceánica",
+   "magic_tradition": "strong"
   },
   {
    "id": "africana_occidental",
-   "name": "África occidental"
+   "name": "África occidental",
+   "magic_tradition": "strong"
   },
   {
    "id": "bantu",
-   "name": "Bantú"
+   "name": "Bantú",
+   "magic_tradition": "common"
   },
   {
    "id": "norteamericana",
-   "name": "Norteamericana"
+   "name": "Norteamericana",
+   "magic_tradition": "strong"
   },
   {
    "id": "mesoamericana",
-   "name": "Mesoamericana"
+   "name": "Mesoamericana",
+   "magic_tradition": "common"
   },
   {
    "id": "andina",
-   "name": "Andina"
+   "name": "Andina",
+   "magic_tradition": "common"
   },
   {
    "id": "amazonica",
-   "name": "Amazónica"
+   "name": "Amazónica",
+   "magic_tradition": "strong"
   }
  ],
  "cultures": [

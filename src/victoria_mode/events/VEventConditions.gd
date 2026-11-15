@@ -19,12 +19,15 @@ enum {AND, OR, NOT, TARGET, OWNER, COUNT, ANY_NEIGHBOR,
 	HAS_TECH, HAS_INV, AT_WAR, HAS_SPHERE, IN_SPHERE, TARGET_REL, OWNS_PROV, OWNS_STATE, CONTROLS_PROV,
 	CONTROLS_STATE, HAS_CORE, FACTORY_TYPE, GOOD_PRICE, GOOD_SHORTAGE, REBEL_RISK, REBEL_FACTION, MAGIC_BRANCH,
 	VAR, MOVEMENT, POP_TYPE, IS_PLAYER, HAS_MOD, MAGIC_ANY, P_OWNER_IS, P_CONTROLLER_IS, P_TERRAIN, P_COASTAL,
-	P_RGO, P_CULTURE, P_RELIGION, P_OCCUPIED, P_BLOCKADED, P_DEPOSIT, P_STATE, P_CAPITAL, HAS_TARGET, GOOD_AVAILABLE}
+	P_RGO, P_CULTURE, P_RELIGION, P_OCCUPIED, P_BLOCKADED, P_DEPOSIT, P_STATE, P_CAPITAL, HAS_TARGET, GOOD_AVAILABLE,
+	CTX_NUM, CTX_STR, CAP_OCC, MAGIC_REG, REL_ATT, CUL_TRAD, MAGIC_PATH, IS_RIVAL}
 
 ## campos numéricos de nación
 const CNUM_FIELDS := ["prestige", "military_score", "industry_score", "treasury", "debt", "literacy", "militancy",
 	"consciousness", "unemployment", "avg_life", "avg_everyday", "population", "war_exhaustion", "infamy",
-	"factory_count", "research_points", "wars", "brigades", "provinces", "magi"]
+	"factory_count", "research_points", "wars", "brigades", "provinces", "magi",
+	"magi_share", "magi_unemployment", "magi_target_ratio", "mage_emigration", "mage_immigration", "arcane_academies",
+	"immigration", "emigration", "war_months", "magic_factories", "arcane_deposits"]
 ## campos numéricos de provincia
 const PNUM_FIELDS := ["province_population", "province_unemployment", "province_militancy", "life_rating", "fort",
 	"naval_base", "infrastructure", "magic_potential", "province_life"]
@@ -37,7 +40,10 @@ const FIELD_NAMES := {"prestige": "prestigio", "military_score": "puntuación mi
 	"consciousness": "conciencia media", "unemployment": "paro", "avg_life": "necesidades vitales",
 	"avg_everyday": "necesidades diarias", "population": "población", "war_exhaustion": "cansancio bélico",
 	"infamy": "infamia", "factory_count": "fábricas", "research_points": "puntos de investigación", "wars": "guerras activas",
-	"brigades": "brigadas", "provinces": "provincias", "magi": "magos", "province_population": "población de la provincia",
+	"brigades": "brigadas", "provinces": "provincias", "magi": "magos",
+	"magi_share": "proporción de magos", "magi_unemployment": "paro de los magos", "magi_target_ratio": "magos / capacidad",
+	"mage_emigration": "magos emigrados (año)", "mage_immigration": "magos inmigrados (año)", "arcane_academies": "academias arcanas",
+	"arcane_deposits": "yacimientos arcanos", "immigration": "inmigrantes (mes)", "emigration": "emigrantes (mes)", "war_months": "meses de guerra", "magic_factories": "fábricas mágicas", "province_population": "población de la provincia",
 	"province_unemployment": "paro de la provincia", "province_militancy": "militancia de la provincia",
 	"life_rating": "calidad de vida", "fort": "fuerte", "naval_base": "base naval", "infrastructure": "infraestructura",
 	"magic_potential": "potencial mágico", "province_life": "necesidades vitales de la provincia",
@@ -122,9 +128,13 @@ static func _compile_key(gs: VGameState, k: String, v, errors: Array, where: Str
 				errors.append("%s: gobierno desconocido «%s»" % [where, v])
 			return [GOVERNMENT, String(v)]
 		"ruling_ideology", "ruling_party", "ideology":
-			if not gs.ideologies.has(v):
-				errors.append("%s: ideología desconocida «%s»" % [where, v])
-			return [RULING_IDEO, String(v)]
+			var ideos: Array = v if v is Array else [v]
+			var chi := []
+			for iv in ideos:
+				if not gs.ideologies.has(iv):
+					errors.append("%s: ideología desconocida «%s»" % [where, iv])
+				chi.append([RULING_IDEO, String(iv)])
+			return chi[0] if chi.size() == 1 else [OR, chi]
 		"reform_min", "reform_max":
 			var ch2 := []
 			for rid in v:
@@ -255,6 +265,41 @@ static func _compile_key(gs: VGameState, k: String, v, errors: Array, where: Str
 			return [P_STATE, int(v)]
 		"is_capital":
 			return [P_CAPITAL, bool(v)]
+		# M5: contexto de on_action (batallas, paz), capital ocupada, política y sociedad mágicas
+		"battle_losses", "battle_losses_below":
+			return [CTX_NUM, "losses", 1 if k.ends_with("_below") else 0, float(v)]
+		"own_losses", "own_losses_below":
+			return [CTX_NUM, "own_losses", 1 if k.ends_with("_below") else 0, float(v)]
+		"peace_goals", "peace_goals_below":
+			return [CTX_NUM, "goals", 1 if k.ends_with("_below") else 0, float(v)]
+		"war_result":
+			if not (String(v) in ["victory", "defeat", "white_peace"]):
+				errors.append("%s: war_result debe ser victory, defeat o white_peace" % where)
+			return [CTX_STR, "result", String(v)]
+		"capital_occupied":
+			return [CAP_OCC, bool(v)]
+		"magic_regulation":
+			var idxs := []
+			for lid in (v if v is Array else [v]):
+				var li := VMagicPolicy.level_index(gs, String(lid))
+				if li < 0:
+					errors.append("%s: nivel de regulación mágica desconocido «%s»" % [where, lid])
+				idxs.append(li)
+			return [MAGIC_REG, idxs]
+		"religion_magic_attitude":
+			for a in (v if v is Array else [v]):
+				if not (String(a) in VLoreLoader.MAGIC_ATTITUDES):
+					errors.append("%s: actitud mágica desconocida «%s»" % [where, a])
+			return [REL_ATT, v if v is Array else [v]]
+		"magic_tradition":
+			return [CUL_TRAD, v if v is Array else [v]]
+		"magic_path":
+			var chp := []
+			for b in v:
+				chp.append([MAGIC_PATH, String(b), String(v[b])])
+			return [AND, chp]
+		"is_rival":
+			return [IS_RIVAL, bool(v)]
 	# numéricos con sufijo _below
 	var below := k.ends_with("_below")
 	var base := k.trim_suffix("_below") if below else k
@@ -331,6 +376,23 @@ static func _check_country(gs: VGameState, node: Array, ctx: Dictionary) -> bool
 	if c.is_empty():
 		return false
 	match int(node[0]):
+		CTX_NUM:
+			return _cmp(float(ctx.get(node[1], 0.0)), int(node[2]), float(node[3]))
+		CTX_STR:
+			return String(ctx.get(node[1], "")) == node[2]
+		CAP_OCC:
+			var cp := gs.province(int(c.get("capital", -1)))
+			return (not cp.is_empty() and cp["controller"] != tag) == bool(node[1])
+		MAGIC_REG:
+			return gs.reform_level(tag, VMagicPolicy.REFORM) in node[1]
+		REL_ATT:
+			return VMageModel.religion_attitude(gs, String(c.get("religion", ""))) in node[1]
+		CUL_TRAD:
+			return VMageModel.culture_tradition(gs, String(c.get("primary_culture", ""))) in node[1]
+		MAGIC_PATH:
+			return node[2] in VMagicSystem.branch_paths(gs, tag, node[1])
+		IS_RIVAL:
+			return (String(ctx.get("target", "")) in c.get("rivals", [])) == bool(node[1])
 		CIVILIZED:
 			return bool(c.get("civilized", true)) == bool(node[1])
 		GP:
@@ -527,6 +589,35 @@ static func country_num(gs: VGameState, tag: String, fid: int) -> float:
 			return float(c.get("provinces", []).size())
 		19:
 			return float(c.get("type_sizes", {}).get("magi", 0))
+		20:
+			return float(c.get("_magi_info", {}).get("share", 0.0))
+		21:
+			return float(c.get("_magi_info", {}).get("unemployment", 0.0))
+		22:
+			return float(c.get("_magi_info", {}).get("ratio", 0.0))
+		23:
+			return float(c.get("magic_stats", {}).get("emigrated_y", 0.0))
+		24:
+			return float(c.get("magic_stats", {}).get("immigrated_y", 0.0))
+		25:
+			return VScopedState.get_variable(gs, tag, "arcane_academies")
+		26:
+			return float(c.get("acc_mobility_last", {}).get("immigrated", 0))
+		27:
+			return float(c.get("acc_mobility_last", {}).get("emigrated", 0))
+		28:
+			var longest := 0
+			for wid in c.get("wars", []):
+				longest = maxi(longest, gs.month_index - int(gs.wars.get(int(wid), {}).get("start_month", gs.month_index)))
+			return float(longest)
+		29:
+			var n := 0
+			for ft in gs.factory_types:
+				if int(gs.factory_types[ft].get("workforce", {}).get("magi", 0)) > 0:
+					n += factory_type_count(gs, tag, ft)
+			return float(n)
+		30:
+			return float(VMagicSystem.country_deposit_provinces(gs, tag).size())
 	return 0.0
 
 
@@ -711,6 +802,26 @@ static func describe(gs: VGameState, node: Array) -> String:
 			return "yacimiento mágico" if node[1] else "sin yacimiento mágico"
 		P_CAPITAL:
 			return "capital" if node[1] else "no capital"
+		CTX_NUM:
+			return "%s %s %s" % [{"losses": "bajas enemigas", "own_losses": "bajas propias", "goals": "objetivos de paz"}.get(node[1], node[1]), "≥" if int(node[2]) == 0 else "<", _num(float(node[3]))]
+		CTX_STR:
+			return {"victory": "paz victoriosa", "defeat": "paz de derrota", "white_peace": "paz blanca"}.get(node[2], node[2])
+		CAP_OCC:
+			return "capital ocupada" if node[1] else "capital libre"
+		MAGIC_REG:
+			var names := []
+			for li in node[1]:
+				if li >= 0 and li < VMagicPolicy.levels(gs).size():
+					names.append(String(VMagicPolicy.levels(gs)[li]["name"]).to_lower())
+			return "magia " + " o ".join(names)
+		REL_ATT:
+			return "religión con actitud mágica: " + ", ".join(node[1])
+		CUL_TRAD:
+			return "tradición mágica: " + ", ".join(node[1])
+		MAGIC_PATH:
+			return "senda mágica «%s» (%s)" % [node[2], node[1]]
+		IS_RIVAL:
+			return "rival" if node[1] else "no rival"
 	return "condición de provincia" if int(node[0]) >= P_OWNER_IS else "condición %d" % int(node[0])
 
 

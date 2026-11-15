@@ -1,0 +1,25 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (magic_politics). Espacio de nombres magic.politics.*",
+ "events": [
+  {
+   "id": "magic.politics.regulation_debate",
+   "scope": "country",
+   "type": "normal",
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "cadence": "quarterly",
+   "art": "parliament",
+   "title": "¿Qué hacer con la magia?",
+   "desc": "El gobierno debe fijar el estatuto legal de la práctica mágica. Hay quien la teme, quien la quiere libre, quien quiere licencias y quien la quiere al servicio del Estado. La decisión será ley hasta que la cámara la cambie.",
+   "trigger": {"or": [{"magi": 50}, {"magic_branch": {"politics": 1}}], "not_country_flag": "MAGIC_POLICY_SET"},
+   "mtth": {"months": 18},
+   "important": true,
+   "options": [
+    {"name": "Prohibir la magia", "effects": {"set_country_flag": "MAGIC_POLICY_SET", "set_magic_regulation": "magic_prohibited"}, "chronicle": "{country} prohibió la práctica de la magia.", "ai_weight": {"base": 2, "modifiers": [{"factor": 4.0, "ruling_ideology": "tradicionalista"}, {"factor": 2.0, "religion_magic_attitude": ["suspicious", "heretical"]}]}},
+    {"name": "Dejarla libre, sin regulación", "effects": {"set_country_flag": "MAGIC_POLICY_SET", "set_magic_regulation": "magic_tolerated"}, "ai_weight": {"base": 2, "modifiers": [{"factor": 3.0, "ruling_ideology": "radical"}]}},
+    {"name": "Licencias para practicar", "effects": {"set_country_flag": "MAGIC_POLICY_SET", "set_magic_regulation": "magic_licensed"}, "chronicle": "{country} estableció un régimen de licencias para los magos.", "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["liberal", "conservador"]}]}},
+    {"name": "Fomentar la magia", "effects": {"set_country_flag": "MAGIC_POLICY_SET", "set_magic_regulation": "magic_promoted"}, "chronicle": "{country} decidió fomentar la magia con dinero público.", "ai_weight": {"base": 2, "modifiers": [{"factor": 3.0, "ruling_ideology": "socialista"}, {"factor": 1.5, "religion_magic_attitude": ["sacred"]}]}},
+    {"name": "Monopolio arcano del Estado", "trigger": {"magic_branch": {"politics": 1}}, "effects": {"set_country_flag": "MAGIC_POLICY_SET", "set_magic_regulation": "magic_state_control"}, "chronicle": "{country} puso la magia bajo control del Estado.", "ai_weight": {"base": 2, "modifiers": [{"factor": 3.0, "ruling_ideology": ["autoritario", "comunitarista"]}]}}
+   ]
+  }
+ ]
+}

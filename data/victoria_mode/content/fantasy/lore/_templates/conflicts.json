@@ -1,0 +1,18 @@
+{
+ "lore_type": "conflict",
+ "_doc": "Conflictos históricos (antes de la fecha de inicio o latentes).",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "sides": [
+    [],
+    []
+   ],
+   "start_year": 0,
+   "end_year": 0,
+   "outcome": "",
+   "legacy": ""
+  }
+ ]
+}

@@ -350,6 +350,81 @@
      }
     }
    ]
+  },
+  {
+   "id": "magic_regulation",
+   "name": "Regulación de la magia",
+   "type": "magic",
+   "issue": "magic_policy",
+   "default": 1,
+   "requires_flag": "GLOBAL_MAGIC_ACTIVATED",
+   "movement": false,
+   "_doc": "M5. Niveles provisionales (nombres finales en el lore). No genera movimientos genéricos: el apoyo de cada ideología depende de su postura (ideologies.json → issues.magic_policy): apoya los cambios que acercan la ley a su postura. Efectos: modificadores nacionales leídos por VMageModel (capacidad, promoción, atracción, plazas estatales), VTechnologySystem (magic_research), VProductionSystem (magic_factory_efficiency) y VPopulationSystem (magi_militancy, religious_tension).",
+   "levels": [
+    {
+     "id": "magic_prohibited",
+     "name": "Prohibida",
+     "effects": {
+      "mage_capacity": -0.8,
+      "mage_promotion": -0.85,
+      "mage_attraction": -1.0,
+      "magic_research": -0.5,
+      "magic_factory_efficiency": -0.5,
+      "magi_militancy": 0.02,
+      "religious_tension": -0.004,
+      "mage_practice": -0.7
+     }
+    },
+    {
+     "id": "magic_tolerated",
+     "name": "Tolerada",
+     "effects": {}
+    },
+    {
+     "id": "magic_licensed",
+     "name": "Licenciada",
+     "effects": {
+      "mage_capacity": 0.1,
+      "mage_promotion": -0.1,
+      "mage_attraction": 0.2,
+      "magic_research": 0.1,
+      "magic_factory_efficiency": 0.1,
+      "magi_militancy": -0.003,
+      "religious_tension": -0.001,
+      "mage_state_posts": 4e-05
+     }
+    },
+    {
+     "id": "magic_promoted",
+     "name": "Promovida",
+     "effects": {
+      "mage_capacity": 0.5,
+      "mage_promotion": 0.6,
+      "mage_attraction": 0.6,
+      "magic_research": 0.3,
+      "magic_factory_efficiency": 0.15,
+      "magi_militancy": -0.006,
+      "religious_tension": 0.004,
+      "mage_state_posts": 8e-05,
+      "mage_practice": 0.2
+     }
+    },
+    {
+     "id": "magic_state_control",
+     "name": "Control estatal",
+     "effects": {
+      "mage_capacity": 0.3,
+      "mage_promotion": 0.3,
+      "mage_attraction": -0.2,
+      "magic_research": 0.25,
+      "magic_factory_efficiency": 0.05,
+      "magi_militancy": 0.006,
+      "mage_state_posts": 0.0002,
+      "mage_military_posts": 0.002,
+      "mage_practice": -0.7
+     }
+    }
+   ]
   }
  ],
  "movement_names": {

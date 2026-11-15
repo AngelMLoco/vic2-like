@@ -11,7 +11,10 @@ const SAVE_DIR := "user://victoria_mode/saves/"
 ## v4 (M3.2): POPs en formato columnar (VPopStore.to_save); las provincias ya no guardan POPs.
 ## v5 (M4): estado de eventos (banderas con ámbito, variables, modificadores temporales, historial, cola,
 ## eventos programados, decisiones tomadas) y capa mágica de provincia (p["magic"]).
-const SAVE_VERSION := 5
+## v6 (M5): ids de eventos con espacio de nombres (core.*, magic.*, country.*), reforma magic_regulation,
+## estadísticas de magos por nación (magic_stats), rivales, escenario y paquetes de contenido. Una v5
+## referenciaría eventos que ya no existen: se rechaza.
+const SAVE_VERSION := 6
 const MODE_ID := "victoria_mode"
 
 ## v2 (milestone 2): economía, política y tecnología. Las partidas v1 se rechazan con un mensaje.
@@ -26,7 +29,7 @@ const COUNTRY_FIELDS := ["prestige", "treasury", "literacy", "infamy", "war_exha
 	"acc_mobility_last", "_tier_demand",
 	"diplo_points", "military_access", "guarantees", "truces", "overlord", "subjects", "wars", "influence",
 	"gp_grace", "leadership", "casualties", "_casualties_seen", "disarmed_until", "reparations", "ship_queue",
-	"blockade_ratio", "status", "rank"]
+	"blockade_ratio", "status", "rank", "magic_stats", "rivals"]
 const PROVINCE_FIELDS := ["owner", "controller", "cores", "occupation", "fort", "naval_base", "infrastructure",
 	"life_rating", "rgo", "culture", "religion", "rgo_data", "avg_life", "unemployment", "rgo_free",
 	"occupation_by", "blockaded_by", "rebel_faction", "magic"]
@@ -101,6 +104,8 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 			"saved_at": Time.get_datetime_string_from_system(),
 		},
 		"date": gs.date.to_dict(),
+		"scenario": gs.scenario_id,
+		"content_packs": gs.content_packs,
 		"player_tag": gs.player_tag,
 		"flags": gs.flags,
 		"pops": gs.pops.to_save(),
@@ -163,7 +168,7 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 	if int(data.get("save_version", 0)) != SAVE_VERSION:
 		error_out.append("Versión de guardado %d incompatible (se esperaba %d)." % [int(data.get("save_version", 0)), SAVE_VERSION])
 		return null
-	var gs := VDataLoader.new_game()
+	var gs := VDataLoader.new_game(String(data.get("scenario", "")))
 	gs.date = VDate.from_dict(data["date"])
 	gs.player_tag = data.get("player_tag", "")
 	gs.flags = data.get("flags", {})

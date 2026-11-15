@@ -2,71 +2,106 @@
  "_doc": "Decisiones nacionales (industriales, políticas, diplomáticas y militares). ai_weight = probabilidad por trimestre cuando está disponible (0…1).",
  "decisions": [
   {
-   "id": "industrial_expansion_program", "name": "Programa de expansión industrial", "category": "industrial",
+   "id": "industrial_expansion_program",
+   "name": "Programa de expansión industrial",
+   "category": "industrial",
    "desc": "Créditos estatales y concesiones para levantar nuevas industrias.",
    "visible": {"civilized": true, "factory_count": 3},
    "available": {"treasury": 3000, "at_war": false},
    "cost": {"treasury": 2000},
    "effects": {"add_country_modifier": {"id": "industrial_stimulus", "months": 24}},
    "ai_weight": {"base": 0.25, "modifiers": [{"factor": 2.0, "unemployment": 0.06}]},
-   "cooldown": 60, "once": false
+   "cooldown": 60,
+   "once": false
   },
   {
-   "id": "national_railway_survey", "name": "Plan nacional de comunicaciones", "category": "industrial",
+   "id": "national_railway_survey",
+   "name": "Plan nacional de comunicaciones",
+   "category": "industrial",
    "desc": "Caminos, canales y puertos para unir los mercados interiores.",
    "visible": {"civilized": true},
    "available": {"treasury": 2500, "has_technology": "mechanical_workshops"},
    "cost": {"treasury": 1500},
    "effects": {"add_country_modifier": {"id": "customs_union", "months": 60}},
-   "ai_weight": 0.15, "once": true
+   "ai_weight": 0.15,
+   "once": true
   },
   {
-   "id": "extend_suffrage", "name": "Ampliar el sufragio", "category": "political",
+   "id": "extend_suffrage",
+   "name": "Ampliar el sufragio",
+   "category": "political",
    "desc": "Satisfacer al movimiento sufragista antes de que se radicalice.",
    "visible": {"reform_max": {"voting": 2}},
    "available": {"movement_support": {"voting": 0.05}, "at_war": false},
    "cost": {"prestige": 3},
    "effects": {"change_reform": {"voting": 1}, "add_militancy": {"value": -0.3, "strata": "middle"}},
    "ai_weight": {"base": 0.2, "modifiers": [{"factor": 2.5, "rebel_risk": true}, {"factor": 0.3, "ruling_ideology": "tradicionalista"}]},
-   "cooldown": 36, "once": false
+   "cooldown": 36,
+   "once": false
   },
   {
-   "id": "proclaim_martial_law", "name": "Proclamar la ley marcial", "category": "political",
+   "id": "proclaim_martial_law",
+   "name": "Proclamar la ley marcial",
+   "category": "political",
    "desc": "Suspender las garantías constitucionales para restablecer el orden.",
    "visible": {"militancy": 2.0},
    "available": {"militancy": 3.0},
    "cost": {"prestige": 5},
    "effects": {"add_country_modifier": {"id": "martial_law", "months": 12}, "add_militancy": -0.5},
    "ai_weight": {"base": 0.15, "modifiers": [{"factor": 3.0, "rebel_faction_exists": true}]},
-   "cooldown": 24, "once": false
+   "cooldown": 24,
+   "once": false
   },
   {
-   "id": "host_peace_congress", "name": "Convocar un congreso de paz", "category": "diplomatic",
+   "id": "host_peace_congress",
+   "name": "Convocar un congreso de paz",
+   "category": "diplomatic",
    "desc": "Reunir a las potencias en nuestra capital para arbitrar las disputas del continente.",
    "visible": {"great_power": true},
    "available": {"at_war": false, "prestige": 30, "number_of_wars": 2},
    "cost": {"treasury": 1000},
    "effects": {"add_prestige": 8, "add_infamy": -3},
-   "ai_weight": 0.2, "cooldown": 60, "once": false
+   "ai_weight": 0.2,
+   "cooldown": 60,
+   "once": false
   },
   {
-   "id": "military_academy", "name": "Fundar la Academia Militar", "category": "military",
+   "id": "military_academy",
+   "name": "Fundar la Academia Militar",
+   "category": "military",
    "desc": "Formar oficiales con un currículo científico.",
    "visible": {"civilized": true},
    "available": {"has_technology": "general_staff", "treasury": 2000},
    "cost": {"treasury": 1500},
    "effects": {"add_country_modifier": {"id": "officer_corps", "months": 0}, "add_prestige": 2},
-   "ai_weight": 0.3, "once": true
+   "ai_weight": 0.3,
+   "once": true
   },
   {
-   "id": "mobilize_reserves", "name": "Movilizar las reservas", "category": "military",
+   "id": "mobilize_reserves",
+   "name": "Movilizar las reservas",
+   "category": "military",
    "desc": "Llamar a filas a los reservistas para una guerra que se alarga.",
    "visible": {"at_war": true},
    "available": {"at_war": true, "war_exhaustion_below": 40},
    "cost": {"prestige": 2},
    "effects": {"add_country_modifier": {"id": "war_fervor", "months": 6}, "add_war_exhaustion": 3},
    "ai_weight": {"base": 0.2, "modifiers": [{"factor": 0.3, "war_exhaustion": 20}]},
-   "cooldown": 24, "once": false
+   "cooldown": 24,
+   "once": false
+  },
+  {
+   "id": "sanitation_act",
+   "name": "Ley de saneamiento urbano",
+   "category": "political",
+   "desc": "Cloacas, agua corriente e inspectores sanitarios para los barrios obreros. Cara, pero evita epidemias y calma a los pobres.",
+   "visible": {"factory_count": 8, "not_country_flag": "SANITATION_ACT"},
+   "available": {"treasury": 2000, "at_war": false},
+   "cost": {"treasury": 1500},
+   "effects": {"set_country_flag": "SANITATION_ACT", "add_country_modifier": {"id": "public_works", "months": 36}, "add_militancy": {"value": -0.2, "strata": "poor"}},
+   "chronicle": "{country} aprobó una gran ley de saneamiento urbano.",
+   "ai_weight": {"base": 0.3, "modifiers": [{"factor": 2.0, "avg_life_below": 0.75}, {"factor": 1.5, "ruling_ideology": ["socialista", "radical"]}]},
+   "once": true
   }
  ]
 }

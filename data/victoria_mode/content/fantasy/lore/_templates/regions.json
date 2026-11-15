@@ -1,0 +1,13 @@
+{
+ "lore_type": "region",
+ "_doc": "Regiones (agrupan estados del mapa definitivo). Espacio de nombres de eventos region.<id>.*",
+ "entries": [
+  {
+   "id": "",
+   "name": "",
+   "continent": "",
+   "states": [],
+   "summary": ""
+  }
+ ]
+}

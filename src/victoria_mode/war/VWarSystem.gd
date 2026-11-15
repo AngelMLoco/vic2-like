@@ -157,8 +157,8 @@ static func declare_war(gs: VGameState, actor: String, cb: Dictionary) -> Dictio
 	gs.set_relation(actor, target, gs.relation(actor, target) - 100)
 	gs.log_event(actor, "Declaramos la guerra a %s (%s)" % [gs.country_name(target), VCasusBelliSystem.cb_def(gs, cb["type"]).get("name", "")])
 	gs.log_event(target, "¡%s nos declara la guerra!" % gs.country_name(actor))
-	VEventSystem.notify(gs, "war_declared", {"tag": actor, "target": target, "war": int(w["id"])})
-	VEventSystem.notify(gs, "war_declared", {"tag": target, "target": actor, "from": actor, "war": int(w["id"])})
+	VEventSystem.notify(gs, "war_declared", {"tag": actor, "target": target, "war": int(w["id"]), "war_name": w.get("name", "guerra")})
+	VEventSystem.notify(gs, "war_declared", {"tag": target, "target": actor, "from": actor, "war": int(w["id"]), "war_name": w.get("name", "guerra")})
 	# defensores: aliados y garantes del objetivo
 	for t in gs.country_order:
 		if t == target or t == actor or gs.countries[t]["provinces"].is_empty():
@@ -297,8 +297,9 @@ static func on_battle_end(gs: VGameState, bt: Dictionary, winner: String) -> voi
 	var sign := 1.0 if side_of(w, winner_tag) == "attackers" else -1.0
 	w["battle_ws"] = clampf(float(w["battle_ws"]) + delta * sign, -40.0, 40.0)
 	var loser_tag: String = bt["def_tag"] if winner == "attacker" else bt["att_tag"]
-	VEventSystem.notify(gs, "battle_won", {"tag": winner_tag, "target": loser_tag, "prov": int(bt["province"])})
-	VEventSystem.notify(gs, "battle_lost", {"tag": loser_tag, "target": winner_tag, "prov": int(bt["province"])})
+	var winner_losses := int(bt["losses"]["attacker" if winner == "attacker" else "defender"])
+	VEventSystem.notify(gs, "battle_won", {"tag": winner_tag, "target": loser_tag, "prov": int(bt["province"]), "losses": loser_losses, "own_losses": winner_losses})
+	VEventSystem.notify(gs, "battle_lost", {"tag": loser_tag, "target": winner_tag, "prov": int(bt["province"]), "losses": winner_losses, "own_losses": loser_losses})
 
 
 ## Cambio de controlador (único punto): mantiene la ocupación agregada por nación y la versión.
@@ -559,7 +560,9 @@ static func monthly(gs: VGameState) -> void:
 
 
 ## Fin de una guerra: treguas, se restaura el control, los ejércitos en territorio ajeno vuelven a casa.
-static func end_war(gs: VGameState, w: Dictionary, text: String) -> void:
+## outcome (M5, opcional): {"winner_side": "attackers"|"defenders"|"", "goals": n} → contexto de «war_ended»
+## (result: victory / defeat / white_peace, goals, war_months, war_name, primary) para eventos y crónica.
+static func end_war(gs: VGameState, w: Dictionary, text: String, outcome: Dictionary = {}) -> void:
 	var parts: Array = w["attackers"] + w["defenders"]
 	for t in parts:
 		if gs.countries.has(t):
@@ -599,9 +602,19 @@ static func end_war(gs: VGameState, w: Dictionary, text: String) -> void:
 				if VArmySystem.order_move(gs, a, cap) != "":
 					VUnitIndex.move_army(gs, a, cap)
 	gs.wars.erase(int(w["id"]))
+	var ws: String = outcome.get("winner_side", "")
+	var goals := int(outcome.get("goals", 0))
+	var months := gs.month_index - int(w.get("start_month", gs.month_index))
 	for t2 in parts:
 		if gs.countries.has(t2) and not gs.countries[t2]["provinces"].is_empty():
-			VEventSystem.notify(gs, "war_ended", {"tag": t2})
+			var side := "attackers" if t2 in w["attackers"] else "defenders"
+			var result := "white_peace"
+			if ws != "" and goals > 0:
+				result = "victory" if side == ws else "defeat"
+			var enemy: String = w["primary_defender"] if side == "attackers" else w["primary_attacker"]
+			VEventSystem.notify(gs, "war_ended", {"tag": t2, "target": enemy, "result": result, "goals": goals,
+				"war_months": months, "war_name": w.get("name", "guerra"),
+				"primary": t2 == w.get("primary_attacker", "") or t2 == w.get("primary_defender", "")})
 	VUnitIndex.bump_access(gs)
 	gs.flags["_overlay_dirty"] = true
 

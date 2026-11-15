@@ -1,0 +1,158 @@
+{
+ "_doc": "Cadenas sociales (M5): alfabetización y prensa, urbanización y salud pública, migración, nuevas clases y fe. Espacios de nombres core.society.*, core.migration.*, core.religion.*",
+ "events": [
+  {
+   "id": "core.society.reading_societies",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "press_salon",
+   "title": "Sociedades de lectura",
+   "desc": "En trastiendas y ateneos obreros se lee en voz alta: periódicos, novelas, folletos. Por primera vez, buena parte del país sabe leer y quiere hacerlo.",
+   "trigger": {"not_country_flag": "READING_PATH", "literacy": 0.35, "consciousness": 0.5},
+   "mtth": {"months": 36},
+   "once": true,
+   "options": [
+    {"name": "Bibliotecas públicas", "effects": {"set_country_flag": ["READING_PATH", "PUBLIC_LIBRARIES"], "change_budget": {"education": 0.05}, "add_country_modifier": {"id": "salon_culture", "months": 24}}, "follow_up": {"id": "core.society.educated_class", "months": 30}, "ai_weight": {"base": 5, "modifiers": [{"factor": 2.0, "ruling_ideology": ["liberal", "radical", "socialista"]}]}},
+    {"name": "Vigilar los clubes de lectura", "effects": {"set_country_flag": ["READING_PATH", "CENSORED_READING"], "add_consciousness": -0.1}, "follow_up": {"id": "core.society.radical_pamphlets", "months": 18}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["tradicionalista", "autoritario"]}]}}
+   ]
+  },
+  {
+   "id": "core.society.radical_pamphlets",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "press_salon",
+   "title": "Folletos clandestinos",
+   "desc": "Lo que no puede leerse en los clubes vigilados circula en hojas sin firma: caricaturas del gobierno, programas radicales, llamadas a la huelga.",
+   "trigger": {"country_flag": "CENSORED_READING", "consciousness": 0.8},
+   "options": [
+    {"name": "Clausurar las imprentas", "effects": {"add_militancy": {"value": 0.3, "strata": "middle"}, "add_country_modifier": {"id": "political_turmoil", "months": 12}}, "ai_weight": 4},
+    {"name": "Levantar la censura", "effects": {"change_reform": {"press": 1}, "clear_country_flag": "CENSORED_READING"}, "chronicle": "{country} levantó la censura de la prensa.", "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.society.educated_class",
+   "scope": "country",
+   "type": "notification",
+   "cadence": "follow_up",
+   "art": "science_laboratory",
+   "title": "Una generación lectora",
+   "desc": "Los hijos de los primeros lectores llenan institutos y universidades. Ingenieros, maestros y médicos salen de familias que hace treinta años no sabían firmar.",
+   "trigger": {"country_flag": "PUBLIC_LIBRARIES"},
+   "options": [
+    {"name": "El futuro se lee", "effects": {"add_country_modifier": {"id": "urban_growth", "months": 24}, "add_research_points": 300}}
+   ]
+  },
+  {
+   "id": "core.society.slums",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "famine_poverty",
+   "title": "Los barrios bajos",
+   "desc": "La ciudad crece más deprisa que sus cloacas. Familias enteras viven en sótanos sin luz junto a las fábricas; los médicos hablan de fiebres y de cólera.",
+   "trigger": {"not_country_flag": "SANITATION_ACT", "factory_count": 10, "avg_life_below": 0.75},
+   "mtth": {"months": 36},
+   "cooldown": 120,
+   "options": [
+    {"name": "Una ley de saneamiento", "effects": {"add_treasury_ratio": -0.08, "set_country_flag": "SANITATION_ACT", "add_country_modifier": {"id": "public_works", "months": 24}}, "chronicle": "{country} aprobó su primera ley de saneamiento urbano.", "ai_weight": 5},
+    {"name": "No es asunto del Estado", "effects": {"set_country_flag": "SLUMS_IGNORED"}, "follow_up": {"id": "core.society.cholera", "months": 12}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.society.cholera",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "famine_poverty",
+   "title": "Cólera",
+   "desc": "La epidemia empieza en los barrios bajos y no se detiene en ellos. Los ricos huyen al campo; los pobres entierran a sus muertos.",
+   "trigger": {"country_flag": "SLUMS_IGNORED"},
+   "important": true,
+   "chronicle": "Una epidemia de cólera azotó {country} en el año {year}.",
+   "options": [
+    {"name": "Cuarentenas y cordones sanitarios", "effects": {"kill_population": 0.003, "add_militancy": {"value": 0.2, "strata": "poor"}, "clear_country_flag": "SLUMS_IGNORED", "set_country_flag": "SANITATION_ACT"}, "ai_weight": 5},
+    {"name": "Llamar a los sanadores arcanos", "trigger": {"flag": "GLOBAL_MAGIC_ACTIVATED", "magi": 1000}, "effects": {"kill_population": 0.001, "add_treasury_ratio": -0.05, "add_militancy": {"value": -0.3, "pop_type": "magi"}, "clear_country_flag": "SLUMS_IGNORED", "set_country_flag": ["SANITATION_ACT", "MAGI_HEALERS"]}, "chronicle": "Los sanadores arcanos contuvieron el cólera en {country}.", "ai_weight": 6}
+   ]
+  },
+  {
+   "id": "core.migration.immigrant_wave",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "quarterly",
+   "art": "city_harbor",
+   "title": "Llegan los inmigrantes",
+   "desc": "Barco tras barco, familias extranjeras desembarcan con sus baúles. Las fábricas las contratan; algunos vecinos las miran con recelo.",
+   "trigger": {"immigration": 20000},
+   "mtth": {"months": 12},
+   "cooldown": 36,
+   "options": [
+    {"name": "Hay trabajo para todos", "effects": {"add_country_modifier": {"id": "migration_boom", "months": 24}, "set_country_flag": "WELCOMING", "clear_country_flag": "NATIVIST"}, "follow_up": {"id": "core.migration.nativist_riots", "months": 8}, "ai_weight": 5},
+    {"name": "Cupos y controles en los puertos", "effects": {"set_country_flag": "NATIVIST", "clear_country_flag": "WELCOMING", "add_militancy": {"value": -0.1, "strata": "poor"}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.migration.nativist_riots",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "follow_up",
+   "art": "street_protest",
+   "title": "Disturbios contra los recién llegados",
+   "desc": "Una pelea en una taberna termina con escaparates rotos en el barrio de los inmigrantes. Los periódicos populares piden que se marchen.",
+   "trigger": {"country_flag": "WELCOMING", "unemployment": 0.05},
+   "options": [
+    {"name": "Proteger a los inmigrantes", "effects": {"add_militancy": {"value": 0.2, "strata": "poor"}, "add_country_modifier": {"id": "religious_tolerance", "months": 12}}, "ai_weight": 5},
+    {"name": "Ceder ante la calle", "effects": {"set_country_flag": "NATIVIST", "clear_country_flag": "WELCOMING", "add_militancy": {"value": -0.2, "strata": "poor"}, "add_consciousness": 0.1}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.migration.emigration_exodus",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "quarterly",
+   "art": "city_harbor",
+   "title": "Se van",
+   "desc": "En los puertos se forman colas de emigrantes: campesinos sin tierra, obreros sin trabajo. Los pueblos se vacían de jóvenes.",
+   "trigger": {"emigration": 10000},
+   "mtth": {"months": 18},
+   "cooldown": 48,
+   "options": [
+    {"name": "Prometer tierras en la frontera", "effects": {"add_country_modifier": {"id": "frontier_settlement", "months": 24}, "add_treasury_ratio": -0.03}, "ai_weight": 5},
+    {"name": "Dejarles partir: menos bocas que alimentar", "effects": {"add_militancy": {"value": -0.1, "strata": "poor"}}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.society.rise_of_clerks",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "press_salon",
+   "title": "Los oficinistas",
+   "desc": "Contables, empleados de banca y funcionarios: una clase media de cuello blanco que no es obrera ni rica, que lee y que vota si la dejan.",
+   "trigger": {"pop_type_size": {"clerks": 200000}, "literacy": 0.3},
+   "mtth": {"months": 36},
+   "once": true,
+   "options": [
+    {"name": "Escuchar a la clase media", "effects": {"change_reform": {"voting": 1}, "add_militancy": {"value": -0.2, "strata": "middle"}}, "ai_weight": 4},
+    {"name": "Más empleos públicos", "effects": {"change_budget": {"administration": 0.1}, "add_militancy": {"value": -0.1, "strata": "middle"}}, "ai_weight": 5}
+   ]
+  },
+  {
+   "id": "core.religion.revival",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "church_religion",
+   "title": "Avivamiento religioso",
+   "desc": "En tiempos duros los templos se llenan. Predicadores itinerantes reúnen multitudes y el clero pide al gobierno que defienda la fe.",
+   "trigger": {"avg_life_below": 0.7, "consciousness": 0.6},
+   "mtth": {"months": 48},
+   "cooldown": 120,
+   "options": [
+    {"name": "Alianza con el clero", "effects": {"add_country_modifier": {"id": "religious_zeal", "months": 24}, "set_country_flag": "CHURCH_ALLIANCE", "add_militancy": {"value": -0.2, "pop_type": "clergy"}}, "ai_weight": {"base": 4, "modifiers": [{"factor": 2.0, "ruling_ideology": ["tradicionalista", "conservador"]}]}},
+    {"name": "Neutralidad del Estado", "effects": {"add_country_modifier": {"id": "religious_tolerance", "months": 24}, "clear_country_flag": "CHURCH_ALLIANCE"}, "ai_weight": 4}
+   ]
+  }
+ ]
+}

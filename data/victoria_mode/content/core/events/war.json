@@ -1,0 +1,97 @@
+{
+ "_doc": "Eventos sistémicos reutilizables (war). Espacio de nombres core.war.*",
+ "events": [
+  {
+   "id": "core.war.military_reform_debate",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "yearly",
+   "art": "army_officers",
+   "title": "Debate sobre la reforma militar",
+   "desc": "Un memorando del Estado Mayor circula por los ministerios: nuestro ejército, dice, combate como hace cincuenta años.",
+   "trigger": {"at_war": false, "prestige": 10, "civilized": true},
+   "mtth": {"months": 48, "modifiers": [{"factor": 0.5, "has_technology": "general_staff"}]},
+   "cooldown": 120,
+   "options": [
+    {"name": "Modernizar el ejército", "effects": {"add_treasury_ratio": -0.08, "change_budget": {"military": 0.1}, "add_country_modifier": {"id": "military_reform", "months": 60}}, "follow_up": {"id": "core.war.officer_corps", "months": 6}, "ai_weight": {"base": 5, "modifiers": [{"factor": 0.3, "treasury_below": 1000}]}},
+    {"name": "Priorizar la marina", "effects": {"add_treasury_ratio": -0.05, "add_country_modifier": {"id": "naval_tradition", "months": 60}}, "ai_weight": 3},
+    {"name": "El ejército es glorioso tal como está", "effects": {"add_prestige": 2}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.war.officer_corps",
+   "scope": "country",
+   "type": "notification",
+   "cadence": "follow_up",
+   "art": "army_officers",
+   "title": "Nuevo cuerpo de oficiales",
+   "desc": "Las academias gradúan a la primera promoción formada según el nuevo reglamento.",
+   "options": [
+    {"name": "Bien", "effects": {"add_country_modifier": {"id": "officer_corps", "months": 60}}}
+   ]
+  },
+  {
+   "id": "core.war.military_defeat",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "battle_lost",
+   "art": "battlefield",
+   "title": "Derrota en el campo de batalla",
+   "desc": "Las noticias del frente son malas. En la capital se buscan culpables.",
+   "trigger": {"at_war": true},
+   "chance": 0.12,
+   "cooldown": 12,
+   "options": [
+    {"name": "Reorganizar el mando", "effects": {"add_treasury_ratio": -0.04, "add_country_modifier": {"id": "officer_corps", "months": 24}}, "ai_weight": 6},
+    {"name": "Culpar a los generales", "effects": {"add_prestige": -3, "add_militancy": -0.2}, "ai_weight": 4},
+    {"name": "Silenciar a la prensa", "effects": {"add_consciousness": 0.2, "add_war_exhaustion": -2}, "ai_weight": 3}
+   ]
+  },
+  {
+   "id": "core.war.war_weariness",
+   "scope": "country",
+   "type": "normal",
+   "art": "war_home_front",
+   "title": "Hartazgo de la guerra",
+   "desc": "Las listas de caídos ocupan páginas enteras. Las madres preguntan para qué.",
+   "trigger": {"at_war": true, "war_exhaustion": 18},
+   "mtth": {"months": 10, "modifiers": [{"factor": 0.5, "war_exhaustion": 35}]},
+   "cooldown": 18,
+   "options": [
+    {"name": "Prometer una paz honorable", "effects": {"add_prestige": -2, "add_militancy": -0.3}, "ai_weight": 6},
+    {"name": "Llamar al sacrificio patriótico", "effects": {"add_country_modifier": {"id": "war_weariness", "months": 12}, "add_war_exhaustion": -4}, "ai_weight": 4}
+   ]
+  },
+  {
+   "id": "core.war.war_rally",
+   "scope": "country",
+   "type": "normal",
+   "cadence": "on_action",
+   "on_action": "war_declared",
+   "art": "war_home_front",
+   "title": "La nación se une",
+   "desc": "Banderas en los balcones y voluntarios en las oficinas de alistamiento.",
+   "trigger": {"prestige": 5},
+   "chance": 0.35,
+   "cooldown": 24,
+   "options": [
+    {"name": "¡A las armas!", "effects": {"add_country_modifier": {"id": "war_fervor", "months": 12}}}
+   ]
+  },
+  {
+   "id": "core.war.occupation_partisans",
+   "scope": "province",
+   "type": "hidden",
+   "cadence": "on_action",
+   "on_action": "province_occupied",
+   "art": "occupation_ruins",
+   "title": "Partisanos",
+   "desc": "La población de la provincia ocupada resiste.",
+   "chance": 0.25,
+   "options": [
+    {"name": "—", "effects": {"add_province_modifier": {"id": "partisans", "months": 12}}}
+   ]
+  }
+ ]
+}

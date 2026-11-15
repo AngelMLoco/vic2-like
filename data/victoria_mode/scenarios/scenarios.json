@@ -1,0 +1,17 @@
+{
+ "_doc": "Escenarios / bookmarks. Cada escenario declara su fecha de inicio, su archivo de historia (estado inicial) y los paquetes de contenido que carga. El motor no asume el año 136: lo dice el escenario. Ver docs/VictoriaModeDataSchemas.md (M5).",
+ "default": "prototype_136",
+ "scenarios": [
+  {
+   "id": "prototype_136",
+   "name": "Prototipo — Año 136",
+   "era": "prototype",
+   "description": "Geografía de pruebas (Tierra). Sirve para validar la simulación; no es el mundo final.",
+   "history": "history/start_136.json",
+   "content_packs": ["core", "prototype"]
+  }
+ ],
+ "eras": [
+  {"id": "prototype", "name": "Prototipo", "note": "PROTOTYPE / replace later. Las eras definitivas (Era I, Era II…) se definen en el lore."}
+ ]
+}
