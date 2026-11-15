@@ -378,7 +378,7 @@ func _build_ui() -> void:
     map_frame.add_theme_stylebox_override("panel", _panel_style(Color("405f69"), Color("94713e"), 2))
     center.add_child(map_frame)
 
-    var map_script = load("res://src/ui/PoliticalMap.gd")
+    var map_script = load("res://src/legacy/ui/PoliticalMap.gd")
     political_map = map_script.new()
     political_map.name = "PoliticalMap"
     political_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3361,10 +3361,10 @@ func _refresh_summary() -> void:
 # -------------------------------------------------------------------
 
 func _load_external_data() -> void:
-    tech_defs = _load_json_array("res://data/techs.json")
-    industry_defs = _load_json_array("res://data/industries.json")
-    event_defs = _load_json_array("res://data/events.json")
-    cb_defs = _load_json_array("res://data/casus_belli.json")
+    tech_defs = _load_json_array("res://data/legacy/techs.json")
+    industry_defs = _load_json_array("res://data/legacy/industries.json")
+    event_defs = _load_json_array("res://data/legacy/events.json")
+    cb_defs = _load_json_array("res://data/legacy/casus_belli.json")
 
 
 func _load_json_array(path: String) -> Array:
