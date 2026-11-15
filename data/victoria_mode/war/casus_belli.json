@@ -1,0 +1,147 @@
+{
+ "_doc": "Casus belli. scope: state (objetivo = partición de estado del enemigo) | country | province (solo cores concretos). warscore_cost: coste base (para 'state' se escala con el peso del estado). infamy y prestige al usarlo/cumplirlo. justify_months: meses de justificación (0 = no se justifica, aparece por condición). conditions: target_not_gp, target_gp, actor_gp, target_neighbor, target_has_actor_core, target_in_other_sphere, target_in_actor_sphere, target_uncivilized, actor_civilized. peace_effect: annex_state | conquest | restore_core | humiliate | cut_down | reparations | release_nation | liberate_country | place_in_sphere | free_from_sphere. duration_months: validez del CB una vez obtenido.",
+ "casus_belli": [
+  {
+   "id": "acquire_state",
+   "name": "Adquirir estado",
+   "scope": "state",
+   "warscore_cost": 25,
+   "infamy": 5.0,
+   "prestige": 3,
+   "justify_months": 12,
+   "duration_months": 24,
+   "conditions": [
+    "target_neighbor"
+   ],
+   "peace_effect": "annex_state"
+  },
+  {
+   "id": "conquest",
+   "name": "Conquista",
+   "scope": "country",
+   "warscore_cost": 80,
+   "infamy": 3.0,
+   "prestige": 5,
+   "justify_months": 9,
+   "duration_months": 24,
+   "conditions": [
+    "target_uncivilized",
+    "actor_civilized",
+    "target_neighbor"
+   ],
+   "peace_effect": "conquest"
+  },
+  {
+   "id": "restore_core",
+   "name": "Restaurar territorio nacional",
+   "scope": "state",
+   "warscore_cost": 15,
+   "infamy": 0.0,
+   "prestige": 3,
+   "justify_months": 0,
+   "duration_months": 999,
+   "conditions": [
+    "target_has_actor_core"
+   ],
+   "peace_effect": "restore_core"
+  },
+  {
+   "id": "humiliate",
+   "name": "Humillar",
+   "scope": "country",
+   "warscore_cost": 20,
+   "infamy": 2.0,
+   "prestige": 6,
+   "justify_months": 6,
+   "duration_months": 24,
+   "conditions": [],
+   "peace_effect": "humiliate"
+  },
+  {
+   "id": "cut_down_to_size",
+   "name": "Recortar a su tamaño",
+   "scope": "country",
+   "warscore_cost": 30,
+   "infamy": 3.0,
+   "prestige": 5,
+   "justify_months": 8,
+   "duration_months": 24,
+   "conditions": [
+    "actor_gp",
+    "target_gp"
+   ],
+   "peace_effect": "cut_down"
+  },
+  {
+   "id": "war_reparations",
+   "name": "Reparaciones de guerra",
+   "scope": "country",
+   "warscore_cost": 20,
+   "infamy": 2.0,
+   "prestige": 2,
+   "justify_months": 6,
+   "duration_months": 24,
+   "conditions": [],
+   "peace_effect": "reparations"
+  },
+  {
+   "id": "release_nation",
+   "name": "Liberar nación",
+   "scope": "country",
+   "warscore_cost": 40,
+   "infamy": 2.5,
+   "prestige": 3,
+   "justify_months": 10,
+   "duration_months": 24,
+   "conditions": [],
+   "peace_effect": "release_nation"
+  },
+  {
+   "id": "liberate_country",
+   "name": "Liberar país",
+   "scope": "country",
+   "warscore_cost": 30,
+   "infamy": 1.0,
+   "prestige": 2,
+   "justify_months": 8,
+   "duration_months": 24,
+   "conditions": [],
+   "peace_effect": "liberate_country"
+  },
+  {
+   "id": "place_in_sphere",
+   "name": "Incluir en la esfera",
+   "scope": "country",
+   "warscore_cost": 25,
+   "infamy": 2.0,
+   "prestige": 3,
+   "justify_months": 6,
+   "duration_months": 24,
+   "conditions": [
+    "actor_gp",
+    "target_not_gp"
+   ],
+   "peace_effect": "place_in_sphere"
+  },
+  {
+   "id": "free_from_sphere",
+   "name": "Liberar de una esfera",
+   "scope": "country",
+   "warscore_cost": 20,
+   "infamy": 1.0,
+   "prestige": 2,
+   "justify_months": 6,
+   "duration_months": 24,
+   "conditions": [
+    "actor_gp",
+    "target_in_other_sphere"
+   ],
+   "peace_effect": "free_from_sphere"
+  }
+ ],
+ "max_infamy": 25.0,
+ "infamy_decay_per_month": 0.1,
+ "truce_months": 60,
+ "truce_break_infamy": 10.0,
+ "justify_discovery_chance": 0.05
+}

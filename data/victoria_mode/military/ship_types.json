@@ -1,0 +1,84 @@
+{
+ "_doc": "Tipos de barco. hull = resistencia; transport: brigadas que puede llevar; range: zonas marítimas desde puerto propio antes de sufrir desgaste; build_cost en bienes; days: días de construcción.",
+ "ships": [
+  {
+   "id": "transport",
+   "name": "Transporte",
+   "attack": 0.0,
+   "defence": 1.0,
+   "hull": 1.0,
+   "speed": 1.0,
+   "range": 8,
+   "transport": 2,
+   "supply": {
+    "canned_food": 0.005
+   },
+   "requires_tech": "",
+   "build_cost": {
+    "sailing_ships": 0.5,
+    "lumber": 2.0
+   },
+   "days": 60
+  },
+  {
+   "id": "frigate",
+   "name": "Fragata",
+   "attack": 3.0,
+   "defence": 2.0,
+   "hull": 1.0,
+   "speed": 1.3,
+   "range": 10,
+   "transport": 0,
+   "supply": {
+    "canned_food": 0.01,
+    "ammunition": 0.005
+   },
+   "requires_tech": "",
+   "build_cost": {
+    "sailing_ships": 1.0,
+    "artillery": 0.2
+   },
+   "days": 90
+  },
+  {
+   "id": "man_o_war",
+   "name": "Navío de línea",
+   "attack": 7.0,
+   "defence": 5.0,
+   "hull": 2.0,
+   "speed": 1.0,
+   "range": 8,
+   "transport": 0,
+   "supply": {
+    "canned_food": 0.02,
+    "ammunition": 0.01
+   },
+   "requires_tech": "ship_of_the_line",
+   "build_cost": {
+    "sailing_ships": 2.0,
+    "artillery": 0.5
+   },
+   "days": 150
+  },
+  {
+   "id": "commerce_raider",
+   "name": "Corsario",
+   "attack": 4.0,
+   "defence": 2.0,
+   "hull": 1.0,
+   "speed": 1.5,
+   "range": 14,
+   "transport": 0,
+   "supply": {
+    "canned_food": 0.01,
+    "ammunition": 0.005
+   },
+   "requires_tech": "steam_experiments",
+   "build_cost": {
+    "sailing_ships": 1.0,
+    "artillery": 0.3
+   },
+   "days": 100
+  }
+ ]
+}

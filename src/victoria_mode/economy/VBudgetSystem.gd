@@ -14,7 +14,7 @@ extends RefCounted
 ## Los flujos se acumulan durante el mes en country["acc"] y se liquidan en settle_month().
 
 const INCOME_KEYS := ["tax_poor", "tax_middle", "tax_rich", "tariffs", "other"]
-const EXPENSE_KEYS := ["education", "administration", "military_wages", "stockpile", "social", "subsidies", "construction", "interest"]
+const EXPENSE_KEYS := ["education", "administration", "military_wages", "stockpile", "social", "subsidies", "construction", "interest", "reparations"]
 const SLIDER_FOR := {"education": "education", "administration": "administration", "military": "military", "leadership": "military"}
 const EXPENSE_FOR_JOB := {"education": "education", "administration": "administration", "military": "military_wages", "leadership": "military_wages"}
 
@@ -86,14 +86,13 @@ static func buy_stockpile(gs: VGameState, tag: String) -> void:
 	var slider := float(c["budget"].get("stockpile", 0.0))
 	if slider <= 0.0:
 		return
-	var mil: Dictionary = c["military"]
-	var per_brigade: Dictionary = gs.economy_rules.get("stockpile_goods", {})
-	var per_ship: Dictionary = gs.economy_rules.get("stockpile_per_ship", {})
+	# objetivo: (1 + 2 × slider) meses del consumo real de ejércitos y flotas, menos lo que ya hay
+	var need := VSupplySystem.country_monthly_need(gs, tag)
+	var stock: Dictionary = c["stockpile"]
 	var want := {}
-	for g in per_brigade:
-		want[g] = float(per_brigade[g]) * float(mil.get("brigades", 0)) * slider
-	for g in per_ship:
-		want[g] = float(want.get(g, 0.0)) + float(per_ship[g]) * float(mil.get("ships", 0)) * slider
+	for g in need:
+		var target := float(need[g]) * (1.0 + 2.0 * slider)
+		want[g] = minf(maxf(0.0, target - float(stock.get(g, 0.0))), float(need[g]) * 2.0)
 	var cost := 0.0
 	for g in want:
 		var q := float(want[g])
@@ -117,6 +116,16 @@ static func settle_month(gs: VGameState, tag: String, is_player: bool) -> void:
 	var foreign := float(c.get("debt_foreign", 0.0))
 	var domestic := debt - foreign
 	acc["interest"] = (domestic * float(rules.get("interest_domestic", 0.04)) + foreign * float(rules.get("interest_foreign", 0.09))) / 12.0
+	# reparaciones de guerra: el perdedor paga una parte de sus ingresos al vencedor
+	for rep in c.get("reparations", []).duplicate():
+		if int(rep["until"]) <= gs.month_index or not gs.countries.has(rep["to"]):
+			c["reparations"].erase(rep)
+			continue
+		var inc_now := float(acc.get("tax_poor", 0.0)) + float(acc.get("tax_middle", 0.0)) + float(acc.get("tax_rich", 0.0)) + float(acc.get("tariffs", 0.0))
+		var pay := inc_now * float(rep["share"])
+		acc["reparations"] = float(acc.get("reparations", 0.0)) + pay
+		var racc: Dictionary = gs.countries[rep["to"]]["acc"]
+		racc["other"] = float(racc.get("other", 0.0)) + pay
 	var income := 0.0
 	for k in INCOME_KEYS:
 		income += float(acc.get(k, 0.0))

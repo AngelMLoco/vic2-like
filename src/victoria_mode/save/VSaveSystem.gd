@@ -7,7 +7,8 @@ extends RefCounted
 ## Si save_version no coincide y no hay migración, la carga se rechaza limpiamente.
 
 const SAVE_DIR := "user://victoria_mode/saves/"
-const SAVE_VERSION := 2
+## v3 (milestone 3): diplomacia, influencia, ejércitos, flotas, guerras, CB y rebeldes.
+const SAVE_VERSION := 3
 const MODE_ID := "victoria_mode"
 
 ## v2 (milestone 2): economía, política y tecnología. Las partidas v1 se rechazan con un mensaje.
@@ -19,9 +20,13 @@ const COUNTRY_FIELDS := ["prestige", "treasury", "literacy", "infamy", "war_exha
 	"artisan_profit", "artisan_best", "inventions", "research", "research_progress", "research_points",
 	"research_points_monthly", "research_points_daily", "parties", "ruling_party_index", "next_election_month",
 	"last_election", "upper_house", "movements", "reform_cooldown", "voter_ideology", "acc_mobility",
-	"acc_mobility_last", "_tier_demand"]
+	"acc_mobility_last", "_tier_demand",
+	"diplo_points", "military_access", "guarantees", "truces", "overlord", "subjects", "wars", "influence",
+	"gp_grace", "leadership", "casualties", "_casualties_seen", "disarmed_until", "reparations", "ship_queue",
+	"blockade_ratio", "status", "rank"]
 const PROVINCE_FIELDS := ["owner", "controller", "cores", "occupation", "fort", "naval_base", "infrastructure",
-	"life_rating", "rgo", "culture", "religion", "pops", "rgo_data", "avg_life", "unemployment", "rgo_free"]
+	"life_rating", "rgo", "culture", "religion", "pops", "rgo_data", "avg_life", "unemployment", "rgo_free",
+	"occupation_by", "blockaded_by", "rebel_faction"]
 
 
 static func list_saves() -> Array:
@@ -102,6 +107,11 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 		"market": market,
 		"month_index": gs.month_index,
 		"log": gs.log_entries,
+		"military": {
+			"armies": gs.armies, "brigades": gs.brigades, "leaders": gs.leaders, "fleets": gs.fleets,
+			"wars": gs.wars, "battles": gs.battles, "casus_belli": gs.casus_belli, "justifications": gs.justifications,
+			"rebel_factions": gs.rebel_factions, "next_ids": gs.next_ids,
+		},
 	}
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
@@ -120,7 +130,7 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 		return null
 	data = _migrate(data)
 	if int(data.get("save_version", 0)) != SAVE_VERSION:
-		error_out.append("Versión de guardado %s incompatible (se esperaba %d)." % [str(data.get("save_version")), SAVE_VERSION])
+		error_out.append("Versión de guardado %d incompatible (se esperaba %d)." % [int(data.get("save_version", 0)), SAVE_VERSION])
 		return null
 	var gs := VDataLoader.new_game()
 	gs.date = VDate.from_dict(data["date"])
@@ -129,6 +139,18 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 	gs.next_pop_id = int(data.get("next_pop_id", gs.next_pop_id))
 	gs.month_index = int(data.get("month_index", 0))
 	gs.log_entries = data.get("log", [])
+	var mil: Dictionary = data.get("military", {})
+	gs.armies = _int_keys(mil.get("armies", {}))
+	gs.brigades = _int_keys(mil.get("brigades", {}))
+	gs.leaders = _int_keys(mil.get("leaders", {}))
+	gs.fleets = _int_keys(mil.get("fleets", {}))
+	gs.wars = _int_keys(mil.get("wars", {}))
+	gs.battles = _int_keys(mil.get("battles", {}))
+	gs.rebel_factions = _int_keys(mil.get("rebel_factions", {}))
+	gs.casus_belli = mil.get("casus_belli", [])
+	gs.justifications = mil.get("justifications", [])
+	gs.next_ids = mil.get("next_ids", {})
+	_fix_military_numbers(gs)
 	var market: Dictionary = data.get("market", {})
 	for k in market:
 		gs.market[k] = market[k]
@@ -169,6 +191,16 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 			c["reforms"][r] = int(c["reforms"][r])
 		VModifiers.recompute(gs, tag)
 	VProductionSystem.derive_rates(gs)
+	for tag in gs.countries:
+		var c2: Dictionary = gs.countries[tag]
+		var w_ids := []
+		for w in c2.get("wars", []):
+			w_ids.append(int(w))
+		c2["wars"] = w_ids
+		for k in c2.get("truces", {}).keys():
+			c2["truces"][k] = int(c2["truces"][k])
+	VArmySystem.update_counts(gs)
+	VNavySystem.update_counts(gs)
 	VPopulationSystem.refresh_country_caches(gs)
 	VRankingSystem.recalculate(gs)
 	return gs
@@ -182,6 +214,9 @@ static func _fix_pop_numbers(p: Dictionary) -> void:
 		pop["province"] = int(pop["province"])
 		pop["unemployed_months"] = int(pop.get("unemployed_months", 0))
 		pop["migration_target"] = int(pop.get("migration_target", 0))
+		if pop.has("brigades"):
+			pop["brigades"] = _ints(pop["brigades"])
+	p["rebel_faction"] = int(p.get("rebel_faction", 0))
 	p["fort"] = int(p.get("fort", 0))
 	p["naval_base"] = int(p.get("naval_base", 0))
 	p["infrastructure"] = int(p.get("infrastructure", 0))
@@ -192,3 +227,77 @@ static func _fix_pop_numbers(p: Dictionary) -> void:
 static func _migrate(data: Dictionary) -> Dictionary:
 	# Ejemplo futuro: if data.save_version == 1: ...convertir... data.save_version = 2
 	return data
+
+
+## JSON convierte las claves enteras en texto: restaurarlas.
+static func _int_keys(d: Dictionary) -> Dictionary:
+	var out := {}
+	for k in d:
+		out[int(k)] = d[k]
+	return out
+
+
+static func _ints(arr: Array) -> Array:
+	var out := []
+	for v in arr:
+		out.append(int(v))
+	return out
+
+
+## Restaura tipos enteros en las entidades militares (JSON los devuelve como float).
+static func _fix_military_numbers(gs: VGameState) -> void:
+	for id in gs.armies:
+		var a: Dictionary = gs.armies[id]
+		for k in ["id", "province", "leader", "battle", "embarked", "rebel_faction", "ai_target", "dig_in"]:
+			a[k] = int(a.get(k, 0))
+		a["brigades"] = _ints(a.get("brigades", []))
+		a["path"] = _ints(a.get("path", []))
+	for id in gs.brigades:
+		var b: Dictionary = gs.brigades[id]
+		for k in ["id", "strength", "source_pop_id", "source_province_id", "army"]:
+			b[k] = int(b.get(k, 0))
+	for id in gs.leaders:
+		var l: Dictionary = gs.leaders[id]
+		for k in ["id", "army", "fleet"]:
+			l[k] = int(l.get(k, 0))
+	for id in gs.fleets:
+		var f: Dictionary = gs.fleets[id]
+		for k in ["id", "location", "admiral", "battle"]:
+			f[k] = int(f.get(k, 0))
+		f["path"] = _ints(f.get("path", []))
+		f["transported_armies"] = _ints(f.get("transported_armies", []))
+		for sh in f.get("ships", []):
+			sh["id"] = int(sh["id"])
+	for id in gs.wars:
+		var w: Dictionary = gs.wars[id]
+		for k in ["id", "start_month", "start_ordinal"]:
+			w[k] = int(w.get(k, 0))
+		for g in w.get("war_goals", []):
+			g["id"] = int(g.get("id", 0))
+			g["state_id"] = int(g.get("state_id", 0))
+	for id in gs.battles:
+		var bt: Dictionary = gs.battles[id]
+		for k in ["id", "province", "war", "day", "att_rebel", "def_rebel"]:
+			bt[k] = int(bt.get(k, 0))
+		bt["attackers"] = _ints(bt.get("attackers", []))
+		bt["defenders"] = _ints(bt.get("defenders", []))
+	for cb in gs.casus_belli:
+		for k in ["id", "state_id", "expires"]:
+			cb[k] = int(cb.get(k, 0))
+	for j in gs.justifications:
+		for k in ["id", "state_id", "months"]:
+			j[k] = int(j.get(k, 0))
+	for id in gs.rebel_factions:
+		var f2: Dictionary = gs.rebel_factions[id]
+		f2["id"] = int(f2["id"])
+		f2["supporting_pops"] = _ints(f2.get("supporting_pops", []))
+		f2["armies"] = _ints(f2.get("armies", []))
+		f2["controlled_provinces"] = _ints(f2.get("controlled_provinces", []))
+	for k in gs.next_ids.keys():
+		gs.next_ids[k] = int(gs.next_ids[k])
+	for id in range(1, gs.first_sea_id):
+		var p: Dictionary = gs.provinces[id]
+		p["rebel_faction"] = int(p.get("rebel_faction", 0))
+		for pop in p.get("pops", []):
+			if pop.has("brigades"):
+				pop["brigades"] = _ints(pop["brigades"])

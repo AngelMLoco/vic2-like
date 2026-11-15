@@ -1,0 +1,56 @@
+{
+ "_doc": "Reglas diplomáticas. Puntos diplomáticos mensuales y costes; cambios de relación; influencia de las Grandes Potencias.",
+ "diplo_points_per_month": 0.6,
+ "diplo_points_gp_bonus": 0.4,
+ "diplo_points_max": 9.0,
+ "costs": {
+  "improve_relations": 1.0,
+  "decrease_relations": 1.0,
+  "offer_alliance": 2.0,
+  "break_alliance": 1.0,
+  "guarantee": 1.0,
+  "request_access": 1.0,
+  "give_access": 0.5,
+  "cancel_access": 0.5,
+  "justify_war": 1.0,
+  "declare_war": 2.0,
+  "call_ally": 1.0
+ },
+ "relation_change": 15,
+ "relation_drift_per_month": 1,
+ "alliance_min_relations": 50,
+ "influence": {
+  "base_per_month": 6.0,
+  "prestige_factor": 0.05,
+  "max_targets": 8,
+  "points_cap": 200,
+  "costs": {
+   "increase_opinion": 50,
+   "decrease_opinion": 50,
+   "discredit": 25,
+   "expel_advisors": 50,
+   "ban_embassy": 65,
+   "add_to_sphere": 100,
+   "remove_from_sphere": 100
+  },
+  "discredit_months": 6,
+  "ban_months": 12,
+  "gp_grace_months": 6,
+  "opinion_levels": [
+   "hostile",
+   "opposed",
+   "neutral",
+   "cordial",
+   "friendly",
+   "sphere"
+  ],
+  "opinion_names": {
+   "hostile": "Hostil",
+   "opposed": "Contrario",
+   "neutral": "Neutral",
+   "cordial": "Cordial",
+   "friendly": "Amistoso",
+   "sphere": "En la esfera"
+  }
+ }
+}

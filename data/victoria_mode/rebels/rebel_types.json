@@ -1,0 +1,59 @@
+{
+ "_doc": "Tipos de facción rebelde. 'from_reforms': reformas cuyo movimiento puede degenerar en esta facción. demand: raise_reform (sube la reforma reclamada) | lower_reform | change_ruling_ideology. ideology: ideología que imponen si ganan. spawn_share: fracción del tamaño de los POPs militantes que toma las armas. victory_months: meses que deben mantener la capital o el % de provincias.",
+ "types": [
+  {
+   "id": "liberal_rebels",
+   "name": "Rebeldes liberales",
+   "from_reforms": [
+    "voting",
+    "press",
+    "public_meetings",
+    "political_parties"
+   ],
+   "demand": "raise_reform",
+   "ideology": "liberal",
+   "color": "e8c83a"
+  },
+  {
+   "id": "socialist_rebels",
+   "name": "Rebeldes socialistas",
+   "from_reforms": [
+    "trade_unions",
+    "healthcare",
+    "school_system",
+    "pensions",
+    "unemployment_subsidies",
+    "work_hours",
+    "safety_regulations"
+   ],
+   "demand": "raise_reform",
+   "ideology": "socialista",
+   "color": "c83a3a"
+  },
+  {
+   "id": "abolitionist_rebels",
+   "name": "Rebeldes abolicionistas",
+   "from_reforms": [
+    "slavery"
+   ],
+   "demand": "raise_reform",
+   "ideology": "radical",
+   "color": "e8883a"
+  },
+  {
+   "id": "reactionary_rebels",
+   "name": "Reaccionarios",
+   "from_reforms": [],
+   "demand": "change_ruling_ideology",
+   "ideology": "tradicionalista",
+   "color": "5a3a8a"
+  }
+ ],
+ "min_radicalism": 0.8,
+ "min_organisation": 0.5,
+ "min_supporter_militancy": 4.0,
+ "spawn_share": 0.03,
+ "max_brigades": 12,
+ "victory_months": 3,
+ "victory_province_share": 0.3
+}

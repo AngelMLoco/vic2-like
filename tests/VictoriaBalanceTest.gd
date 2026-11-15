@@ -19,12 +19,20 @@ func _ready() -> void:
 	var sim := VWorldSimulation.new(gs)
 	print(header())
 	print(row(gs, 0))
+	var gp_sets := {}
 	var failures := []
 	var money_problems := []
 	for y in years:
 		var ty := Time.get_ticks_msec()
 		sim.run_days(365)
 		print(row(gs, y + 1) + "  (%.1f s)" % ((Time.get_ticks_msec() - ty) / 1000.0))
+		print("      " + m3_row(gs))
+		var gps := []
+		for t in gs.country_order:
+			if gs.countries[t].get("status", "") == "great_power":
+				gps.append(t)
+		gps.sort()
+		gp_sets[",".join(gps)] = true
 		var au: Dictionary = gs.market.get("money_audit", {})
 		print("      dinero: " + VMoney.describe(au).replace("
 ", " | "))
@@ -33,7 +41,7 @@ func _ready() -> void:
 	print(VProfiler.report(gs))
 	if OS.get_environment("VBAL_DEBUG") != "":
 		debug_dump(gs)
-	failures = degenerate_checks(gs) + money_problems
+	failures = degenerate_checks(gs) + money_problems + m3_checks(gs, years, gp_sets.size())
 	print("== balance: %d problemas ==" % failures.size())
 	for f in failures:
 		print("   - ", f)
@@ -180,3 +188,52 @@ static func debug_dump(gs: VGameState) -> void:
 		print("%-12s %7.1f | %7.2f | %7.2f | %.2f | %.2f" % [t, e[0], e[1] / e[0], e[2] / e[0], e[3] / e[0], e[4] / e[0]])
 	print("--- FRK presupuesto último mes: ", c["budget_last"])
 	print("--- FRK tesoro %.0f deuda %.0f banco %s" % [float(c["treasury"]), float(c["debt"]), str(c["bank"])])
+
+
+static func m3_stats(gs: VGameState) -> Dictionary:
+	var at_war := 0
+	var living := gs.living_countries()
+	for t in living:
+		if not gs.countries[t]["wars"].is_empty():
+			at_war += 1
+	var brig := 0
+	var max_brig := 0
+	for t in living:
+		var n := int(gs.countries[t]["military"]["brigades"])
+		brig += n
+		max_brig = maxi(max_brig, n)
+	var sphere := 0
+	for t in living:
+		if gs.countries[t].get("sphere_leader", "") != "":
+			sphere += 1
+	var risk := 0
+	for t in living:
+		for rid in gs.countries[t].get("movements", {}):
+			if gs.countries[t]["movements"][rid].get("rebel_risk", false):
+				risk += 1
+				break
+	return {"wars_total": int(gs.next_ids.get("war", 1)) - 1, "wars_active": gs.wars.size(), "at_war": at_war, "living": living.size(),
+		"avg_brigades": float(brig) / maxf(1.0, float(living.size())), "max_brigades": max_brig, "sphere": sphere,
+		"rebels": gs.rebel_factions.size(), "rebel_risk": risk, "armies": gs.armies.size(), "fleets": gs.fleets.size()}
+
+
+static func m3_row(gs: VGameState) -> String:
+	var m := m3_stats(gs)
+	return "M3: guerras %d (activas %d, %d naciones en guerra) · brigadas media %.1f máx %d · ejércitos %d flotas %d · esferas %d miembros · rebeldes %d (riesgo en %d naciones)" % [
+		m["wars_total"], m["wars_active"], m["at_war"], m["avg_brigades"], m["max_brigades"], m["armies"], m["fleets"], m["sphere"], m["rebels"], m["rebel_risk"]]
+
+
+static func m3_checks(gs: VGameState, years: int, gp_sets: int) -> Array:
+	var m := m3_stats(gs)
+	var out := []
+	if years >= 10 and int(m["wars_total"]) <= 1:
+		out.append("no ha habido guerras nuevas en %d años" % years)
+	if int(m["at_war"]) > int(m["living"]) * 0.6:
+		out.append("demasiadas naciones en guerra (%d/%d)" % [m["at_war"], m["living"]])
+	if float(m["avg_brigades"]) > 60.0 or int(m["max_brigades"]) > 400:
+		out.append("tamaño de ejércitos implausible (media %.1f, máx %d)" % [m["avg_brigades"], m["max_brigades"]])
+	if int(m["rebel_risk"]) > int(m["living"]) * 0.5:
+		out.append("riesgo rebelde casi universal (%d naciones)" % m["rebel_risk"])
+	if years >= 5 and int(m["sphere"]) == 0:
+		out.append("no se ha formado ninguna esfera de influencia")
+	return out

@@ -30,6 +30,7 @@ func _init(state: VGameState) -> void:
 	VPopulationSystem.refresh_country_caches(gs)
 	VPopulationSystem.prepare_month(gs)
 	VMobilitySystem.monthly_targets(gs)
+	gs.ownership_changed.connect(func(_ids): territory_changed())
 
 
 func _build_buckets() -> void:
@@ -56,7 +57,31 @@ func on_day() -> void:
 	var d := gs.date.day
 	if d >= 1 and d <= BUCKETS:
 		process_bucket(d - 1)
+	var tm := VProfiler.begin()
+	military_day()
+	VProfiler.end(gs, "military_day", tm)
 	VProfiler.end(gs, "daily_tick", t0)
+
+
+## Capa militar diaria: movimiento, combate, suministro, asedios, warscore, armada e IA.
+func military_day() -> void:
+	var t := VProfiler.begin()
+	VArmySystem.daily_movement(gs)
+	VCombatSystem.daily(gs)
+	VProfiler.end(gs, "mil_move_combat", t)
+	t = VProfiler.begin()
+	VSupplySystem.daily(gs)
+	VArmySystem.daily_reinforce(gs)
+	VProfiler.end(gs, "mil_supply", t)
+	t = VProfiler.begin()
+	VWarSystem.daily(gs)
+	VProfiler.end(gs, "mil_war", t)
+	t = VProfiler.begin()
+	VNavySystem.daily(gs)
+	VProfiler.end(gs, "mil_navy", t)
+	t = VProfiler.begin()
+	VMilitaryAI.daily(gs)
+	VProfiler.end(gs, "mil_ai", t)
 
 
 func process_bucket(b: int) -> void:
@@ -101,6 +126,18 @@ func on_month() -> void:
 		VPoliticsSystem.monthly(gs, tag, is_player)
 		VProductionSystem.monthly_country(gs, tag, is_player)
 	VProfiler.end(gs, "country_month", tb)
+	var tw := VProfiler.begin()
+	VDiplomacySystem.monthly(gs)
+	VDiplomacySystem.ai_monthly(gs)
+	VInfluenceSystem.monthly(gs)
+	VInfluenceSystem.ai_monthly(gs)
+	VWarSystem.monthly(gs)
+	VWarSystem.ai_monthly(gs)
+	VLeaderSystem.monthly(gs)
+	VRebelSystem.monthly(gs)
+	VArmySystem.update_counts(gs)
+	VNavySystem.update_counts(gs)
+	VProfiler.end(gs, "diplomacy_war_month", tw)
 	if gs.flags.get("money_audit", false) or gs.month_index % 3 == 0:
 		var ta := VProfiler.begin()
 		VMoney.audit(gs)

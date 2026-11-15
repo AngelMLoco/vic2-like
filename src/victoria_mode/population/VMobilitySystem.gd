@@ -211,6 +211,8 @@ static func monthly_targets(gs: VGameState) -> void:
 		var lists := {"rgo_farm": [], "rgo_mine": [], "factory_worker": [], "factory_clerk": [], "artisan": [], "any": []}
 		for id in c["provinces"]:
 			var p: Dictionary = gs.provinces[id]
+			if p["controller"] != tag:
+				continue
 			var pop_k := maxf(1.0, float(p["population"]) / 10000.0)
 			var base := float(p.get("avg_life", 0.8)) * 0.8 + 0.1 * float(p["infrastructure"]) - float(p.get("unemployment", 0.0))
 			var rgo_free := float(p.get("rgo_free", 0)) / 10000.0 / pop_k

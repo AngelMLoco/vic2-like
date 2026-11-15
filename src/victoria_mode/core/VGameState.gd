@@ -56,6 +56,30 @@ var technologies := {}
 var tech_categories: Array = []
 var inventions := {}
 
+## Milestone 3: definiciones militares, diplomáticas y bélicas (datos)
+var unit_types := {}
+var unit_manpower: int = 3000
+var combat_width: int = 12
+var ship_types := {}
+var leader_traits := {}
+var cb_types := {}
+var war_rules := {}
+var diplo_rules := {}
+var rebel_types := {}
+var rebel_rules := {}
+
+## Milestone 3: entidades (todas serializables; ids enteros)
+var armies := {}  # id -> {id, country, name, province, brigades[], leader, morale, path[], ...}
+var brigades := {}  # id -> {id, type, strength, organisation, experience, source_pop_id, source_province_id, army}
+var leaders := {}  # id -> {id, country, kind (general/admiral), name, traits[], attack, defence, ...}
+var fleets := {}  # id -> {id, country, location, ships[], admiral, transported_armies[], ...}
+var wars := {}  # id -> War
+var battles := {}  # id -> batalla en curso (terrestre o naval)
+var casus_belli: Array = []  # {id, owner, target, type, state_id, expires}
+var justifications: Array = []  # {owner, target, type, state_id, progress, discovered}
+var rebel_factions := {}  # id -> RebelFaction
+var next_ids := {}
+
 ## Mercado mundial (ver VMarketSystem): precios, historial, acumuladores y ratios de llenado.
 var market := {}
 ## Contador de meses transcurridos desde el inicio (para ciclos electorales, etc.).
@@ -69,6 +93,33 @@ func log_event(tag: String, text: String) -> void:
 	log_entries.append({"date": date.short_text(), "tag": tag, "text": text})
 	if log_entries.size() > 300:
 		log_entries = log_entries.slice(log_entries.size() - 300)
+
+
+func new_id(kind: String) -> int:
+	var n := int(next_ids.get(kind, 1))
+	next_ids[kind] = n + 1
+	return n
+
+
+## Relación diplomática entre dos naciones (−200 … +200), simétrica.
+func relation(a: String, b: String) -> int:
+	return int(countries.get(a, {}).get("relations", {}).get(b, 0))
+
+
+func set_relation(a: String, b: String, value: int) -> void:
+	if not countries.has(a) or not countries.has(b) or a == b:
+		return
+	value = clampi(value, -200, 200)
+	countries[a]["relations"][b] = value
+	countries[b]["relations"][a] = value
+
+
+## Etiqueta de controlador para rebeldes (las provincias ocupadas por rebeldes usan este controlador).
+const REBEL_TAG := "REB"
+
+
+func is_rebel(tag: String) -> bool:
+	return tag == REBEL_TAG
 
 
 func reform_level(tag: String, reform_id: String) -> int:
@@ -107,10 +158,14 @@ func country_index(tag: String) -> int:
 func country_name(tag: String) -> String:
 	if tag == "":
 		return "Sin colonizar"
+	if tag == REBEL_TAG:
+		return "Rebeldes"
 	return countries.get(tag, {}).get("name", tag)
 
 
 func country_color(tag: String) -> Color:
+	if tag == REBEL_TAG:
+		return Color("2a2a2a")
 	if tag == "" or not countries.has(tag):
 		return Color("8a8070")
 	return countries[tag]["color_obj"]

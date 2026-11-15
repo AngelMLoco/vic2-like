@@ -203,6 +203,11 @@ static func _process_rgo(gs: VGameState, p: Dictionary, tag: String, c: Dictiona
 	var ratio := float(employed) / float(workers) if workers > 0 else 0.0
 	var eff := float(gs.terrain_types.get(p["terrain"], {}).get("rgo_efficiency", 1.0)) * (1.0 + gs.mod(tag, "rgo_efficiency")) * (1.0 + 0.05 * int(p["infrastructure"]))
 	var output := float(employed) / UNIT * float(gs.market["rgo_output"].get(good, 1.0)) * eff
+	# ocupación enemiga: la producción cae y el propietario no recauda impuestos aquí
+	var occupied: bool = p["controller"] != tag
+	if occupied:
+		output *= 0.4
+	var tax_tag := "" if occupied else tag
 	VMarketSystem.add_supply(gs, tag, good, output)
 	var revenue := output * VMarketSystem.price(gs, good) * VMarketSystem.fill_sell(gs, tag, good)
 	rd["current_size"] = size
@@ -228,7 +233,7 @@ static func _process_rgo(gs: VGameState, p: Dictionary, tag: String, c: Dictiona
 					owner_pool += share * 0.7
 					paid_out += share * 0.3
 				else:
-					VBudgetSystem.credit_income(gs, tag, pop, share)
+					VBudgetSystem.credit_income(gs, tax_tag, pop, share)
 					paid_out += share
 		elif t in ["farmers", "labourers"]:
 			pop["employment"] = 0.0
@@ -237,7 +242,7 @@ static func _process_rgo(gs: VGameState, p: Dictionary, tag: String, c: Dictiona
 		a["employment"] = 1.0
 		a["employer"] = "rgo_owner"
 		var ashare := owner_pool * float(a["size"]) / float(aristo_size)
-		VBudgetSystem.credit_income(gs, tag, a, ashare)
+		VBudgetSystem.credit_income(gs, tax_tag, a, ashare)
 		paid_out += ashare
 	VMoney.created(gs, paid_out, "rgo_sales")
 
@@ -388,7 +393,13 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 	var cl_cost: Array = needs.get("clerks", {}).get("cost", [15.0, 15.0, 15.0])
 	var cr_wage := (float(cr_cost[0]) + float(cr_cost[1])) * wage_mult
 	var cl_wage := (float(cl_cost[0]) + float(cl_cost[1])) * wage_mult
-	var eff_base := (1.0 + gs.mod(tag, "factory_efficiency")) * (1.0 + 0.05 * infra) * (1.0 + gs.mod(tag, "factory_throughput"))
+	var occ := 0
+	for id in si["provinces"]:
+		if gs.provinces[id]["controller"] != tag:
+			occ += 1
+	var occ_share := float(occ) / maxf(1.0, float(si["provinces"].size()))
+	var we := float(c.get("war_exhaustion", 0.0))
+	var eff_base := (1.0 + gs.mod(tag, "factory_efficiency")) * (1.0 + 0.05 * infra) * (1.0 + gs.mod(tag, "factory_throughput")) * (1.0 - 0.6 * occ_share) * (1.0 - we / 400.0)
 	var rates: Dictionary = gs.market["factory_rate"]
 	var stock_months := float(rules.get("factory_input_stock_months", 1.0))
 	var wages_cr := 0.0

@@ -142,6 +142,11 @@ static func clear_month(gs: VGameState) -> void:
 			if not spheres.has(k):
 				spheres[k] = []
 			spheres[k].append(t)
+	var blockade := {}
+	for t in order:
+		var br := float(gs.countries.get(t, {}).get("blockade_ratio", 0.0))
+		if br > 0.0:
+			blockade[t] = br
 	for g in gs.goods:
 		var excess := {}  # t -> oferta no vendida en casa
 		var need := {}  # t -> demanda no atendida en casa
@@ -168,6 +173,17 @@ static func clear_month(gs: VGameState) -> void:
 		# esferas: intercambio entre miembros antes del mundo
 		for k in spheres:
 			_trade_pool(spheres[k], excess, need, sold, bought, country_stats, g)
+		# bloqueo naval: la parte bloqueada de la costa no exporta ni importa por mar
+		var held_excess := {}
+		var held_need := {}
+		for t in blockade:
+			var r := float(blockade[t])
+			if excess.has(t):
+				held_excess[t] = float(excess[t]) * r
+				excess[t] = float(excess[t]) - float(held_excess[t])
+			if need.has(t):
+				held_need[t] = float(need[t]) * r
+				need[t] = float(need[t]) - float(held_need[t])
 		# mercado mundial
 		_trade_pool(order, excess, need, sold, bought, country_stats, g)
 		for t in order:

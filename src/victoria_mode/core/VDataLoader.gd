@@ -5,6 +5,8 @@ extends RefCounted
 
 const ROOT := "res://data/victoria_mode/"
 
+static var _history_wars: Array = []
+
 
 static func new_game() -> VGameState:
 	var gs := VGameState.new()
@@ -22,6 +24,12 @@ static func new_game() -> VGameState:
 	VMarketSystem.setup_new_game(gs)
 	VProductionSystem.setup_new_game(gs)
 	VBudgetSystem.setup_new_game(gs)
+	VRankingSystem.recalculate(gs)
+	VDiplomacySystem.setup_new_game(gs)
+	VInfluenceSystem.setup_new_game(gs)
+	VArmySystem.setup_new_game(gs)
+	VNavySystem.setup_new_game(gs)
+	VWarSystem.setup_new_game(gs, _history_wars)
 	VRankingSystem.recalculate(gs)
 	print("[VictoriaMode] mundo cargado en %d ms: %d provincias terrestres, %d estados, %d países" % [
 		Time.get_ticks_msec() - t0, gs.first_sea_id - 1, gs.states.size(), gs.countries.size()])
@@ -76,6 +84,19 @@ static func _load_definitions(gs: VGameState) -> void:
 	gs.technologies = _index(tech.get("technologies", []))
 	gs.tech_categories = tech.get("categories", [])
 	gs.inventions = _index(VJson.load_array(ROOT + "technologies/inventions.json", "inventions"))
+	var units := VJson.load_dict(ROOT + "military/unit_types.json")
+	gs.unit_types = _index(units.get("units", []))
+	gs.unit_manpower = int(units.get("manpower", 3000))
+	gs.combat_width = int(units.get("base_combat_width", 12))
+	gs.ship_types = _index(VJson.load_array(ROOT + "military/ship_types.json", "ships"))
+	gs.leader_traits = VJson.load_dict(ROOT + "military/leader_traits.json")
+	var cb := VJson.load_dict(ROOT + "war/casus_belli.json")
+	gs.cb_types = _index(cb.get("casus_belli", []))
+	gs.war_rules = cb
+	gs.diplo_rules = VJson.load_dict(ROOT + "diplomacy/diplomacy_rules.json")
+	var reb := VJson.load_dict(ROOT + "rebels/rebel_types.json")
+	gs.rebel_types = _index(reb.get("types", []))
+	gs.rebel_rules = reb
 
 
 static func _hash_color(key: String) -> Color:
@@ -218,12 +239,8 @@ static func _apply_history(gs: VGameState) -> void:
 			gs.countries[a]["allies"].append(b)
 			gs.countries[b]["allies"].append(a)
 			_set_relation(gs, a, b, max(int(gs.countries[a]["relations"].get(b, 0)), 100))
-	for w in hist.get("wars", []):
-		for att in w.get("attackers", []):
-			for dfd in w.get("defenders", []):
-				if gs.countries.has(att) and gs.countries.has(dfd):
-					gs.countries[att]["wars"].append({"name": w.get("name", "Guerra"), "enemy": dfd})
-					gs.countries[dfd]["wars"].append({"name": w.get("name", "Guerra"), "enemy": att})
+	# las guerras históricas se crean como entidades War tras generar ejércitos (VWarSystem.setup_new_game)
+	_history_wars = hist.get("wars", [])
 	# ejército, flota e industria inicial
 	var ftypes: Array = gs.factory_types.keys()
 	ftypes.sort()
