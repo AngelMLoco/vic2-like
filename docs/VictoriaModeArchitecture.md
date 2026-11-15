@@ -252,3 +252,92 @@ Diario (`VWorldSimulation.military_day`): movimiento, combate, suministro/desgas
 (escalonado cada 3 días por ejército), refuerzo, asedios y warscore, armada y bloqueos, IA militar (cada
 5 días por nación). Mensual: diplomacia, influencia, CB/justificaciones, cansancio, IA bélica y de paz,
 líderes, rebeldes.
+
+## M3.1 — Arquitectura de rendimiento
+
+Objetivo: menos recorridos globales, menos búsquedas redundantes y menos asignaciones, sin cambiar las
+reglas del juego. Todo lo de esta sección es **derivado**: no se guarda (save_version sigue en 3) y se
+reconstruye al cargar o al primer uso. Las claves privadas `_…` de ejércitos, brigadas, flotas y guerras se
+eliminan al guardar (`VSaveSystem._public`); las de países y provincias ya quedan fuera por lista blanca.
+
+### Índices de unidades (`military/VUnitIndex.gd`, `gs.unit_index`)
+
+| Índice | Contenido | Se actualiza en |
+|---|---|---|
+| `armies_by_province` | provincia → ejércitos desembarcados | crear, destruir, mover, embarcar, desembarcar |
+| `armies_by_country` | nación → ejércitos regulares | crear, destruir, alzarse en rebeldía |
+| `fleets_by_country` / `fleets_by_location` | flotas | crear, hundir, mover |
+| `sieging` | ejércitos en provincias de otro controlador (o rebeldes) | al llegar a una provincia |
+| `damaged` | ejércitos con brigadas por debajo de su fuerza | `apply_casualties`, `attach_brigade` |
+
+`armies_in`, `country_armies`, `country_fleets`, `fleets_at` y `brigades_in` usan los índices; ningún sistema
+recorre `gs.armies` para buscar por provincia o nación. `VUnitIndex.verify()` compara el índice con una
+reconstrucción completa (lo usa `VictoriaM3Test`). Los teletransportes (fin de guerra, pruebas) pasan por
+`VUnitIndex.move_army` / `move_fleet`.
+
+### Versiones e invalidación
+
+* `gs.access_version`: sube al declarar o unirse a una guerra, retirarse un participante, firmar la paz,
+  formar o romper alianzas, dar o retirar acceso militar y cambiar la propiedad de provincias. Invalida la
+  caché de relaciones bélicas (`VWarSystem._relations`: enemigos y aliados en guerra por nación, O(1)), la
+  caché de rutas, las regiones de acceso y los destinos estratégicos de la IA.
+* `gs.path_epoch`: sube si un ejército encuentra bloqueado un paso de una ruta cacheada.
+* `gs.controller_version`: sube en cada cambio de controlador (`VWarSystem.set_controller`, único punto).
+* `gs.ws_values_month`: mes de los valores de warscore por provincia (−1 = recalcular).
+
+### Rutas (`VArmySystem.find_path`)
+
+1. Componentes conexas terrestres (estáticas): destino en otra masa de tierra → sin ruta, sin A*.
+2. Caché de rutas por (nación, facción, origen, destino) válida para una versión de acceso y época. No incluye
+   la velocidad: el coste es proporcional a 1/velocidad, así que la ruta óptima es la misma.
+3. Regiones de acceso: componente conexa de las provincias en las que la nación puede entrar, calculada por
+   inundación una vez por región. Origen y destino en regiones distintas → sin ruta, sin A*. Por eso A*
+   (montículo binario) solo se lanza cuando va a tener éxito.
+4. Presupuesto de la IA: como máximo `VMilitaryAI.PATH_BUDGET` búsquedas nuevas por día. Las demás órdenes
+   esperan en cola uno o varios días; las rutas en caché no cuentan.
+
+### IA militar
+
+Solo trabaja con las naciones a las que les toca ese día (≈1/5). Los destinos estratégicos (objetivos de
+guerra, provincias propias ocupadas, capital o frontera enemiga) se recalculan cada `STRATEGIC_DAYS` (10) días
+o cuando cambia el acceso. La elección táctica (cada 5 días) ordena los candidatos por distancia² y evalúa el
+peligro (índice por provincia: provincia y vecinas) solo hasta encontrar el primer destino aceptable, con el
+mismo resultado que evaluarlos todos. Una decisión dispara como mucho una búsqueda A*.
+
+### Guerra y armada orientadas a eventos
+
+* Ocupación: valor de warscore por provincia (`_wsv`), y por nación el valor total y el valor ocupado por
+  cada controlador. Se mantiene en `set_controller` y se recalcula una vez al mes (la población cambia).
+  `occupation_ws` cuesta O(participantes²).
+* Bloqueo: recuentos de costas bloqueadas por bloqueador solo para las naciones afectadas ese día o el
+  anterior; `blockade_ws` se deriva de ellos.
+* Warscore por objetivos: se vuelve a contar el control de la partición solo si cambió algún controlador.
+* Asedios: solo se recorre el índice `sieging`.
+
+### Suministro y refuerzo
+
+* Consumo por ejército cacheado a plena fuerza (`_need`; se invalida al cambiar sus brigadas) y multiplicado
+  por la fracción de fuerza.
+* Límite de suministro cacheado por (provincia, versión de acceso, mes).
+* POP de origen de cada brigada cacheado (`_pop`): los POPs nunca se eliminan de su provincia.
+* Ejércitos asentados: con todas las brigadas en su organización máxima y la moral y el suministro estables,
+  el bucle de organización no cambiaría nada y se omite (resultado exacto).
+* El refuerzo solo recorre el índice `damaged`.
+
+### POPs y economía (mismo cálculo, menos operaciones)
+
+* Compra de necesidades con costes y llenados planos por (nación, tipo); sin arrays temporales por POP.
+* Issues: el resultado depende solo de (ideología dominante, tipo, máscara de reglas condicionales). Se
+  comparte entre POPs como diccionario de solo lectura, sin `duplicate()` por POP.
+* Deriva ideológica sin comparaciones de cadenas; condiciones de promoción precompiladas a códigos enteros.
+* Agregados nacionales sumados en variables locales por provincia.
+* Producción por provincia en una sola pasada por POP (RGO → artesano → empleo estatal → prestaciones, el
+  mismo orden por POP que las tres pasadas anteriores) con impuestos en línea.
+* Movimientos políticos con reformas precompiladas; demanda de POPs al cierre del mes con cestas resueltas
+  una vez; destinos de migración con selección parcial de los 6 mejores.
+
+### Medición
+
+`VProfiler` registra llamadas, total, media real y máximo por sección, además de contadores (rutas, nodos,
+aciertos de caché, IA). `tests/VictoriaPerformanceBenchmark` mide 1, 5 y 10 años de la misma partida y
+compara la huella de la simulación con una línea base (ver Testing).

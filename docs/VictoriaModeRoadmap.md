@@ -23,7 +23,7 @@ de GFM), con código, datos, gráficos y geografía propios (Natural Earth, domi
 | 12 | Armada: flotas en zonas marítimas, transporte real, bloqueos (mercado), combate naval | ✅ (M3) |
 | — | Rebeldes armados a partir de movimientos políticos | ✅ (M3) |
 | 13 | Eventos/decisiones GFM-like (scripted + condicionales, cadenas, flags) | ⏳ |
-| 14 | Pulido: tooltips, ledger, rendimiento, saves | ⏳ |
+| 14 | Pulido: tooltips, ledger, rendimiento (M3.1 ✅ parcial), saves | ⏳ |
 
 ## Milestone 1 (actual) — "esto es la base correcta"
 
@@ -60,6 +60,15 @@ Placeholders conscientes: sin cartas (solo la interfaz VBattleResolver), sin cri
 sin sistema colonial, IA sencilla (sin frentes), selección rectangular de ejércitos no implementada (Mayús+clic
 añade a la selección), ríos sin datos (el resolver ya admite battle.river), naciones liberables solo si existe
 una nación latente sin provincias.
+
+## M3.1 — Pasada de arquitectura de rendimiento — completada
+
+Índices persistentes de unidades, versión de acceso, caché de relaciones bélicas, caché de rutas, regiones de
+acceso, presupuesto diario de A*, IA estratégica/táctica, warscore/bloqueo/asedios orientados a eventos,
+suministro y refuerzo con cachés, y menos operaciones por POP en población, producción, movilidad y política.
+Benchmark fijo (`tests/VictoriaPerformanceBenchmark`): de 18,6 s a 10,5 s por año headless (−43 %); el pico
+diario baja de 367 ms a 87 ms. El objetivo de < 8 s/año **no se ha alcanzado**: el coste restante es el modelo
+de POPs como diccionarios en GDScript (ver Testing → M3.1).
 
 ## Siguiente paso (milestone 4)
 

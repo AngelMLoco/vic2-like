@@ -158,3 +158,75 @@ Rendimiento (mismo equipo, headless, 20 años):
 **Objetivo no cumplido:** el año headless sigue por encima de 8 s (≈9,6 s tras M2.11 sin guerra; ≈17 s con
 M3). El cierre de mes sí está cerca del objetivo (≈210 ms frente a 150 ms). Siguientes optimizaciones:
 repartir los sistemas nacionales y el suministro entre días, y cachear rutas de la IA entre ticks.
+
+## M3.1 — Pasada de rendimiento
+
+```bash
+# Benchmark fijo: misma partida, puntos de control en 1, 5 y 10 años (IA activa, sin jugador)
+"$GODOT" --headless --path . res://tests/VictoriaPerformanceBenchmark.tscn -- 10
+# Fijar la huella actual como línea base de determinismo (user://bench_baseline_10.json)
+VBENCH_SET_BASELINE=1 "$GODOT" --headless --path . res://tests/VictoriaPerformanceBenchmark.tscn -- 10
+```
+
+El benchmark imprime ms/año por sistema, llamadas/total/media/máximo de cada sección de `VProfiler`, los
+contadores de rutas e IA y una huella de la simulación (población, fábricas, guerras, esferas, brigadas, bajas,
+rebeliones, vida, precios) comparada con la línea base. **No falla por tiempo absoluto**: avisa si la IA militar
+supera el 15 % de la simulación, la capa militar el 40 %, el cierre de mes el 40 %, si los aciertos de caché de
+rutas bajan del 30 %, si A* expande de media más de 400 nodos o si el pico diario supera 12× la media.
+
+### Antes / después (mismo equipo, 10 años, misma partida)
+
+| Medida | Antes (HEAD 3c59b70) | Después | Cambio |
+|---|---|---|---|
+| Año headless (media 10 años) | 18,6 s | **10,5 s** | −43 % |
+| Año 1 / año más lento | 12,0 s / 23,1 s | 8,9 s / 11,8 s | |
+| Tick diario: media / máx. | 44,6 / 367 ms | 24,5 / 87 ms | |
+| Cierre de mes: media / máx. | 186 / 287 ms | 125 / 176 ms | |
+| Capa militar diaria: media / máx. | 23,2 / 336 ms | 8,1 / 68 ms | −65 % |
+| IA militar (terrestre + naval) por año | 3,89 s | 0,85 s | −78 % |
+| A* por año | 1,24 s (5.021 búsquedas, 135 nodos de media) | 0,21 s (4.056, 31 nodos) | −83 % |
+| Suministro por año | 2,12 s | 1,11 s | |
+| Población (cubos) por año | 4,11 s | 2,77 s | |
+| Producción (cubos) por año | 2,48 s | 2,13 s | |
+| Movilidad (cubos) por año | 1,22 s | 1,08 s | |
+
+Rutas en 10 años: 12.812 peticiones, 6.756 aciertos de caché (53 %), regiones de acceso que resuelven los
+destinos inaccesibles sin A*, 66 órdenes esperando en cola por el presupuesto diario.
+
+Huella tras 10 años frente a la línea base: población 737,9 → 738,9 M, vida 0,809 → 0,791, guerras 34 → 34,
+esferas 19 → 20, brigadas 1.911 → 1.798. Las fábricas (212–251) y el máximo de brigadas de una nación (77–132)
+varían entre ejecuciones con cambios mínimos de orden de la IA: la guerra es caótica. La simulación es
+determinista: dos ejecuciones del mismo código dan resultados idénticos.
+
+### 20 y 30 años (`VictoriaBalanceTest`)
+
+**0 problemas** en ambos. Los 20 primeros años de la ejecución de 30 coinciden exactamente con la de 20.
+
+| Año | Pobl. (M) | Vida | Diario | Milit. | Conc. | Fábricas | Guerras (total) | Brigadas media/máx | Esferas | Rebeldes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 10 | 739 | 0.79 | 0.37 | 0.76 | 0.44 | 212 | 34 | 20,3 / 93 | 20 | 0 |
+| 20 | 781 | 0.81 | 0.35 | 0.92 | 0.51 | 343 | 62 | 29,5 / 151 | 21 | 9 |
+| 30 | 828 | 0.76 | 0.26 | 1.11 | 0.84 | 471 | 82 | 28,7 / 165 | 21 | 21 |
+
+Necesidades de vida estables (0,76–0,85). Industrialización gradual (119 → 471 en 30 años). A los 30 años
+suben militancia y conciencia y aparecen más rebeliones (riesgo en 14 naciones): es la tendencia política
+esperada sin eventos ni reformas guiadas; queda para el balance de M4.
+
+### Objetivo < 8 s/año: no alcanzado
+
+Los tres mayores costes restantes (tramo de años 5–10):
+
+1. Población (necesidades, consecuencias, ideología, issues, agregados): ≈ 2,8 s/año, 30 % de la simulación.
+2. Producción por provincia (RGO, artesanos, empleo estatal, prestaciones): ≈ 1,8 s/año, 17 %.
+3. Suministro militar: ≈ 1,2 s/año, 11 % (seguido de la movilidad, ≈ 1,1 s/año).
+
+Se probaron optimizaciones adicionales sobre el mayor (población): costes planos, issues compartidos por
+máscara, deriva sin comparar cadenas y agregados en locales. Bajó de 4,1 a 2,8 s/año. Lo que queda es
+**estructural**: cada POP es un `Dictionary` de GDScript y el mes completo hace unas 50–80 lecturas y escrituras
+de diccionario por POP (≈ 20.000 POPs), a ≈ 0,15–0,3 µs cada una. Bajar de 8 s requeriría:
+
+* Pasar los POPs a estructura de arrays (`PackedFloat64Array`/`PackedInt32Array` por campo, con índices por
+  provincia). Es una reescritura de población, producción, movilidad, política y guardado. Ganancia esperada:
+  entre 2× y 3× en esos sistemas, que llevaría el año a ≈ 6–7 s.
+* O mover el bucle mensual de POPs a C# o GDExtension, con una ganancia esperada de 10× o más en esos bucles.
+  El año quedaría en ≈ 3–5 s, pero añade una cadena de compilación al proyecto.
