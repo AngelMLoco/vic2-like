@@ -10,9 +10,13 @@ config_version=5
 
 [application]
 
-config/name="Chronicles of Aether - Simulation Prototype"
-run/main_scene="res://src/Main.tscn"
+config/name="Chronicles of Aether"
+run/main_scene="res://src/app/MainMenu.tscn"
 config/features=PackedStringArray("4.4")
+
+[autoload]
+
+App="*res://src/app/App.gd"
 
 [display]
 
