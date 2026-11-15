@@ -16,6 +16,7 @@ static func new_game() -> VGameState:
 	_load_countries(gs)
 	gs.rebuild_territory()
 	_apply_history(gs)
+	gs.pops.setup(gs)
 	VPopulationSystem.generate_initial(gs)
 	VPoliticsSystem.setup_new_game(gs)
 	VTechnologySystem.setup_new_game(gs)
@@ -153,7 +154,7 @@ static func _load_map(gs: VGameState) -> void:
 		prov["naval_base"] = 0
 		prov["occupation"] = 0.0
 		prov["coastal"] = false
-		prov["pops"] = []
+		prov["pop_slots"] = []
 		for n in prov["neighbors"]:
 			if n >= gs.first_sea_id and n < gs.first_lake_id:
 				prov["coastal"] = true

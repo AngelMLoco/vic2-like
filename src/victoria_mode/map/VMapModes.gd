@@ -96,10 +96,10 @@ static func color_of(gs: VGameState, mode: String, id: int, focus_tag: String, c
 			var t: float = clamp(log(1.0 + d) / log(1.0 + float(ctx["max_density"])), 0.0, 1.0)
 			return Color("2a3b2a").lerp(Color("f2e27a"), t)
 		"culture":
-			var c: String = _majority(p, "culture", p.get("culture", ""))
+			var c: String = _majority(gs, p, "culture", p.get("culture", ""))
 			return gs.cultures.get(c, {}).get("color_obj", UNOWNED)
 		"religion":
-			var r: String = _majority(p, "religion", p.get("religion", ""))
+			var r: String = _majority(gs, p, "religion", p.get("religion", ""))
 			return gs.religions.get(r, {}).get("color_obj", UNOWNED)
 		"industry":
 			if owner == "":
@@ -171,10 +171,8 @@ static func color_of(gs: VGameState, mode: String, id: int, focus_tag: String, c
 	return gs.country_color(owner)
 
 
-static func _majority(p: Dictionary, field: String, fallback: String) -> String:
-	var counts := {}
-	for pop in p.get("pops", []):
-		counts[pop[field]] = counts.get(pop[field], 0) + int(pop["size"])
+static func _majority(gs: VGameState, p: Dictionary, field: String, fallback: String) -> String:
+	var counts := VPopulationSystem.sizes_by(gs, [int(p["id"])], field) if p.has("pop_slots") else {}
 	var best := fallback
 	var best_n := -1
 	for k in counts:

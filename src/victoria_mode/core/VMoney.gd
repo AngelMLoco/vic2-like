@@ -38,10 +38,11 @@ static func destroyed(gs: VGameState, amount: float, category: String) -> void:
 static func snapshot(gs: VGameState) -> Dictionary:
 	var pop_cash := 0.0
 	var pop_bank := 0.0
-	for id in range(1, gs.first_sea_id):
-		for pop in gs.provinces[id]["pops"]:
-			pop_cash += float(pop["cash"])
-			pop_bank += float(pop.get("bank", 0.0))
+	var ps := gs.pops
+	for s in ps.id.size():
+		if ps.id[s] >= 0:
+			pop_cash += ps.cash[s]
+			pop_bank += ps.bank[s]
 	var factory_cash := 0.0
 	for key in gs.state_instances:
 		for f in gs.state_instances[key]["factories"]:

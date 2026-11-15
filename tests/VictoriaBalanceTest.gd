@@ -27,6 +27,7 @@ func _ready() -> void:
 		sim.run_days(365)
 		print(row(gs, y + 1) + "  (%.1f s)" % ((Time.get_ticks_msec() - ty) / 1000.0))
 		print("      " + m3_row(gs))
+		print("      " + pop_row(gs))
 		var gps := []
 		for t in gs.country_order:
 			if gs.countries[t].get("status", "") == "great_power":
@@ -58,16 +59,17 @@ static func stats(gs: VGameState) -> Dictionary:
 		var p: Dictionary = gs.provinces[id]
 		if p["owner"] == "":
 			continue
-		for pop in p["pops"]:
-			var w := float(pop["size"])
+		var ps := gs.pops
+		for pop in p["pop_slots"]:
+			var w := float(ps.size[pop])
 			s["pop"] += w
-			s["life"] += float(pop["needs_satisfaction"]["life"]) * w
-			s["every"] += float(pop["needs_satisfaction"]["everyday"]) * w
-			s["lux"] += float(pop["needs_satisfaction"]["luxury"]) * w
-			s["unemp"] += (1.0 - float(pop["employment"])) * w
-			s["mil"] += float(pop["militancy"]) * w
-			s["con"] += float(pop["consciousness"]) * w
-			s["lit"] += float(pop["literacy"]) * w
+			s["life"] += ps.life[pop] * w
+			s["every"] += ps.everyday[pop] * w
+			s["lux"] += ps.luxury[pop] * w
+			s["unemp"] += (1.0 - ps.employment[pop]) * w
+			s["mil"] += ps.militancy[pop] * w
+			s["con"] += ps.consciousness[pop] * w
+			s["lit"] += ps.literacy[pop] * w
 	for k in ["life", "every", "lux", "unemp", "mil", "con", "lit"]:
 		s[k] = float(s[k]) / maxf(1.0, float(s["pop"]))
 	var open := 0
@@ -173,15 +175,16 @@ static func debug_dump(gs: VGameState) -> void:
 		print("%-12s cost %s fill %s" % [t, str(c["_needs"][t]["cost"]), str(c["_needs"][t]["fill"])])
 	var by := {}
 	for id in c["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			var e: Array = by.get(pop["type"], [0.0, 0.0, 0.0, 0.0, 0.0])
-			var u := float(pop["size"]) / 10000.0
+		for pop in gs.provinces[id]["pop_slots"]:
+			var tn: String = gs.pops.type_name(pop)
+			var e: Array = by.get(tn, [0.0, 0.0, 0.0, 0.0, 0.0])
+			var u := float(gs.pops.size[pop]) / 10000.0
 			e[0] += u
-			e[1] += float(pop["cash"])
-			e[2] += float(pop["income"])
-			e[3] += float(pop["needs_satisfaction"]["life"]) * u
-			e[4] += float(pop["employment"]) * u
-			by[pop["type"]] = e
+			e[1] += gs.pops.cash[pop]
+			e[2] += gs.pops.income[pop]
+			e[3] += gs.pops.life[pop] * u
+			e[4] += gs.pops.employment[pop] * u
+			by[tn] = e
 	print("--- FRK por tipo: unidades | cash/10k | renta/10k | vida | empleo")
 	for t in by:
 		var e: Array = by[t]
@@ -215,6 +218,18 @@ static func m3_stats(gs: VGameState) -> Dictionary:
 	return {"wars_total": int(gs.next_ids.get("war", 1)) - 1, "wars_active": gs.wars.size(), "at_war": at_war, "living": living.size(),
 		"avg_brigades": float(brig) / maxf(1.0, float(living.size())), "max_brigades": max_brig, "sphere": sphere,
 		"rebels": gs.rebel_factions.size(), "rebel_risk": risk, "armies": gs.armies.size(), "fleets": gs.fleets.size()}
+
+
+## POPs (almacén) y diagnóstico de militancia del último mes (contribución media mensual por componente).
+static func pop_row(gs: VGameState) -> String:
+	var st: Dictionary = gs.pops.stats
+	var d: Dictionary = gs.market.get("mil_diag", {})
+	var parts := []
+	for k in VPopulationSystem.MIL_PARTS:
+		if absf(float(d.get(k, 0.0))) >= 0.0005:
+			parts.append("%s %+.3f" % [k, float(d[k])])
+	return "POPs %d (creados %d, fusionados %d, nuevos por traslado %d) · militancia/mes: %s · neto %+.4f" % [
+		gs.pops.count(), int(st["created"]), int(st["merged"]), int(st["split"]), ", ".join(parts), float(d.get("net", 0.0))]
 
 
 static func m3_row(gs: VGameState) -> String:

@@ -24,9 +24,11 @@ static func setup_new_game(gs: VGameState) -> void:
 		var p: Dictionary = gs.provinces[id]
 		var wt := rgo_worker_type(gs, p["rgo"])
 		var workers := 0
-		for pop in p["pops"]:
-			if pop["type"] == wt or pop["type"] == "slaves":
-				workers += int(pop["size"])
+		var wt_id := int(gs.pops.type_index.get(wt, -2))
+		for ps_s: int in p["pop_slots"]:
+			var tt: int = gs.pops.type_id[ps_s]
+			if tt == wt_id or tt == gs.pops.T_SLAVES:
+				workers += gs.pops.size[ps_s]
 		p["rgo_data"] = {"good": p["rgo"], "base_size": float(workers) / UNIT * headroom, "current_size": 0.0,
 			"workers": workers, "max_workers": 0, "efficiency": 1.0, "output": 0.0, "revenue": 0.0}
 	_calibrate(gs)
@@ -81,11 +83,11 @@ static func _calibrate(gs: VGameState) -> void:
 		var g: String = p["rgo"]
 		var eff := float(gs.terrain_types.get(p["terrain"], {}).get("rgo_efficiency", 1.0))
 		supply[g] = float(supply.get(g, 0.0)) + float(p["rgo_data"]["workers"]) / UNIT * value / float(gs.goods[g]["base_price"]) * eff
-		for pop in p["pops"]:
-			var units := float(pop["size"]) / UNIT
+		for ps_s: int in p["pop_slots"]:
+			var units := float(gs.pops.size[ps_s]) / UNIT
 			var weights: Array = rules.get("calibration_tier_weights", [1.0, 0.5, 0.1])
 			for i in 3:
-				var basket := VPopulationSystem.needs_basket(gs, pop["type"], VPopulationSystem.TIERS[i])
+				var basket := VPopulationSystem.needs_basket(gs, gs.pops.type_name(ps_s), VPopulationSystem.TIERS[i])
 				for good in basket:
 					demand[good] = float(demand.get(good, 0.0)) + float(basket[good]) * units * weights[i]
 	# insumos de fábricas existentes y de artesanos (estimación)
@@ -99,9 +101,9 @@ static func _calibrate(gs: VGameState) -> void:
 	for id in range(1, gs.first_sea_id):
 		if gs.provinces[id]["owner"] == "":
 			continue
-		for pop in gs.provinces[id]["pops"]:
-			if pop["type"] == "artisans":
-				art_units += float(pop["size"]) / UNIT
+		for ps_s: int in gs.provinces[id]["pop_slots"]:
+			if gs.pops.type_id[ps_s] == gs.pops.T_ARTISANS:
+				art_units += float(gs.pops.size[ps_s]) / UNIT
 	var art_rates: Dictionary = tmp_rates["artisan"]
 	for t in art_rates:
 		var ft2: Dictionary = gs.factory_types[t]
@@ -166,9 +168,9 @@ static func _assign_initial_artisans(gs: VGameState) -> void:
 	var options: Array = gs.market["artisan_rate"].keys()
 	options.sort()
 	for id in range(1, gs.first_sea_id):
-		for pop in gs.provinces[id]["pops"]:
-			if pop["type"] == "artisans":
-				pop["product"] = options[(int(pop["id"]) * 7 + id) % options.size()]
+		for ps_s: int in gs.provinces[id]["pop_slots"]:
+			if gs.pops.type_id[ps_s] == gs.pops.T_ARTISANS:
+				gs.pops.product[ps_s] = options[(gs.pops.id[ps_s] * 7 + id) % options.size()]
 
 
 # ------------------------------------------------- proceso mensual (provincia)
@@ -178,28 +180,43 @@ static func process_province(gs: VGameState, id: int) -> void:
 	if tag == "":
 		return
 	var c: Dictionary = gs.countries[tag]
-	var pops: Array = p["pops"]
-	var ptc := VPopulationSystem._type_cache(gs)
-	var mk := _market_ctx(gs, tag, c)
+	var ps := gs.pops
+	var slots: Array = p["pop_slots"]
+	var a_type := ps.type_id
+	var a_size := ps.size
+	var a_emp := ps.employment
+	var a_employer := ps.employer
+	var a_cash := ps.cash
+	var a_inacc := ps.income_acc
+	var t_strata := ps.t_strata
+	var t_job := ps.t_job
+	var t_wage := ps.t_gov_wage
+	var cx := _country_ctx(gs, tag, c)
+	var mk: Dictionary = cx["mk"]
 	# ---------------- RGO: recuento de trabajadores y propietarios
 	var rd: Dictionary = p["rgo_data"]
 	var good: String = rd["good"]
-	var wt := rgo_worker_type(gs, good)
+	var wt := int(ps.type_index.get(rgo_worker_type(gs, good), -2))
+	var t_slaves := ps.T_SLAVES
+	var t_aristo := ps.T_ARISTOCRATS
+	var t_farm := ps.T_FARMERS
+	var t_lab := ps.T_LABOURERS
+	var t_art := ps.T_ARTISANS
 	var workers := 0
 	var aristos := []
 	var aristo_size := 0
-	for pop in pops:
-		var t0: String = pop["type"]
-		if t0 == wt or t0 == "slaves":
-			workers += int(pop["size"])
-		elif t0 == "aristocrats":
-			aristos.append(pop)
-			aristo_size += int(pop["size"])
-	var size := float(rd["base_size"]) * (1.0 + gs.mod(tag, "rgo_size"))
+	for s0: int in slots:
+		var t0: int = a_type[s0]
+		if t0 == wt or t0 == t_slaves:
+			workers += a_size[s0]
+		elif t0 == t_aristo:
+			aristos.append(s0)
+			aristo_size += a_size[s0]
+	var size := float(rd["base_size"]) * float(cx["rgo_size"])
 	var max_workers := int(size * UNIT)
 	var employed: int = mini(workers, max_workers)
 	var ratio := float(employed) / float(workers) if workers > 0 else 0.0
-	var eff := float(gs.terrain_types.get(p["terrain"], {}).get("rgo_efficiency", 1.0)) * (1.0 + gs.mod(tag, "rgo_efficiency")) * (1.0 + 0.05 * int(p["infrastructure"]))
+	var eff := float(gs.terrain_types.get(p["terrain"], {}).get("rgo_efficiency", 1.0)) * float(cx["rgo_eff"]) * (1.0 + 0.05 * int(p["infrastructure"]))
 	var output := float(employed) / UNIT * float(gs.market["rgo_output"].get(good, 1.0)) * eff
 	# ocupación enemiga: la producción cae y el propietario no recauda impuestos aquí
 	var occupied: bool = p["controller"] != tag
@@ -219,90 +236,144 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var worker_pool := revenue * (1.0 - owner_share)
 	var owner_pool := revenue * owner_share
 	var paid_out := 0.0
-	# ---------------- empleo estatal y prestaciones: factores por provincia
-	var social := float(c["budget"].get("social", 0.0)) * float(c.get("pay_ratio", 1.0))
-	var benefit_rate := gs.mod(tag, "unemployment_benefit") * social
-	var pension_rate := gs.mod(tag, "pension") * social
-	var health_cost := gs.mod(tag, "social_cost") * social
-	var transfers := benefit_rate > 0.0 or pension_rate > 0.0
-	var needs: Dictionary = c.get("_needs", {})
-	var pay_f := {}
-	for job in VBudgetSystem.EXPENSE_FOR_JOB:
-		pay_f[job] = VBudgetSystem.gov_pay_factor(c, job)
-	var exp_acc := {}
+	# ---------------- empleo estatal, prestaciones e impuestos: contexto por país (cacheado, ver _country_ctx)
 	var social_spent := 0.0
 	var prov_units := 0.0
-	# impuestos en línea (igual que VBudgetSystem.credit_income): tipo por estrato y acumulado local
-	var tax_eff := float(c.get("tax_efficiency", 0.8))
-	var budget: Dictionary = c["budget"]
-	var tax_rate := {"poor": float(budget.get("tax_poor", 0.0)) * tax_eff, "middle": float(budget.get("tax_middle", 0.0)) * tax_eff,
-		"rich": float(budget.get("tax_rich", 0.0)) * tax_eff}
-	var tax_acc := {"poor": 0.0, "middle": 0.0, "rich": 0.0}
+	var benefit_rate: float = cx["benefit_rate"]
+	var pension_rate: float = cx["pension_rate"]
+	var health_cost: float = cx["health_cost"]
+	var transfers: bool = cx["transfers"]
+	var needs: Array[float] = c.get("_needs_tid", [] as Array[float])
+	var pay_by_type: Array[float] = cx["pay_by_type"]
+	var exp_by_type: Array[int] = cx["exp_by_type"]
+	var exp_keys: Array[String] = cx["exp_keys"]
+	var exp_vals: Array[float] = (cx["exp_zero"] as Array[float]).duplicate()
+	var state_job: Array[bool] = cx["state_job"]
+	var investor: Array[bool] = cx["investor"]
+	var tax_rate: Array[float] = cx["tax_rate"]
+	var tax_acc: Array[float] = [0.0, 0.0, 0.0]
 	# ---------------- una pasada por POP: RGO → artesano → empleo estatal → prestaciones
 	# (mismo orden por POP que las tres pasadas originales: el resultado no cambia)
-	for pop in pops:
-		var t: String = pop["type"]
-		var tc: Array = ptc.get(t, ptc["_default"])
-		var units := float(pop["size"]) / UNIT
+	for s: int in slots:
+		var t: int = a_type[s]
+		var units := float(a_size[s]) / UNIT
 		prov_units += units
-		if t == wt or t == "slaves":
-			pop["employment"] = ratio
-			pop["employer"] = "rgo"
+		var st: int = t_strata[t]
+		if t == wt or t == t_slaves:
+			a_emp[s] = ratio
+			a_employer[s] = VPopStore.EMP_RGO
 			if employed > 0:
-				var share := worker_pool * float(pop["size"]) * ratio / float(employed)
-				if t == "slaves" and aristo_size > 0:
-					VBudgetSystem.transfer(pop, share * 0.3)
+				var share := worker_pool * float(a_size[s]) * ratio / float(employed)
+				if t == t_slaves and aristo_size > 0:
+					a_cash[s] += share * 0.3
+					a_inacc[s] += share * 0.3
 					owner_pool += share * 0.7
 					paid_out += share * 0.3
 				elif share > 0.0:
 					var net := share
 					if not occupied:
-						var tx := share * float(tax_rate[tc[1]])
-						tax_acc[tc[1]] = float(tax_acc[tc[1]]) + tx
+						var tx := share * tax_rate[st]
+						tax_acc[st] += tx
 						net = share - tx
-					pop["cash"] = float(pop["cash"]) + net
-					pop["income_acc"] = float(pop.get("income_acc", 0.0)) + net
+					a_cash[s] += net
+					a_inacc[s] += net
 					paid_out += share
-		elif t == "farmers" or t == "labourers":
-			pop["employment"] = 0.0
-			pop["employer"] = ""
-		elif t == "artisans":
-			_artisan(gs, pop, tag, c, mk)
-		var job: String = tc[4]
-		if pay_f.has(job):
-			var pay := float(tc[5]) * units * float(pay_f[job])
-			pop["employment"] = 1.0 if pay > 0.0 else 0.0
-			pop["employer"] = "estado"
+		elif t == t_farm or t == t_lab:
+			a_emp[s] = 0.0
+			a_employer[s] = VPopStore.EMP_NONE
+		elif t == t_art:
+			_artisan(gs, s, tag, c, mk)
+		if state_job[t]:
+			var pay := pay_by_type[t] * units
+			a_emp[s] = 1.0 if pay > 0.0 else 0.0
+			a_employer[s] = VPopStore.EMP_STATE
 			if pay > 0.0:
-				var tx2 := pay * float(tax_rate[tc[1]])
-				tax_acc[tc[1]] = float(tax_acc[tc[1]]) + tx2
-				pop["cash"] = float(pop["cash"]) + pay - tx2
-				pop["income_acc"] = float(pop.get("income_acc", 0.0)) + pay - tx2
-				var ek: String = VBudgetSystem.EXPENSE_FOR_JOB[job]
-				exp_acc[ek] = float(exp_acc.get(ek, 0.0)) + pay
-		elif job == "investor":
-			pop["employment"] = 1.0
-			pop["employer"] = "inversión"
-		if transfers and tc[1] == "poor":
-			var life_cost := float(needs.get(t, {}).get("cost", [0.0])[0]) * units
-			var amount := life_cost * (benefit_rate * (1.0 - float(pop["employment"])) + pension_rate)
+				var tx2 := pay * tax_rate[st]
+				tax_acc[st] += tx2
+				a_cash[s] += pay - tx2
+				a_inacc[s] += pay - tx2
+				exp_vals[exp_by_type[t]] += pay
+		elif investor[t]:
+			a_emp[s] = 1.0
+			a_employer[s] = VPopStore.EMP_INVEST
+		if transfers and st == 0:
+			var life_cost := (needs[t * 6] if t * 6 < needs.size() else 0.0) * units
+			var amount := life_cost * (benefit_rate * (1.0 - a_emp[s]) + pension_rate)
 			if amount > 0.0:
-				VBudgetSystem.transfer(pop, amount)
+				a_cash[s] += amount
+				a_inacc[s] += amount
 				social_spent += amount
 	for ar in aristos:
-		ar["employment"] = 1.0
-		ar["employer"] = "rgo_owner"
-		var ashare := owner_pool * float(ar["size"]) / float(aristo_size)
+		a_emp[ar] = 1.0
+		a_employer[ar] = VPopStore.EMP_OWNER
+		var ashare := owner_pool * float(a_size[ar]) / float(aristo_size)
 		VBudgetSystem.credit_income(gs, tax_tag, ar, ashare)
 		paid_out += ashare
 	VMoney.created(gs, paid_out, "rgo_sales")
+	# libro de dinero de los artesanos: un apunte por provincia
+	if mk.has("art_sales"):
+		VMoney.created(gs, float(mk["art_sales"]), "artisan_sales")
+		VMoney.destroyed(gs, float(mk["art_inputs"]), "artisan_inputs")
+		mk.erase("art_sales")
+		mk.erase("art_inputs")
 	var acc: Dictionary = c["acc"]
-	for st in tax_acc:
-		acc["tax_" + st] = float(acc["tax_" + st]) + float(tax_acc[st])
-	for ek in exp_acc:
-		VBudgetSystem.add_expense(gs, tag, ek, float(exp_acc[ek]))
+	acc["tax_poor"] = float(acc["tax_poor"]) + tax_acc[0]
+	acc["tax_middle"] = float(acc["tax_middle"]) + tax_acc[1]
+	acc["tax_rich"] = float(acc["tax_rich"]) + tax_acc[2]
+	for ki in exp_keys.size():
+		VBudgetSystem.add_expense(gs, tag, exp_keys[ki], exp_vals[ki])
 	social_spent += health_cost * prov_units * 0.6
 	VBudgetSystem.add_expense(gs, tag, "social", social_spent)
+
+
+## Contexto de la nación para el bucle de provincia: mercado, sueldos estatales y gasto por tipo de POP,
+## prestaciones, impuestos y modificadores. Es constante dentro del mes salvo que cambien el presupuesto
+## (sliders), los modificadores, la capacidad de pago o la eficiencia fiscal: la clave incluye sus hashes,
+## así que un cambio del jugador se aplica en la siguiente provincia procesada, igual que antes.
+static func _country_ctx(gs: VGameState, tag: String, c: Dictionary) -> Dictionary:
+	var key := [gs.month_index, c["budget"].hash(), c.get("mods", {}).hash(), float(c.get("pay_ratio", 1.0)), float(c.get("tax_efficiency", 0.8))]
+	var cx: Dictionary = c.get("_pctx", {})
+	if not cx.is_empty() and cx["key"] == key:
+		return cx
+	var ps := gs.pops
+	var social := float(c["budget"].get("social", 0.0)) * float(c.get("pay_ratio", 1.0))
+	var nt := ps.type_names.size()
+	var pay_by_type: Array[float] = []
+	pay_by_type.resize(nt)
+	var exp_by_type: Array[int] = []
+	exp_by_type.resize(nt)
+	var exp_keys: Array[String] = []
+	var exp_zero: Array[float] = []
+	var state_job: Array[bool] = []
+	state_job.resize(nt)
+	var investor: Array[bool] = []
+	investor.resize(nt)
+	for tt in nt:
+		var job0: String = ps.t_job[tt]
+		investor[tt] = job0 == "investor"
+		if VBudgetSystem.EXPENSE_FOR_JOB.has(job0):
+			state_job[tt] = true
+			pay_by_type[tt] = ps.t_gov_wage[tt] * VBudgetSystem.gov_pay_factor(c, job0)
+			var ek0: String = VBudgetSystem.EXPENSE_FOR_JOB[job0]
+			var ki := exp_keys.find(ek0)
+			if ki < 0:
+				ki = exp_keys.size()
+				exp_keys.append(ek0)
+				exp_zero.append(0.0)
+			exp_by_type[tt] = ki
+	var tax_eff := float(c.get("tax_efficiency", 0.8))
+	var budget: Dictionary = c["budget"]
+	var tax_rate: Array[float] = [float(budget.get("tax_poor", 0.0)) * tax_eff, float(budget.get("tax_middle", 0.0)) * tax_eff,
+		float(budget.get("tax_rich", 0.0)) * tax_eff]
+	var benefit_rate := gs.mod(tag, "unemployment_benefit") * social
+	var pension_rate := gs.mod(tag, "pension") * social
+	cx = {"key": key, "mk": _market_ctx(gs, tag, c), "benefit_rate": benefit_rate, "pension_rate": pension_rate,
+		"health_cost": gs.mod(tag, "social_cost") * social, "transfers": benefit_rate > 0.0 or pension_rate > 0.0,
+		"pay_by_type": pay_by_type, "exp_by_type": exp_by_type, "exp_keys": exp_keys, "exp_zero": exp_zero,
+		"state_job": state_job, "investor": investor, "tax_rate": tax_rate,
+		"rgo_size": 1.0 + gs.mod(tag, "rgo_size"), "rgo_eff": 1.0 + gs.mod(tag, "rgo_efficiency")}
+	c["_pctx"] = cx
+	return cx
 
 
 ## Contexto de mercado de la nación para el bucle de provincia (diccionarios ya resueltos).
@@ -327,35 +398,34 @@ static func _buy_price(mk: Dictionary, g: String) -> float:
 	return float(mk["price"].get(g, 1.0)) * (1.0 + float(mk["tariff"]) * float(mk["share"].get(g, 0.0)))
 
 
-static var _artisan_employer := {}
-
-
 ## Un POP de artesanos: elige producto, compra insumos con capital circulante, produce y vende.
-static func _artisan(gs: VGameState, pop: Dictionary, tag: String, c: Dictionary, mk: Dictionary) -> void:
+static func _artisan(gs: VGameState, s: int, tag: String, c: Dictionary, mk: Dictionary) -> void:
+	var ps := gs.pops
 	var rates: Dictionary = mk["rates"]
 	var best: String = c.get("artisan_best", "")
 	var profits: Dictionary = c.get("artisan_profit", {})
 	var choices: Array = c.get("artisan_choices", [])
-	var product: String = pop.get("product", "")
+	var product: String = ps.product[s]
+	var pid: int = ps.id[s]
 	if best != "" and product != best and not choices.is_empty():
 		var cur := float(profits.get(product, -1.0))
-		if cur < float(profits.get(best, 0.0)) * 0.7 and (int(pop["id"]) + gs.month_index) % int(1.0 / float(mk["switch"])) == 0:
+		if cur < float(profits.get(best, 0.0)) * 0.7 and (pid + gs.month_index) % int(1.0 / float(mk["switch"])) == 0:
 			# reparto ponderado por beneficio entre los productos rentables (evita que todos elijan el mismo)
-			var roll := float(absi(("%d|%d" % [int(pop["id"]), gs.month_index]).hash()) % 10000) / 10000.0 * float(c.get("artisan_choice_total", 1.0))
+			var roll := float(absi(("%d|%d" % [pid, gs.month_index]).hash()) % 10000) / 10000.0 * float(c.get("artisan_choice_total", 1.0))
 			for ch in choices:
 				roll -= float(ch[1])
 				if roll <= 0.0:
 					product = ch[0]
 					break
-			pop["product"] = product
+			ps.product[s] = product
 	if not rates.has(product):
 		product = rates.keys()[0]
-		pop["product"] = product
+		ps.product[s] = product
 	var ft: Dictionary = gs.factory_types[product]
 	var inputs: Dictionary = ft["inputs"]
 	var outputs: Dictionary = ft["outputs"]
 	var fb: Dictionary = mk["fb"]
-	var recipes := float(pop["size"]) / UNIT * float(rates[product]) * float(mk["eff_mod"])
+	var recipes := float(ps.size[s]) / UNIT * float(rates[product]) * float(mk["eff_mod"])
 	var in_cost := 0.0
 	for g in inputs:
 		in_cost += float(inputs[g]) * _buy_price(mk, g)
@@ -363,7 +433,7 @@ static func _artisan(gs: VGameState, pop: Dictionary, tag: String, c: Dictionary
 	var expected := 0.0
 	for g in outputs:
 		expected += float(outputs[g]) * recipes * _price(mk, g) * _fill_sell(mk, g)
-	var cash := float(pop["cash"])
+	var cash := ps.cash[s]
 	var scale := 1.0
 	if in_cost * recipes > cash + expected and in_cost > 0.0:
 		scale = clampf((cash + expected) / (in_cost * recipes), 0.0, 1.0)
@@ -381,21 +451,17 @@ static func _artisan(gs: VGameState, pop: Dictionary, tag: String, c: Dictionary
 		var q := float(outputs[g]) * produced
 		VMarketSystem.add_supply(gs, tag, g, q)
 		revenue += q * _price(mk, g) * _fill_sell(mk, g)
-	VMoney.created(gs, revenue, "artisan_sales")
-	VMoney.destroyed(gs, paid, "artisan_inputs")
+	mk["art_sales"] = float(mk.get("art_sales", 0.0)) + revenue
+	mk["art_inputs"] = float(mk.get("art_inputs", 0.0)) + paid
 	if revenue >= paid:
-		VBudgetSystem.credit_income(gs, tag, pop, revenue - paid)
+		VBudgetSystem.credit_income(gs, tag, s, revenue - paid)
 	else:
 		var loss := paid - revenue
 		if loss > cash:
 			VMoney.created(gs, loss - cash, "artisan_loss_forgiven")
-		pop["cash"] = maxf(0.0, cash - loss)
-	pop["employment"] = clampf(scale * fill, 0.0, 1.0) if revenue > paid else clampf(scale * fill * 0.5, 0.0, 1.0)
-	var emp: String = _artisan_employer.get(product, "")
-	if emp == "":
-		emp = "artisan:" + product
-		_artisan_employer[product] = emp
-	pop["employer"] = emp
+		ps.cash[s] = maxf(0.0, cash - loss)
+	ps.employment[s] = clampf(scale * fill, 0.0, 1.0) if revenue > paid else clampf(scale * fill * 0.5, 0.0, 1.0)
+	ps.employer[s] = ps.employer_of("artisan:" + product)
 
 
 # ---------------------------------------------------- fábricas (estado)
@@ -416,16 +482,16 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 	for id in si["provinces"]:
 		infra += float(gs.provinces[id]["infrastructure"])
 		inst_pop += int(gs.provinces[id]["population"])
-		for pop in gs.provinces[id]["pops"]:
-			match pop["type"]:
-				"craftsmen":
-					craftsmen.append(pop)
-					cr_total += int(pop["size"])
-				"clerks":
-					clerks.append(pop)
-					cl_total += int(pop["size"])
-				"capitalists":
-					capitalists.append(pop)
+		for ps_s: int in gs.provinces[id]["pop_slots"]:
+			var tt: int = gs.pops.type_id[ps_s]
+			if tt == gs.pops.T_CRAFTSMEN:
+				craftsmen.append(ps_s)
+				cr_total += gs.pops.size[ps_s]
+			elif tt == gs.pops.T_CLERKS:
+				clerks.append(ps_s)
+				cl_total += gs.pops.size[ps_s]
+			elif tt == gs.pops.T_CAPITALISTS:
+				capitalists.append(ps_s)
 	infra /= maxf(1.0, float(si["provinces"].size()))
 	si["_pop"] = inst_pop
 	# plazas
@@ -562,26 +628,27 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 	# salarios a los POPs (proporcional a su tamaño y al empleo de la partición)
 	var cr_emp_frac := minf(1.0, cr_slots / float(cr_total)) if cr_total > 0 else 0.0
 	var cl_emp_frac := minf(1.0, cl_slots / float(cl_total)) if cl_total > 0 else 0.0
-	for pop in craftsmen:
-		pop["employment"] = cr_emp_frac
-		pop["employer"] = "fábrica" if cr_emp_frac > 0.0 else ""
+	var ps := gs.pops
+	for s in craftsmen:
+		ps.employment[s] = cr_emp_frac
+		ps.employer[s] = VPopStore.EMP_FACTORY if cr_emp_frac > 0.0 else VPopStore.EMP_NONE
 		if cr_total > 0:
-			VBudgetSystem.credit_income(gs, tag, pop, wages_cr * float(pop["size"]) / float(cr_total))
-	for pop in clerks:
-		pop["employment"] = cl_emp_frac
-		pop["employer"] = "fábrica" if cl_emp_frac > 0.0 else ""
+			VBudgetSystem.credit_income(gs, tag, s, wages_cr * float(ps.size[s]) / float(cr_total))
+	for s in clerks:
+		ps.employment[s] = cl_emp_frac
+		ps.employer[s] = VPopStore.EMP_FACTORY if cl_emp_frac > 0.0 else VPopStore.EMP_NONE
 		if cl_total > 0:
-			VBudgetSystem.credit_income(gs, tag, pop, wages_cl * float(pop["size"]) / float(cl_total))
+			VBudgetSystem.credit_income(gs, tag, s, wages_cl * float(ps.size[s]) / float(cl_total))
 	# beneficio a capitalistas del estado (si no hay, a los del país)
 	if profit_total > 0.0:
 		if capitalists.is_empty():
 			capitalists = c.get("_capitalists", [])
 		var cap_size := 0
-		for pop in capitalists:
-			cap_size += int(pop["size"])
+		for s in capitalists:
+			cap_size += ps.size[s]
 		if cap_size > 0:
-			for pop in capitalists:
-				VBudgetSystem.credit_income(gs, tag, pop, profit_total * float(pop["size"]) / float(cap_size))
+			for s in capitalists:
+				VBudgetSystem.credit_income(gs, tag, s, profit_total * float(ps.size[s]) / float(cap_size))
 		else:
 			c["treasury"] = float(c["treasury"]) + profit_total * 0.5
 			VMoney.destroyed(gs, profit_total * 0.5, "profit_without_owner")
@@ -607,19 +674,20 @@ static func monthly_country(gs: VGameState, tag: String, is_player: bool) -> voi
 	# inversión privada: solo capitalistas (los aristócratas viven de la renta del RGO y ahorran)
 	if policy in rules.get("investment_policies", []) and c.get("civilized", true) and int(c["invest_cooldown"]) == 0 and c["projects"].size() < max_projects:
 		var capitalists: Array = c.get("_capitalists", [])
+		var ps := gs.pops
 		var pool := 0.0
-		for pop in capitalists:
-			pool += float(pop["cash"]) + float(pop.get("bank", 0.0))
+		for s in capitalists:
+			pool += ps.cash[s] + ps.bank[s]
 		var plan := best_investment(gs, tag)
 		if not plan.is_empty() and pool >= float(plan["cost"]) * float(rules.get("investment_capital_ratio", 2.5)):
 			var cost := float(plan["cost"])
-			for pop in capitalists:
-				var w := (float(pop["cash"]) + float(pop.get("bank", 0.0))) / pool
+			for s in capitalists:
+				var w := (ps.cash[s] + ps.bank[s]) / pool
 				var take := cost * w
-				var from_cash: float = minf(float(pop["cash"]), take)
-				pop["cash"] = float(pop["cash"]) - from_cash
+				var from_cash: float = minf(ps.cash[s], take)
+				ps.cash[s] -= from_cash
 				var from_bank := take - from_cash
-				pop["bank"] = maxf(0.0, float(pop.get("bank", 0.0)) - from_bank)
+				ps.bank[s] = maxf(0.0, ps.bank[s] - from_bank)
 				c["bank"]["deposits"] = maxf(0.0, float(c["bank"]["deposits"]) - from_bank)
 			VMoney.destroyed(gs, cost, "investment")
 			start_project(gs, tag, plan, "capitalists")
@@ -762,12 +830,13 @@ static func best_investment(gs: VGameState, tag: String) -> Dictionary:
 				continue
 			var pool := 0.0
 			for id in si["provinces"]:
-				for pop in gs.provinces[id]["pops"]:
-					match pop["type"]:
-						"craftsmen":
-							pool += float(pop["size"]) * (1.0 - float(pop["employment"]))
-						"farmers", "labourers":
-							pool += float(pop["size"]) * 0.02 * minf(1.0, float(pop["literacy"]) * 5.0) * (0.5 + float(1.0 - float(pop["employment"])))
+				var ps := gs.pops
+				for s: int in gs.provinces[id]["pop_slots"]:
+					var tt: int = ps.type_id[s]
+					if tt == ps.T_CRAFTSMEN:
+						pool += float(ps.size[s]) * (1.0 - ps.employment[s])
+					elif tt == ps.T_FARMERS or tt == ps.T_LABOURERS:
+						pool += float(ps.size[s]) * 0.02 * minf(1.0, ps.literacy[s] * 5.0) * (0.5 + (1.0 - ps.employment[s]))
 			if pool > labour:
 				labour = pool
 				target = si

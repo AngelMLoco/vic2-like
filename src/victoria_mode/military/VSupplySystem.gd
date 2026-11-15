@@ -82,6 +82,8 @@ const EMPTY := []
 
 ## Organización máxima por tipo de unidad (caché).
 static var _max_org := {}
+## Desgaste por terreno (caché).
+static var _terrain_attr := {}
 
 
 ## Tick diario: consumo de la reserva, desgaste, organización y moral de todos los ejércitos.
@@ -92,6 +94,10 @@ static func daily(gs: VGameState) -> void:
 		_max_org = {}
 		for t in gs.unit_types:
 			_max_org[t] = float(gs.unit_types[t].get("organisation", 1.0))
+	if _terrain_attr.size() != gs.terrain_types.size():
+		_terrain_attr = {}
+		for tr in gs.terrain_types:
+			_terrain_attr[tr] = float(gs.terrain_types[tr].get("attrition", 0))
 	for aid in gs.armies.keys():
 		var a: Dictionary = gs.armies.get(aid, {})
 		if a.is_empty():
@@ -148,7 +154,7 @@ static func daily(gs: VGameState) -> void:
 		if here > limit and limit > 0.0:
 			rate += (here - limit) / limit * 0.003
 		rate += (1.0 - a_supply) * 0.002
-		rate += 0.0005 * float(gs.terrain_types.get(p.get("terrain", "plains"), {}).get("attrition", 0))
+		rate += 0.0005 * float(_terrain_attr.get(p.get("terrain", "plains"), 0.0))
 		if not rebel and VWarSystem.at_war_with(gs, tag, p["controller"]):
 			rate += 0.0005
 		rate *= step
@@ -179,16 +185,27 @@ static func daily(gs: VGameState) -> void:
 		# ejército asentado: todas las brigadas en su organización máxima, sin pérdida por suministro y con
 		# la moral igual → el bucle de organización no cambiaría nada (resultado exacto)
 		var do_org: bool = not in_battle and not (a.get("_org_full", false) and not org_loss and new_morale == morale)
-		# una sola pasada por las brigadas: bajas por desgaste y organización
+		# una sola pasada por las brigadas: bajas por desgaste (en línea, igual que apply_casualties: la brigada
+		# pierde hombres y su Soldier POP personas reales) y organización
+		var str_after := 0
+		var cas_total := 0
 		if rate > 0.0 or do_org:
-			var cas_tag := tag if not rebel else ""
 			var all_full := true
+			var ps := gs.pops
 			for bid in brigs:
 				var b: Dictionary = gs.brigades[bid]
 				if rate > 0.0:
-					var men := int(float(b["strength"]) * rate)
+					var st := int(b["strength"])
+					var men := mini(int(float(st) * rate), st)
 					if men > 0:
-						VArmySystem.apply_casualties(gs, b, men, cas_tag)
+						b["strength"] = st - men
+						cas_total += men
+						if not b.get("rebel", false):
+							var src := VArmySystem.brigade_pop(gs, b)
+							if src >= 0:
+								ps.size[src] = maxi(1, ps.size[src] - men)
+						st -= men
+					str_after += st
 				if do_org:
 					var o := float(b["organisation"])
 					if org_loss:
@@ -202,6 +219,10 @@ static func daily(gs: VGameState) -> void:
 						all_full = false
 			if do_org:
 				a["_org_full"] = all_full
+		if cas_total > 0:
+			VUnitIndex.mark_damaged(gs, int(aid))
+			if not rebel and not c.is_empty():
+				c["casualties"] = int(c.get("casualties", 0)) + cas_total
 		# ejércitos sin hombres desaparecen
-		if rate > 0.0 and VArmySystem.army_strength(gs, a) < 100:
+		if rate > 0.0 and str_after < 100:
 			VArmySystem.destroy_army(gs, a)

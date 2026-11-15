@@ -44,9 +44,9 @@ func _ready() -> void:
 func soldier_pops_total(tag: String) -> int:
 	var t := 0
 	for id in gs.countries[tag]["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			if pop["type"] == "soldiers":
-				t += int(pop["size"])
+		for s in gs.provinces[id]["pop_slots"]:
+			if gs.pops.type_id[s] == gs.pops.T_SOLDIERS:
+				t += gs.pops.size[s]
 	return t
 
 
@@ -145,10 +145,10 @@ func test_army() -> void:
 	check(not a.is_empty(), "Frankia tiene ejércitos físicos (%d)" % VArmySystem.country_armies(gs, me).size())
 	var b: Dictionary = gs.brigades[a["brigades"][0]]
 	var pop := VArmySystem.find_pop(gs, int(b["source_province_id"]), int(b["source_pop_id"]))
-	check(not pop.is_empty() and pop["type"] == "soldiers", "la brigada tiene un Soldier POP de origen")
-	var size0 := int(pop["size"])
+	check(pop >= 0 and gs.pops.type_id[pop] == gs.pops.T_SOLDIERS, "la brigada tiene un Soldier POP de origen")
+	var size0: int = gs.pops.size[pop]
 	VArmySystem.apply_casualties(gs, b, 500, me)
-	check(int(pop["size"]) == size0 - 500 and int(b["strength"]) == gs.unit_manpower - 500, "las bajas restan personas al Soldier POP")
+	check(gs.pops.size[pop] == size0 - 500 and int(b["strength"]) == gs.unit_manpower - 500, "las bajas restan personas al Soldier POP")
 	# movimiento por adyacencia
 	var start := int(a["province"])
 	var dest := -1
@@ -206,8 +206,8 @@ func test_army() -> void:
 	# reclutar
 	var prov := -1
 	for id in gs.countries[me]["provinces"]:
-		for pp in gs.provinces[id]["pops"]:
-			if pp["type"] == "soldiers" and int(pp["size"]) >= (pp.get("brigades", []).size() + 1) * gs.unit_manpower:
+		for pp in gs.provinces[id]["pop_slots"]:
+			if gs.pops.type_id[pp] == gs.pops.T_SOLDIERS and gs.pops.size[pp] >= (gs.pops.brigade_count(pp) + 1) * gs.unit_manpower:
 				prov = id
 	var res := VArmySystem.recruit(gs, me, prov, "infantry") if prov > 0 else {"error": "sin POP libre"}
 	check(not res.has("error"), "se recluta una brigada de un Soldier POP con hombres libres (%s)" % res.get("error", "ok"))
@@ -335,12 +335,12 @@ func test_rebels() -> void:
 	var rid := "voting"
 	# un movimiento existente se radicaliza (pops con conciencia y militancia que quieren sufragio)
 	for id in c["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			pop["consciousness"] = 5.0
-			pop["militancy"] = 6.0
-			var iss: Dictionary = pop["issues"].duplicate()
+		for s in gs.provinces[id]["pop_slots"]:
+			gs.pops.consciousness[s] = 5.0
+			gs.pops.militancy[s] = 6.0
+			var iss: Dictionary = gs.pops.issues[s].duplicate()
 			iss["suffrage"] = "universal_voting"
-			pop["issues"] = iss
+			gs.pops.issues[s] = iss
 	VPoliticsSystem._update_movements(gs, tag)
 	var mv: Dictionary = c["movements"].get(rid, {})
 	check(not mv.is_empty() and float(mv["support"]) > 0.1, "el movimiento por el sufragio tiene apoyo (%.0f%%)" % (float(mv.get("support", 0.0)) * 100.0))
@@ -512,17 +512,17 @@ func test_integration() -> void:
 	check(gs2 != null and gs2.armies.size() == gs.armies.size() and gs2.fleets.size() == gs.fleets.size(), "guardar/cargar conserva ejércitos y flotas (%d / %d)" % [gs.armies.size(), gs.fleets.size()])
 	if gs2:
 		check(VDiplomacySystem.in_truce(gs2, a_tag, b_tag) and gs2.provinces[int(part[0])]["owner"] == a_tag, "guardar/cargar conserva treguas y propiedad")
-	# una partida v2 se rechaza limpiamente
+	# una partida v3 (POPs como diccionarios) se rechaza limpiamente
 	var fr := FileAccess.open(path, FileAccess.READ)
 	var data: Dictionary = JSON.parse_string(fr.get_as_text())
 	fr.close()
-	data["save_version"] = 2
+	data["save_version"] = 3
 	var fw := FileAccess.open(path, FileAccess.WRITE)
 	fw.store_string(JSON.stringify(data))
 	fw.close()
 	var err2 := []
 	var gs_old := VSaveSystem.load_game(path, err2)
-	check(gs_old == null and not err2.is_empty(), "una partida save_version 2 se rechaza con mensaje (%s)" % (err2[0] if not err2.is_empty() else "sin mensaje"))
+	check(gs_old == null and not err2.is_empty(), "una partida save_version 3 se rechaza con mensaje (%s)" % (err2[0] if not err2.is_empty() else "sin mensaje"))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	# el warscore total está limitado a ±100
 	var third := ""

@@ -615,24 +615,26 @@ func _build_population() -> void:
 	var agg := {}
 	var total := 0
 	var npops := 0
+	var ps := gs.pops
 	for id in ids:
-		for pop in gs.provinces[id]["pops"]:
+		for ps_s in gs.provinces[id]["pop_slots"]:
 			npops += 1
-			var s := float(pop["size"])
-			total += int(pop["size"])
-			var e: Dictionary = agg.get(pop["type"], {"size": 0.0, "n": 0, "lit": 0.0, "mil": 0.0, "con": 0.0, "emp": 0.0, "life": 0.0, "every": 0.0, "lux": 0.0, "income": 0.0, "cash": 0.0})
+			var s := float(ps.size[ps_s])
+			total += ps.size[ps_s]
+			var tn: String = ps.type_name(ps_s)
+			var e: Dictionary = agg.get(tn, {"size": 0.0, "n": 0, "lit": 0.0, "mil": 0.0, "con": 0.0, "emp": 0.0, "life": 0.0, "every": 0.0, "lux": 0.0, "income": 0.0, "cash": 0.0})
 			e["size"] += s
 			e["n"] += 1
-			e["lit"] += float(pop["literacy"]) * s
-			e["mil"] += float(pop["militancy"]) * s
-			e["con"] += float(pop["consciousness"]) * s
-			e["emp"] += float(pop["employment"]) * s
-			e["life"] += float(pop["needs_satisfaction"]["life"]) * s
-			e["every"] += float(pop["needs_satisfaction"]["everyday"]) * s
-			e["lux"] += float(pop["needs_satisfaction"]["luxury"]) * s
-			e["income"] += float(pop["income"])
-			e["cash"] += float(pop["cash"])
-			agg[pop["type"]] = e
+			e["lit"] += ps.literacy[ps_s] * s
+			e["mil"] += ps.militancy[ps_s] * s
+			e["con"] += ps.consciousness[ps_s] * s
+			e["emp"] += ps.employment[ps_s] * s
+			e["life"] += ps.life[ps_s] * s
+			e["every"] += ps.everyday[ps_s] * s
+			e["lux"] += ps.luxury[ps_s] * s
+			e["income"] += ps.income[ps_s]
+			e["cash"] += ps.cash[ps_s]
+			agg[tn] = e
 	var mob: Dictionary = c.get("acc_mobility_last", {})
 	_section("Resumen  ·  %s personas en %d POPs" % [UiTheme.fmt_int(total), npops])
 	_table(["Último mes", "Personas"], [
@@ -676,10 +678,11 @@ func _build_population() -> void:
 	_section("Issues (posición mayoritaria)")
 	var iss := {}
 	for id in ids:
-		for pop in gs.provinces[id]["pops"]:
-			for k in pop.get("issues", {}):
+		for ps_s in gs.provinces[id]["pop_slots"]:
+			var pi: Dictionary = gs.pops.issues[ps_s]
+			for k in pi:
 				var d: Dictionary = iss.get(k, {})
-				d[pop["issues"][k]] = float(d.get(pop["issues"][k], 0.0)) + float(pop["size"])
+				d[pi[k]] = float(d.get(pi[k], 0.0)) + float(gs.pops.size[ps_s])
 				iss[k] = d
 	var irows := []
 	for k in iss:
@@ -1057,9 +1060,9 @@ func _build_military() -> void:
 	hb.add_child(_recruit_type)
 	_recruit_prov = OptionButton.new()
 	for id in gs.owned_provinces(me):
-		for pop in gs.provinces[id]["pops"]:
-			if pop["type"] == "soldiers" and int(pop["size"]) >= (pop.get("brigades", []).size() + 1) * gs.unit_manpower:
-				_recruit_prov.add_item("%s (%s soldados)" % [gs.provinces[id]["name"], UiTheme.fmt_int(pop["size"])])
+		for ps_s in gs.provinces[id]["pop_slots"]:
+			if gs.pops.type_id[ps_s] == gs.pops.T_SOLDIERS and gs.pops.size[ps_s] >= (gs.pops.brigade_count(ps_s) + 1) * gs.unit_manpower:
+				_recruit_prov.add_item("%s (%s soldados)" % [gs.provinces[id]["name"], UiTheme.fmt_int(gs.pops.size[ps_s])])
 				_recruit_prov.set_item_metadata(_recruit_prov.item_count - 1, id)
 				break
 	hb.add_child(_recruit_prov)

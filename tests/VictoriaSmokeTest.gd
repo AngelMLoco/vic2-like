@@ -89,17 +89,18 @@ func _ready() -> void:
 	# ================= Milestone 2: población, economía, política, tecnología =================
 	print("-- milestone 2")
 	var frk: Dictionary = gs.countries["FRK"]
-	var any_pop: Dictionary = gs.provinces[cap]["pops"][0]
-	var basket := VPopulationSystem.needs_basket(gs, any_pop["type"], "life")
-	check(not basket.is_empty() and any_pop.has("needs_satisfaction") and any_pop.has("cash") and any_pop.has("issues"), "los POPs tienen necesidades, efectivo e issues")
+	var any_pop: int = gs.provinces[cap]["pop_slots"][0]
+	var basket := VPopulationSystem.needs_basket(gs, gs.pops.type_name(any_pop), "life")
+	var pop_d := gs.pops.get_pop_details(any_pop)
+	check(not basket.is_empty() and pop_d.has("needs_satisfaction") and pop_d.has("cash") and pop_d.has("issues"), "los POPs tienen necesidades, efectivo e issues")
 	# un mes completo de simulación
 	var lit0 := float(frk["literacy"])
 	for i in 31:
 		game.clock._tick()
 	var incomes := 0
 	for id in frk["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			if float(pop["income"]) > 0.0:
+		for pop in gs.provinces[id]["pop_slots"]:
+			if gs.pops.income[pop] > 0.0:
 				incomes += 1
 	check(incomes > 100, "los POPs reciben renta (%d POPs con ingresos)" % incomes)
 	var w: Dictionary = gs.market["world"]
@@ -124,8 +125,8 @@ func _ready() -> void:
 	check(consumed, "las fábricas compran y consumen insumos")
 	check(produced, "las fábricas producen")
 	var needs_ok := true
-	for pop in gs.provinces[cap]["pops"]:
-		if not (pop["needs_satisfaction"]["life"] >= 0.0 and pop["needs_satisfaction"]["life"] <= 1.0):
+	for pop in gs.provinces[cap]["pop_slots"]:
+		if not (gs.pops.life[pop] >= 0.0 and gs.pops.life[pop] <= 1.0):
 			needs_ok = false
 	check(needs_ok, "satisfacción de necesidades en [0,1]")
 	# desempleo forzado: un RGO sin plazas
@@ -135,24 +136,24 @@ func _ready() -> void:
 	VProductionSystem.process_province(gs, int(test_p["id"]))
 	var wt := VProductionSystem.rgo_worker_type(gs, test_p["rgo"])
 	var unemployed := false
-	for pop in test_p["pops"]:
-		if pop["type"] == wt and float(pop["employment"]) < 0.5:
+	for pop in test_p["pop_slots"]:
+		if gs.pops.type_name(pop) == wt and gs.pops.employment[pop] < 0.5:
 			unemployed = true
 	check(unemployed, "puede haber desempleo real (RGO sin plazas)")
 	test_p["rgo_data"]["base_size"] = saved_size
 	# presupuesto e impuestos
 	frk["budget"]["tax_poor"] = 0.05
-	var farmer := {}
-	for pop in gs.provinces[cap]["pops"]:
-		if pop["type"] == "farmers":
+	var farmer := -1
+	for pop in gs.provinces[cap]["pop_slots"]:
+		if gs.pops.type_id[pop] == gs.pops.T_FARMERS:
 			farmer = pop
-	var before_cash := float(farmer["cash"])
+	var before_cash: float = gs.pops.cash[farmer]
 	VBudgetSystem.credit_income(gs, "FRK", farmer, 100.0)
-	var net_low := float(farmer["cash"]) - before_cash
+	var net_low: float = gs.pops.cash[farmer] - before_cash
 	frk["budget"]["tax_poor"] = 0.6
-	before_cash = float(farmer["cash"])
+	before_cash = gs.pops.cash[farmer]
 	VBudgetSystem.credit_income(gs, "FRK", farmer, 100.0)
-	var net_high := float(farmer["cash"]) - before_cash
+	var net_high: float = gs.pops.cash[farmer] - before_cash
 	check(net_high < net_low, "los impuestos reducen la renta neta de los POPs (%.1f < %.1f)" % [net_high, net_low])
 	var t_before := float(frk["treasury"])
 	for i in 30:
@@ -242,10 +243,10 @@ func _ready() -> void:
 		var cash1 := 0.0
 		var cash2 := 0.0
 		for id in frk["provinces"]:
-			for pop in gs.provinces[id]["pops"]:
-				cash1 += float(pop["cash"])
-			for pop in gs2.provinces[id]["pops"]:
-				cash2 += float(pop["cash"])
+			for pop in gs.provinces[id]["pop_slots"]:
+				cash1 += gs.pops.cash[pop]
+			for pop in gs2.provinces[id]["pop_slots"]:
+				cash2 += gs2.pops.cash[pop]
 		check(absf(cash1 - cash2) < 0.5, "carga restaura el efectivo de los POPs")
 	var bad := {"save_version": 1, "mode": "victoria_mode", "header": {}}
 	var bad_path := "user://victoria_mode/saves/_v1_test.json"

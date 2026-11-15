@@ -8,7 +8,8 @@ extends RefCounted
 
 const SAVE_DIR := "user://victoria_mode/saves/"
 ## v3 (milestone 3): diplomacia, influencia, ejércitos, flotas, guerras, CB y rebeldes.
-const SAVE_VERSION := 3
+## v4 (M3.2): POPs en formato columnar (VPopStore.to_save); las provincias ya no guardan POPs.
+const SAVE_VERSION := 4
 const MODE_ID := "victoria_mode"
 
 ## v2 (milestone 2): economía, política y tecnología. Las partidas v1 se rechazan con un mensaje.
@@ -25,7 +26,7 @@ const COUNTRY_FIELDS := ["prestige", "treasury", "literacy", "infamy", "war_exha
 	"gp_grace", "leadership", "casualties", "_casualties_seen", "disarmed_until", "reparations", "ship_queue",
 	"blockade_ratio", "status", "rank"]
 const PROVINCE_FIELDS := ["owner", "controller", "cores", "occupation", "fort", "naval_base", "infrastructure",
-	"life_rating", "rgo", "culture", "religion", "pops", "rgo_data", "avg_life", "unemployment", "rgo_free",
+	"life_rating", "rgo", "culture", "religion", "rgo_data", "avg_life", "unemployment", "rgo_free",
 	"occupation_by", "blockaded_by", "rebel_faction"]
 
 
@@ -100,7 +101,7 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 		"date": gs.date.to_dict(),
 		"player_tag": gs.player_tag,
 		"flags": gs.flags,
-		"next_pop_id": gs.next_pop_id,
+		"pops": gs.pops.to_save(),
 		"countries": countries,
 		"provinces": provinces,
 		"state_factories": factories,
@@ -163,7 +164,6 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 	gs.date = VDate.from_dict(data["date"])
 	gs.player_tag = data.get("player_tag", "")
 	gs.flags = data.get("flags", {})
-	gs.next_pop_id = int(data.get("next_pop_id", gs.next_pop_id))
 	gs.month_index = int(data.get("month_index", 0))
 	gs.log_entries = data.get("log", [])
 	var mil: Dictionary = data.get("military", {})
@@ -200,6 +200,7 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 		for k in provinces[key]:
 			p[k] = provinces[key][k]
 		_fix_pop_numbers(p)
+	gs.pops.from_save(gs, data.get("pops", {}))
 	gs.rebuild_territory()
 	for key in gs.state_instances:
 		gs.state_instances[key]["factories"] = []
@@ -239,14 +240,6 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 
 ## JSON convierte enteros en float: restaurar campos enteros de POPs.
 static func _fix_pop_numbers(p: Dictionary) -> void:
-	for pop in p.get("pops", []):
-		pop["size"] = int(pop["size"])
-		pop["id"] = int(pop["id"])
-		pop["province"] = int(pop["province"])
-		pop["unemployed_months"] = int(pop.get("unemployed_months", 0))
-		pop["migration_target"] = int(pop.get("migration_target", 0))
-		if pop.has("brigades"):
-			pop["brigades"] = _ints(pop["brigades"])
 	p["rebel_faction"] = int(p.get("rebel_faction", 0))
 	p["fort"] = int(p.get("fort", 0))
 	p["naval_base"] = int(p.get("naval_base", 0))
@@ -329,6 +322,3 @@ static func _fix_military_numbers(gs: VGameState) -> void:
 	for id in range(1, gs.first_sea_id):
 		var p: Dictionary = gs.provinces[id]
 		p["rebel_faction"] = int(p.get("rebel_faction", 0))
-		for pop in p.get("pops", []):
-			if pop.has("brigades"):
-				pop["brigades"] = _ints(pop["brigades"])

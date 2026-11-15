@@ -134,13 +134,16 @@ static func _voter_mix(gs: VGameState, tag: String) -> Dictionary:
 	var rule := vote_rule(gs, tag)
 	var out := {}
 	var total := 0.0
+	var ps := gs.pops
 	for id in gs.countries[tag]["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			var w := vote_weight(gs, pop, rule)
+		for s: int in gs.provinces[id]["pop_slots"]:
+			var w := vote_weight(gs, s, rule)
 			if w <= 0.0:
 				continue
-			for k in pop["ideology"]:
-				out[k] = float(out.get(k, 0.0)) + float(pop["ideology"][k]) * w
+			for k in ps.n_ideo:
+				var v := ps.ideology[s * ps.n_ideo + k]
+				if v > 0.0:
+					out[ps.ideo_names[k]] = float(out.get(ps.ideo_names[k], 0.0)) + v * w
 			total += w
 	if total > 0.0:
 		for k in out:
@@ -156,20 +159,21 @@ static func vote_rule(gs: VGameState, tag: String) -> String:
 	return "rich_only"
 
 
-static func vote_weight(gs: VGameState, pop: Dictionary, rule: String) -> float:
-	var pt: Dictionary = gs.pop_types.get(pop["type"], {})
-	var base := float(pt.get("vote_weight", 1)) * float(pop["size"])
+static func vote_weight(gs: VGameState, s: int, rule: String) -> float:
+	var ps := gs.pops
+	var t: int = ps.type_id[s]
+	var base := ps.t_vote_weight[t] * float(ps.size[s])
 	if base <= 0.0:
 		return 0.0
 	match rule:
 		"rich_only":
-			return base if pt.get("strata", "") == "rich" else 0.0
+			return base if ps.t_strata[t] == 2 else 0.0
 		"wealth":
-			return base if pt.get("strata", "") != "poor" else 0.0
+			return base if ps.t_strata[t] != 0 else 0.0
 		"weighted":
 			return base
 		"universal":
-			return float(pop["size"])
+			return float(ps.size[s])
 	return 0.0
 
 
@@ -197,12 +201,13 @@ static func hold_election(gs: VGameState, tag: String) -> Dictionary:
 	votes.resize(parties.size())
 	votes.fill(0.0)
 	var total := 0.0
+	var ps := gs.pops
 	for id in c["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			var w := vote_weight(gs, pop, rule)
+		for ps_s: int in gs.provinces[id]["pop_slots"]:
+			var w := vote_weight(gs, ps_s, rule)
 			if w <= 0.0:
 				continue
-			var issues: Dictionary = pop.get("issues", {})
+			var issues: Dictionary = ps.issues[ps_s]
 			var scores := []
 			var ssum := 0.0
 			for i in parties.size():
@@ -210,7 +215,8 @@ static func hold_election(gs: VGameState, tag: String) -> Dictionary:
 				if not party_available(gs, tag, party):
 					scores.append(0.0)
 					continue
-				var s := float(pop["ideology"].get(party["ideology"], 0.0)) + 0.02
+				var ik := int(ps.ideo_index.get(party["ideology"], -1))
+				var s := (ps.ideology[ps_s * ps.n_ideo + ik] if ik >= 0 else 0.0) + 0.02
 				for pol in party["policies"]:
 					if issues.get(POLICY_ISSUE.get(pol, pol), "") == party["policies"][pol]:
 						s += 0.08
@@ -327,10 +333,10 @@ static func _issue_index(gs: VGameState) -> Dictionary:
 	return cache
 
 
-static func desired_level(gs: VGameState, pop: Dictionary, rid: String, current: int) -> int:
+static func desired_level(gs: VGameState, s: int, rid: String, current: int) -> int:
 	var r: Dictionary = gs.reforms[rid]
 	var issue: String = r.get("issue", "")
-	var pos: String = pop.get("issues", {}).get(issue, "")
+	var pos: String = gs.pops.issues[s].get(issue, "")
 	if pos == "":
 		return current
 	var idx := int(_issue_index(gs).get(issue, {}).get(pos, -1))
@@ -368,14 +374,15 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 		var issue: String = r.get("issue", "")
 		specs.append([rid, issue, int(cur[rid]), r["levels"].size() - 1, iidx.get(issue, {}),
 			float(mvs.get(rid, {}).get("radicalism", 0.0)) * 0.03])
+	var ps := gs.pops
 	for id in c["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			var con := float(pop["consciousness"])
+		for s: int in gs.provinces[id]["pop_slots"]:
+			var con := ps.consciousness[s]
 			if con < 1.5:
-				pop["movement_push"] = 0.0
+				ps.movement_push[s] = 0.0
 				continue
 			var push := 0.0
-			var issues: Dictionary = pop.get("issues", {})
+			var issues: Dictionary = ps.issues[s]
 			for sp in specs:
 				var pos: String = issues.get(sp[1], "")
 				if pos == "":
@@ -394,9 +401,9 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 				elif idx > 1:
 					want = sp[3]
 				if want > current:
-					support[sp[0]] = float(support.get(sp[0], 0.0)) + float(pop["size"]) * minf(1.0, con / 6.0)
+					support[sp[0]] = float(support.get(sp[0], 0.0)) + float(ps.size[s]) * minf(1.0, con / 6.0)
 					push = maxf(push, sp[5])
-			pop["movement_push"] = push
+			ps.movement_push[s] = push
 	var names: Dictionary = gs.reform_meta.get("movement_names", {})
 	for rid in gs.reform_order:
 		var share := float(support.get(rid, 0.0)) / total

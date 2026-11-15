@@ -29,17 +29,18 @@ static func setup_new_game(gs: VGameState) -> void:
 
 static func _create_initial_army(gs: VGameState, tag: String, want: int) -> void:
 	var c: Dictionary = gs.countries[tag]
+	var ps := gs.pops
 	var pops := []
 	for id in c["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			if pop["type"] == "soldiers":
-				pops.append(pop)
-	pops.sort_custom(func(a, b): return int(a["size"]) > int(b["size"]))
+		for s in gs.provinces[id]["pop_slots"]:
+			if ps.type_id[s] == ps.T_SOLDIERS:
+				pops.append(s)
+	pops.sort_custom(func(a, b): return ps.size[a] > ps.size[b])
 	var techs: Array = c.get("technologies", [])
 	var made := 0
 	var by_state := {}
 	for pop in pops:
-		var cap := int(pop["size"]) / gs.unit_manpower
+		var cap: int = ps.size[pop] / gs.unit_manpower
 		for k in cap:
 			if made >= want:
 				break
@@ -48,9 +49,9 @@ static func _create_initial_army(gs: VGameState, tag: String, want: int) -> void
 				utype = "cavalry"
 			elif made % 5 == 4 and "siege_engineering" in techs:
 				utype = "artillery"
-			var b := _new_brigade(gs, utype, pop, int(pop["province"]))
+			var b := _new_brigade(gs, utype, pop, ps.province[pop])
 			b["organisation"] = 1.0
-			var sid := int(gs.provinces[int(pop["province"])]["state"])
+			var sid := int(gs.provinces[ps.province[pop]]["state"])
 			if not by_state.has(sid):
 				by_state[sid] = []
 			by_state[sid].append(b)
@@ -71,14 +72,13 @@ static func _create_initial_army(gs: VGameState, tag: String, want: int) -> void
 			i += 10
 
 
-static func _new_brigade(gs: VGameState, utype: String, pop: Dictionary, province_id: int) -> Dictionary:
+## Brigada nueva sacada del Soldier POP del slot 's' (enlace por id estable del POP).
+static func _new_brigade(gs: VGameState, utype: String, s: int, province_id: int) -> Dictionary:
 	var id := gs.new_id("brigade")
 	var b := {"id": id, "type": utype, "strength": gs.unit_manpower, "organisation": 0.3, "experience": 0.0,
-		"source_pop_id": int(pop["id"]), "source_province_id": province_id, "army": 0}
+		"source_pop_id": gs.pops.id[s], "source_province_id": province_id, "army": 0}
 	gs.brigades[id] = b
-	var linked: Array = pop.get("brigades", [])
-	linked.append(id)
-	pop["brigades"] = linked
+	gs.pops.brigade_links(s).append(id)
 	return b
 
 
@@ -119,35 +119,32 @@ static func update_country_count(gs: VGameState, tag: String) -> void:
 
 
 # ------------------------------------------------------------ Soldier POP
-static func find_pop(gs: VGameState, province_id: int, pop_id: int) -> Dictionary:
-	var p := gs.province(province_id)
-	if p.is_empty():
-		return {}
-	for pop in p.get("pops", []):
-		if int(pop["id"]) == pop_id:
-			return pop
-	return {}
+## Slot del POP por id estable (O(1); los ids de POPs fusionados resuelven al que los absorbió). −1 si no existe.
+## (province_id se conserva en la firma por compatibilidad: ya no hace falta recorrer la provincia)
+static func find_pop(gs: VGameState, _province_id: int, pop_id: int) -> int:
+	return gs.pops.slot_of(pop_id)
 
 
-## POP de origen de la brigada, con la referencia cacheada en «_pop» (no se guarda). Los POPs nunca
-## se eliminan de su provincia (solo cambian de tamaño), así que la referencia sigue siendo válida.
-static func brigade_pop(gs: VGameState, b: Dictionary) -> Dictionary:
-	var ref = b.get("_pop")
-	if ref != null:
+## Slot del Soldier POP de origen de la brigada (cacheado en «_pop», validado por id; no se guarda).
+static func brigade_pop(gs: VGameState, b: Dictionary) -> int:
+	var ps := gs.pops
+	var pid := int(b["source_pop_id"])
+	var ref := int(b.get("_pop", -1))
+	if ref >= 0 and ps.is_alive(ref) and ps.id[ref] == pid:
 		return ref
-	var pop := find_pop(gs, int(b["source_province_id"]), int(b["source_pop_id"]))
-	if not pop.is_empty():
-		b["_pop"] = pop
-	return pop
+	var s := ps.slot_of(pid)
+	if s >= 0:
+		b["_pop"] = s
+	return s
 
 
 ## Hombres que el POP de origen puede sostener por brigada (para el refuerzo).
 static func supportable(gs: VGameState, b: Dictionary) -> int:
-	var pop := brigade_pop(gs, b)
-	if pop.is_empty():
+	var s := brigade_pop(gs, b)
+	if s < 0:
 		return 0
-	var linked: int = maxi(1, pop.get("brigades", []).size())
-	return mini(gs.unit_manpower, int(pop["size"]) / linked)
+	var linked: int = maxi(1, gs.pops.brigade_count(s))
+	return mini(gs.unit_manpower, gs.pops.size[s] / linked)
 
 
 ## Bajas: la brigada pierde hombres y el POP de origen pierde personas reales.
@@ -158,9 +155,9 @@ static func apply_casualties(gs: VGameState, b: Dictionary, men: int, tag: Strin
 	b["strength"] = int(b["strength"]) - men
 	VUnitIndex.mark_damaged(gs, int(b.get("army", 0)))
 	# (las brigadas rebeldes ya sacaron a sus hombres del POP al alzarse)
-	var pop := {} if b.get("rebel", false) else brigade_pop(gs, b)
-	if not pop.is_empty():
-		pop["size"] = maxi(1, int(pop["size"]) - men)
+	var ps_s := -1 if b.get("rebel", false) else brigade_pop(gs, b)
+	if ps_s >= 0:
+		gs.pops.size[ps_s] = maxi(1, gs.pops.size[ps_s] - men)
 	if gs.countries.has(tag):
 		gs.countries[tag]["casualties"] = int(gs.countries[tag].get("casualties", 0)) + men
 	return men
@@ -168,8 +165,11 @@ static func apply_casualties(gs: VGameState, b: Dictionary, men: int, tag: Strin
 
 static func army_strength(gs: VGameState, army: Dictionary) -> int:
 	var t := 0
+	var brigades: Dictionary = gs.brigades
 	for bid in army["brigades"]:
-		t += int(gs.brigades.get(bid, {}).get("strength", 0))
+		var b = brigades.get(bid)
+		if b != null:
+			t += int(b["strength"])
 	return t
 
 
@@ -200,11 +200,12 @@ static func destroy_army(gs: VGameState, army: Dictionary, return_men: bool = fa
 		var b: Dictionary = gs.brigades.get(bid, {})
 		if b.is_empty():
 			continue
-		var pop := brigade_pop(gs, b)
-		if not pop.is_empty():
-			pop.get("brigades", []).erase(int(bid))
+		var ps_s := brigade_pop(gs, b)
+		if ps_s >= 0:
+			if gs.pops.brigades[ps_s] != null:
+				(gs.pops.brigades[ps_s] as Array).erase(int(bid))
 			if return_men:
-				pop["size"] = int(pop["size"]) + int(b["strength"])
+				gs.pops.size[ps_s] += int(b["strength"])
 		gs.brigades.erase(bid)
 	if int(army.get("leader", 0)) > 0 and gs.leaders.has(int(army["leader"])):
 		gs.leaders[int(army["leader"])]["army"] = 0
@@ -230,7 +231,7 @@ static func stack_wipe(gs: VGameState, army: Dictionary) -> void:
 
 # ------------------------------------------------------------- reclutar
 static func can_recruit(gs: VGameState, tag: String, province_id: int, utype: String) -> Dictionary:
-	var res := {"ok": false, "reason": "", "pop": {}}
+	var res := {"ok": false, "reason": "", "pop": -1}
 	var p := gs.province(province_id)
 	if p.is_empty() or p.get("owner", "") != tag:
 		res["reason"] = "Hay que reclutar en una provincia propia."
@@ -249,13 +250,13 @@ static func can_recruit(gs: VGameState, tag: String, province_id: int, utype: St
 	if int(gs.countries[tag].get("disarmed_until", -1)) > gs.month_index:
 		res["reason"] = "La nación está desarmada por un tratado de paz."
 		return res
-	for pop in p["pops"]:
-		if pop["type"] != "soldiers":
+	var ps := gs.pops
+	for s in p["pop_slots"]:
+		if ps.type_id[s] != ps.T_SOLDIERS:
 			continue
-		var linked: int = pop.get("brigades", []).size()
-		if int(pop["size"]) >= (linked + 1) * gs.unit_manpower:
+		if ps.size[s] >= (ps.brigade_count(s) + 1) * gs.unit_manpower:
 			res["ok"] = true
-			res["pop"] = pop
+			res["pop"] = s
 			return res
 	res["reason"] = "No hay soldados suficientes en %s (cada brigada necesita %s soldados de un POP sin vincular)." % [p["name"], UiTheme.fmt_int(gs.unit_manpower)]
 	return res
@@ -642,7 +643,9 @@ static func daily_movement(gs: VGameState) -> void:
 		var a: Dictionary = gs.armies.get(aid, {})
 		if a.is_empty() or a["path"].is_empty() or int(a["battle"]) > 0 or int(a["embarked"]) > 0:
 			if not a.is_empty() and a["path"].is_empty():
-				a["dig_in"] = mini(int(a.get("dig_in", 0)) + 1, 60)
+				var dig := int(a.get("dig_in", 0))
+				if dig < 60:
+					a["dig_in"] = dig + 1
 			continue
 		var nxt := int(a["path"][0])
 		if not can_enter(gs, a["country"], nxt, int(a.get("rebel_faction", 0))):
@@ -735,14 +738,22 @@ static func daily_reinforce(gs: VGameState) -> void:
 			continue
 		var rate := 0.03 * float(a.get("supply", 1.0)) * (0.5 + float(gs.countries[a["country"]]["budget"].get("military", 0.5)))
 		var full := true
+		var step := maxi(1, int(float(gs.unit_manpower) * rate))
+		var ps := gs.pops
 		for bid in a["brigades"]:
 			var b: Dictionary = gs.brigades[bid]
-			if int(b["strength"]) >= gs.unit_manpower:
+			var st := int(b["strength"])
+			if st >= gs.unit_manpower:
 				continue
-			var cap := supportable(gs, b)
-			if int(b["strength"]) < cap:
-				b["strength"] = mini(cap, int(b["strength"]) + maxi(1, int(float(gs.unit_manpower) * rate)))
-			if int(b["strength"]) < gs.unit_manpower:
+			# (en línea: supportable = lo que el POP de origen sostiene por brigada enlazada)
+			var src := brigade_pop(gs, b)
+			var cap := 0
+			if src >= 0:
+				cap = mini(gs.unit_manpower, ps.size[src] / maxi(1, ps.brigade_count(src)))
+			if st < cap:
+				st = mini(cap, st + step)
+				b["strength"] = st
+			if st < gs.unit_manpower:
 				full = false
 		if full:
 			dmg.erase(aid)

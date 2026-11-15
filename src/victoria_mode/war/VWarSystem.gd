@@ -219,11 +219,13 @@ static func call_ally(gs: VGameState, w: Dictionary, caller: String, ally: Strin
 static func jingoism_support(gs: VGameState, tag: String) -> float:
 	var t := 0.0
 	var j := 0.0
+	var ps := gs.pops
 	for id in gs.countries[tag]["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			var s := float(pop["size"])
+		for ps_s in gs.provinces[id]["pop_slots"]:
+			var s := float(ps.size[ps_s])
 			t += s
-			if pop.get("issues", {}).get("military_policy", "") in ["jingoism", "pro_military"]:
+			var mp: String = ps.issues[ps_s].get("military_policy", "")
+			if mp == "jingoism" or mp == "pro_military":
 				j += s
 	return j / t if t > 0.0 else 0.0
 

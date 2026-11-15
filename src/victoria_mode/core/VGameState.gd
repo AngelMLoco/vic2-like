@@ -143,7 +143,8 @@ func mod(tag: String, key: String) -> float:
 ## Instancias de estado: "sid:TAG" -> {state, owner, provinces[], factories[]}
 var state_instances := {}
 
-var next_pop_id: int = 1
+## POPs: almacén en estructura de arrays (VPopStore). Las provincias guardan p["pop_slots"].
+var pops := VPopStore.new()
 
 
 # ------------------------------------------------------------- consultas

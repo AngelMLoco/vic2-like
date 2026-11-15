@@ -136,7 +136,8 @@ static func fingerprint(gs: VGameState) -> Dictionary:
 	return {"population_m": snappedf(float(s["pop"]) / 1e6, 0.1), "life": snappedf(float(s["life"]), 0.001), "everyday": snappedf(float(s["every"]), 0.001),
 		"factories": int(s["open"]), "price_median": snappedf(float(s["pmed"]), 0.001), "wars_total": int(m["wars_total"]),
 		"sphere_members": int(m["sphere"]), "brigades": brig, "max_brigades": int(m["max_brigades"]), "casualties": cas,
-		"rebel_factions_total": int(gs.next_ids.get("rebel", 1)) - 1, "armies": int(m["armies"])}
+		"rebel_factions_total": int(gs.next_ids.get("rebel", 1)) - 1, "armies": int(m["armies"]),
+		"pops": gs.pops.count(), "militancy": snappedf(float(s["mil"]), 0.01)}
 
 
 func _compare_baseline(fp: Dictionary) -> void:

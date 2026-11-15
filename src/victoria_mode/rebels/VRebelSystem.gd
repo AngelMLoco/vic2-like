@@ -52,11 +52,12 @@ static func _try_form(gs: VGameState, tag: String, reform: String) -> Dictionary
 	var cur := gs.reform_level(tag, reform)
 	var supporters := []
 	var total := 0
+	var ps := gs.pops
 	for id in gs.countries[tag]["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			if float(pop["militancy"]) >= min_mil and VPoliticsSystem.desired_level(gs, pop, reform, cur) > cur:
-				supporters.append(int(pop["id"]))
-				total += int(pop["size"])
+		for s in gs.provinces[id]["pop_slots"]:
+			if ps.militancy[s] >= min_mil and VPoliticsSystem.desired_level(gs, s, reform, cur) > cur:
+				supporters.append(ps.id[s])
+				total += ps.size[s]
 	if total < 30000:
 		return {}
 	return form_faction(gs, tag, reform, supporters)
@@ -73,12 +74,12 @@ static func form_faction(gs: VGameState, tag: String, reform: String, supporters
 	return f
 
 
-static func _find_pop(gs: VGameState, tag: String, pop_id: int) -> Dictionary:
-	for id in gs.countries[tag]["provinces"]:
-		for pop in gs.provinces[id]["pops"]:
-			if int(pop["id"]) == pop_id:
-				return pop
-	return {}
+## Slot de un POP de apoyo de la nación (−1 si ya no existe o ya no es de esa nación).
+static func _find_pop(gs: VGameState, tag: String, pop_id: int) -> int:
+	var s := gs.pops.slot_of(pop_id)
+	if s < 0 or gs.provinces[gs.pops.province[s]]["owner"] != tag:
+		return -1
+	return s
 
 
 ## Alzamiento: brigadas formadas con personas reales de los POPs militantes.
@@ -89,21 +90,22 @@ static func rise(gs: VGameState, f: Dictionary) -> void:
 	var tag: String = f["country"]
 	var by_prov := {}
 	var pool := []
+	var ps := gs.pops
 	for pid in f["supporting_pops"]:
-		var pop := _find_pop(gs, tag, int(pid))
-		if not pop.is_empty():
-			pool.append(pop)
-	pool.sort_custom(func(a, b): return float(a["militancy"]) > float(b["militancy"]))
+		var s := _find_pop(gs, tag, int(pid))
+		if s >= 0 and not (s in pool):
+			pool.append(s)
+	pool.sort_custom(func(a, b): return ps.militancy[a] > ps.militancy[b])
 	var made := 0
 	for pop in pool:
 		if made >= max_b:
 			break
-		var men := int(float(pop["size"]) * share)
+		var men := int(float(ps.size[pop]) * share)
 		while men >= 1000 and made < max_b:
 			var take := mini(men, gs.unit_manpower)
 			men -= take
-			pop["size"] = maxi(1, int(pop["size"]) - take)
-			var prov := int(pop["province"])
+			ps.size[pop] = maxi(1, ps.size[pop] - take)
+			var prov: int = ps.province[pop]
 			if not by_prov.has(prov):
 				var army := VArmySystem.new_army(gs, tag, prov, "Rebeldes de %s" % gs.provinces[prov]["name"])
 				VUnitIndex.army_set_rebel(gs, army, int(f["id"]))
@@ -111,7 +113,7 @@ static func rise(gs: VGameState, f: Dictionary) -> void:
 				f["armies"].append(int(army["id"]))
 			var bid := gs.new_id("brigade")
 			var b := {"id": bid, "type": "infantry", "strength": take, "organisation": 0.6, "experience": 0.0,
-				"source_pop_id": int(pop["id"]), "source_province_id": prov, "army": 0, "rebel": true}
+				"source_pop_id": ps.id[pop], "source_province_id": prov, "army": 0, "rebel": true}
 			gs.brigades[bid] = b
 			VArmySystem.attach_brigade(gs, by_prov[prov], b)
 			made += 1
@@ -196,9 +198,9 @@ static func dissolve(gs: VGameState, f: Dictionary, success: bool) -> void:
 				p["rebel_faction"] = 0
 				p["occupation"] = 0.0
 		for pid in f["supporting_pops"]:
-			var pop := _find_pop(gs, tag, int(pid))
-			if not pop.is_empty():
-				pop["militancy"] = maxf(0.0, float(pop["militancy"]) - (3.0 if success else 2.0))
+			var s := _find_pop(gs, tag, int(pid))
+			if s >= 0:
+				gs.pops.militancy[s] = maxf(0.0, gs.pops.militancy[s] - (3.0 if success else 2.0))
 		var mv: Dictionary = gs.countries[tag].get("movements", {}).get(f["movement"], {})
 		if not mv.is_empty():
 			mv["radicalism"] = float(mv["radicalism"]) * 0.3

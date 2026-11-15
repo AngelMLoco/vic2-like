@@ -45,25 +45,26 @@ static func setup_new_game(gs: VGameState) -> void:
 
 
 ## Acredita renta a un POP descontando el impuesto de su estrato.
-static func credit_income(gs: VGameState, tag: String, pop: Dictionary, amount: float) -> void:
+static func credit_income(gs: VGameState, tag: String, s: int, amount: float) -> void:
 	if amount <= 0.0:
 		return
+	var ps := gs.pops
 	var net := amount
 	if tag != "":
 		var c: Dictionary = gs.countries[tag]
-		var key: String = TAX_KEY[VPopulationSystem.strata_of(gs, pop["type"])]
+		var key: String = TAX_KEY[VPopStore.STRATA[ps.t_strata[ps.type_id[s]]]]
 		var tax := amount * float(c["budget"].get(key, 0.0)) * float(c.get("tax_efficiency", 0.8))
 		var acc: Dictionary = c["acc"]
 		acc[key] = float(acc[key]) + tax
 		net = amount - tax
-	pop["cash"] = float(pop["cash"]) + net
-	pop["income_acc"] = float(pop.get("income_acc", 0.0)) + net
+	ps.cash[s] += net
+	ps.income_acc[s] += net
 
 
-## Transferencia sin impuestos (subsidios, pensiones).
-static func transfer(pop: Dictionary, amount: float) -> void:
-	pop["cash"] = float(pop["cash"]) + amount
-	pop["income_acc"] = float(pop.get("income_acc", 0.0)) + amount
+## Transferencia sin impuestos (prestaciones, parte del esclavo).
+static func transfer(gs: VGameState, s: int, amount: float) -> void:
+	gs.pops.cash[s] += amount
+	gs.pops.income_acc[s] += amount
 
 
 static func add_expense(gs: VGameState, tag: String, key: String, amount: float) -> void:

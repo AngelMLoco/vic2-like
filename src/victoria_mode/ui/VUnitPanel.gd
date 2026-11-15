@@ -135,10 +135,10 @@ func _refresh_armies() -> void:
 				var b: Dictionary = gs.brigades.get(bid, {})
 				if b.is_empty():
 					continue
-				var pop := VArmySystem.find_pop(gs, int(b["source_province_id"]), int(b["source_pop_id"]))
+				var pop_s := VArmySystem.find_pop(gs, int(b["source_province_id"]), int(b["source_pop_id"]))
 				t += "  · %s: %s hombres · org %.0f%% · exp %.0f%% · reclutada de %s (%s soldados)\n" % [gs.unit_types.get(b["type"], {}).get("name", b["type"]),
 					UiTheme.fmt_int(b["strength"]), float(b["organisation"]) * 100.0, float(b.get("experience", 0.0)) * 100.0,
-					gs.provinces[int(b["source_province_id"])]["name"], UiTheme.fmt_int(pop.get("size", 0))]
+					gs.provinces[int(b["source_province_id"])]["name"], UiTheme.fmt_int(gs.pops.size[pop_s] if pop_s >= 0 else 0)]
 	_body.text = t
 	if not own:
 		return

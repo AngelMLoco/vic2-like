@@ -28,6 +28,18 @@ static func _rules_by_type(gs: VGameState) -> Dictionary:
 	return cache
 
 
+## Las mismas reglas indexadas por type_id (sin buscar por nombre en cada POP).
+static func _rules_by_tid(gs: VGameState) -> Array:
+	var arr: Array = gs.market.get("_promotion_by_tid", [])
+	if arr.size() != gs.pops.type_names.size():
+		var by_name := _rules_by_type(gs)
+		arr = []
+		for t in gs.pops.type_names:
+			arr.append(by_name.get(t, EMPTY))
+		gs.market["_promotion_by_tid"] = arr
+	return arr
+
+
 # ------------------------------------------------ proceso mensual (provincia)
 static func process_province(gs: VGameState, id: int) -> void:
 	var p: Dictionary = gs.provinces[id]
@@ -44,43 +56,96 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var stats: Dictionary = c["acc_mobility"]
 	var moves := []
 	var rgo_wt := VProductionSystem.rgo_worker_type(gs, p["rgo"])
-	for pop in p["pops"]:
-		var t: String = pop["type"]
-		var rl: Array = rules.get(t, EMPTY)
-		if rl.is_empty() or int(pop["size"]) < MIN_MOVE * 2:
+	var ps := gs.pops
+	var a_size := ps.size
+	var rules_t := _rules_by_tid(gs)
+	var a_type := ps.type_id
+	var a_lit := ps.literacy
+	var a_life := ps.life
+	var a_every := ps.everyday
+	var a_lux := ps.luxury
+	var a_emp := ps.employment
+	var a_cash := ps.cash
+	var a_con := ps.consciousness
+	var a_mil := ps.militancy
+	for s: int in p["pop_slots"]:
+		var rl: Array = rules_t[a_type[s]]
+		if rl.is_empty() or a_size[s] < MIN_MOVE * 2:
 			continue
 		for rule in rl:
 			var target: String = rule[0]
 			var vkey: String = rule[3]
 			if vkey == "rgo":
 				vac["rgo"] = int(p.get("rgo_free", 0)) if rgo_wt == target else 0
-			if not VConditions.pop_ok_compiled(gs, pop, rule[2], tag, ctx):
+			# sin plazas libres la regla fallaría igualmente: se descarta sin evaluar sus condiciones
+			if vkey != "" and int(vac.get(vkey, 0)) <= 0:
 				continue
-			var amount := int(float(pop["size"]) * minf(1.0, float(rule[1]) * 2.0))
+			# condiciones compiladas evaluadas en línea (= VConditions.pop_ok_compiled) con alias locales
+			var ok := true
+			for e in rule[2]:
+				var code: int = e[0]
+				match code:
+					0:
+						ok = a_lit[s] >= e[1]
+					1:
+						ok = a_lit[s] <= e[1]
+					2:
+						ok = a_life[s] >= e[1]
+					3:
+						ok = a_life[s] <= e[1]
+					4:
+						ok = a_every[s] >= e[1]
+					5:
+						ok = a_every[s] <= e[1]
+					6:
+						ok = a_lux[s] >= e[1]
+					7:
+						ok = 1.0 - a_emp[s] >= e[1]
+					8:
+						ok = 1.0 - a_emp[s] <= e[1]
+					9:
+						ok = a_cash[s] / maxf(1.0, float(a_size[s])) >= e[1]
+					10:
+						ok = a_cash[s] / maxf(1.0, float(a_size[s])) <= e[1]
+					11:
+						ok = a_con[s] >= e[1]
+					12:
+						ok = a_mil[s] >= e[1]
+					13:
+						ok = a_mil[s] <= e[1]
+					14:
+						ok = int(vac.get(e[1], 0)) > 0
+					_:
+						ok = VConditions.pop_ok(gs, s, e[1], tag, ctx)
+				if not ok:
+					break
+			if not ok:
+				continue
+			var amount := int(float(a_size[s]) * minf(1.0, float(rule[1]) * 2.0))
 			if vkey != "":
 				amount = mini(amount, int(vac.get(vkey, 0)))
 			if amount < MIN_MOVE:
 				continue
-			moves.append([pop, target, amount])
+			moves.append([s, target, amount])
 			if vkey != "":
 				vac[vkey] = int(vac[vkey]) - amount
 			break
 	for mv in moves:
-		var src: Dictionary = mv[0]
+		var src: int = mv[0]
 		var to: String = mv[1]
-		var amount: int = mini(int(mv[2]), int(src["size"]) - 1)
+		var amount: int = mini(int(mv[2]), a_size[src] - 1)
 		if amount < MIN_MOVE:
 			continue
-		var s_from := int(STRATA_ORDER.get(gs.pop_types[src["type"]].get("strata", "poor"), 0))
-		var s_to := int(STRATA_ORDER.get(gs.pop_types.get(to, {}).get("strata", "poor"), 0))
+		var s_from: int = ps.t_strata[ps.type_id[src]]
+		var s_to: int = ps.t_strata[ps.type_of(gs, to)]
 		var key := "promoted" if s_to > s_from else ("demoted" if s_to < s_from else "changed_job")
 		stats[key] = int(stats.get(key, 0)) + amount
-		src["promotion_target"] = to
+		ps.promotion_target[src] = to
 		_transfer(gs, src, p, to, amount)
 		if amount > 3000:
 			gs.log_event(tag, "%s %s: %s %s → %s en %s" % [
 				{"promoted": "Promoción", "demoted": "Democión", "changed_job": "Cambio de oficio"}[key],
-				UiTheme.fmt_int(amount), gs.pop_type_name(src["type"]), "", gs.pop_type_name(to), p["name"]])
+				UiTheme.fmt_int(amount), gs.pop_type_name(ps.type_name(src)), "", gs.pop_type_name(to), p["name"]])
 	_migrate(gs, p, tag, c, stats)
 	VPopulationSystem.recalc_province(gs, id)
 
@@ -88,9 +153,18 @@ static func process_province(gs: VGameState, id: int) -> void:
 static func _vacancies(gs: VGameState, p: Dictionary, tag: String, c: Dictionary) -> Dictionary:
 	var si: Dictionary = gs.state_instances.get(gs.state_instance_key(p["state"], tag), {})
 	var total := maxf(1.0, float(p["population"]))
-	var types := {}
-	for pop in p["pops"]:
-		types[pop["type"]] = int(types.get(pop["type"], 0)) + int(pop["size"])
+	var ps := gs.pops
+	var clergy := 0
+	var soldiers := 0
+	var officers := 0
+	for s: int in p["pop_slots"]:
+		var t: int = ps.type_id[s]
+		if t == ps.T_CLERGY:
+			clergy += ps.size[s]
+		elif t == ps.T_SOLDIERS:
+			soldiers += ps.size[s]
+		elif t == ps.T_OFFICERS:
+			officers += ps.size[s]
 	var country_pop := maxf(1.0, float(c.get("population", 1)))
 	var ct: Dictionary = c.get("type_sizes", {})
 	var mil_target := 0.03 * float(c["budget"].get("military", 0.0)) / 0.5
@@ -102,42 +176,50 @@ static func _vacancies(gs: VGameState, p: Dictionary, tag: String, c: Dictionary
 		"factory_clerks": int(float(si.get("vacancy_clerks", 0)) * share),
 		"rgo": 0,
 		"admin": int(maxf(0.0, 0.008 * country_pop - float(ct.get("bureaucrats", 0))) * total / country_pop),
-		"clergy": int(maxf(0.0, 0.02 * total - float(types.get("clergy", 0)))),
-		"military": int(maxf(0.0, mil_target * total - float(types.get("soldiers", 0)))),
-		"officers": int(maxf(0.0, 0.1 * float(types.get("soldiers", 0)) - float(types.get("officers", 0)))),
+		"clergy": int(maxf(0.0, 0.02 * total - float(clergy))),
+		"military": int(maxf(0.0, mil_target * total - float(soldiers))),
+		"officers": int(maxf(0.0, 0.1 * float(soldiers) - float(officers))),
 	}
 
 
-## Mueve 'amount' personas de src a un POP del tipo/provincia destino (lo crea si no existe).
-static func _transfer(gs: VGameState, src: Dictionary, dest_province: Dictionary, to_type: String, amount: int) -> Dictionary:
-	var dst := {}
-	for pop in dest_province["pops"]:
-		if pop["type"] == to_type and pop["culture"] == src["culture"] and pop["religion"] == src["religion"]:
-			dst = pop
+## Mueve 'amount' personas del POP src a un POP del tipo/provincia destino (lo crea si no existe:
+## mismo tipo, cultura y religión → nunca hay dos POPs iguales en una provincia). Devuelve el slot destino.
+static func _transfer(gs: VGameState, src: int, dest_province: Dictionary, to_type: String, amount: int) -> int:
+	var ps := gs.pops
+	var tt := ps.type_of(gs, to_type)
+	var cu: int = ps.culture_id[src]
+	var re: int = ps.religion_id[src]
+	var dst := -1
+	for s in dest_province["pop_slots"]:
+		if ps.type_id[s] == tt and ps.culture_id[s] == cu and ps.religion_id[s] == re:
+			dst = s
 			break
-	var frac := float(amount) / maxf(1.0, float(src["size"]))
-	if dst.is_empty():
-		dst = VPopulationSystem.make_pop(gs, to_type, 0, src["culture"], src["religion"], int(dest_province["id"]), 0.0)
-		dst["literacy"] = src["literacy"]
-		dst["consciousness"] = src["consciousness"]
-		dst["militancy"] = src["militancy"]
-		dst["ideology"] = src["ideology"].duplicate()
-		dst["issues"] = src["issues"].duplicate()
-		dst["needs_satisfaction"] = src["needs_satisfaction"].duplicate()
-		dst["cash"] = 0.0
-		dest_province["pops"].append(dst)
-	var w_old := float(dst["size"])
+	var frac := float(amount) / maxf(1.0, float(ps.size[src]))
+	if dst < 0:
+		dst = ps.allocate(gs, to_type, 0, ps.culture_names[cu], ps.religion_names[re], int(dest_province["id"]))
+		ps.literacy[dst] = ps.literacy[src]
+		ps.consciousness[dst] = ps.consciousness[src]
+		ps.militancy[dst] = ps.militancy[src]
+		for k in ps.n_ideo:
+			ps.ideology[dst * ps.n_ideo + k] = ps.ideology[src * ps.n_ideo + k]
+		ps.issues[dst] = ps.issues[src]
+		ps.life[dst] = ps.life[src]
+		ps.everyday[dst] = ps.everyday[src]
+		ps.luxury[dst] = ps.luxury[src]
+		ps.stats["split"] = int(ps.stats["split"]) + 1
+	var w_old := float(ps.size[dst])
 	var w_new := float(amount)
 	var tot := maxf(1.0, w_old + w_new)
-	for k in ["literacy", "consciousness", "militancy"]:
-		dst[k] = (float(dst[k]) * w_old + float(src[k]) * w_new) / tot
-	for k in src["ideology"]:
-		dst["ideology"][k] = (float(dst["ideology"].get(k, 0.0)) * w_old + float(src["ideology"][k]) * w_new) / tot
-	var cash := float(src["cash"]) * frac
-	src["cash"] = float(src["cash"]) - cash
-	dst["cash"] = float(dst["cash"]) + cash
-	src["size"] = int(src["size"]) - amount
-	dst["size"] = int(dst["size"]) + amount
+	ps.literacy[dst] = (ps.literacy[dst] * w_old + ps.literacy[src] * w_new) / tot
+	ps.consciousness[dst] = (ps.consciousness[dst] * w_old + ps.consciousness[src] * w_new) / tot
+	ps.militancy[dst] = (ps.militancy[dst] * w_old + ps.militancy[src] * w_new) / tot
+	for k in ps.n_ideo:
+		ps.ideology[dst * ps.n_ideo + k] = (ps.ideology[dst * ps.n_ideo + k] * w_old + ps.ideology[src * ps.n_ideo + k] * w_new) / tot
+	var cash := ps.cash[src] * frac
+	ps.cash[src] -= cash
+	ps.cash[dst] += cash
+	ps.size[src] -= amount
+	ps.size[dst] += amount
 	return dst
 
 
@@ -146,35 +228,37 @@ static func _migrate(gs: VGameState, p: Dictionary, tag: String, c: Dictionary, 
 	var targets: Dictionary = c.get("_migration_targets", {})
 	var intl: Array = gs.market.get("_immigration_targets", [])
 	# (los traslados añaden POPs a OTRAS provincias: se puede recorrer la lista sin copiarla)
-	for pop in p["pops"]:
-		var job: String = _job_of(gs, pop["type"])
-		if not MIGRANT_JOBS.has(job):
+	var ps := gs.pops
+	for s: int in p["pop_slots"]:
+		var t: int = ps.type_id[s]
+		if not ps.t_migrant[t]:
 			continue
-		var unemp := 1.0 - float(pop["employment"])
-		var life := float(pop["needs_satisfaction"]["life"])
-		var push := unemp + maxf(0.0, 0.7 - life) + maxf(0.0, 0.15 - float(pop["needs_satisfaction"]["everyday"]))
-		if push < 0.15 or int(pop["size"]) < 500:
+		var job: String = ps.t_job[t]
+		var unemp := 1.0 - ps.employment[s]
+		var life := ps.life[s]
+		var push := unemp + maxf(0.0, 0.7 - life) + maxf(0.0, 0.15 - ps.everyday[s])
+		if push < 0.15 or ps.size[s] < 500:
 			continue
 		# internacional: solo con pobreza grave
 		if life < 0.5 and unemp > 0.2 and not intl.is_empty():
-			var amount := int(float(pop["size"]) * minf(0.02, 0.006 * push))
+			var amount := int(float(ps.size[s]) * minf(0.02, 0.006 * push))
 			if amount >= MIN_MOVE:
 				for dest_tag in intl:
-					if dest_tag == tag or not accepts(gs, dest_tag, pop["culture"]):
+					if dest_tag == tag or not accepts(gs, dest_tag, ps.culture_names[ps.culture_id[s]]):
 						continue
 					var dt: Dictionary = gs.countries[dest_tag].get("_migration_targets", {})
 					var lst: Array = dt.get(job, dt.get("any", []))
 					if lst.is_empty():
 						continue
 					var dest: Dictionary = gs.provinces[lst[0]]
-					_transfer(gs, pop, dest, pop["type"], amount)
+					_transfer(gs, s, dest, ps.type_names[t], amount)
 					VPopulationSystem.recalc_province(gs, int(dest["id"]))
-					pop["migration_target"] = int(dest["id"])
+					ps.migration_target[s] = int(dest["id"])
 					stats["emigrated"] = int(stats.get("emigrated", 0)) + amount
 					var ds: Dictionary = gs.countries[dest_tag]["acc_mobility"]
 					ds["immigrated"] = int(ds.get("immigrated", 0)) + amount
 					if amount > 2000:
-						gs.log_event(tag, "Emigran %s %s de %s a %s" % [UiTheme.fmt_int(amount), gs.pop_type_name(pop["type"]).to_lower(), p["name"], gs.country_name(dest_tag)])
+						gs.log_event(tag, "Emigran %s %s de %s a %s" % [UiTheme.fmt_int(amount), gs.pop_type_name(ps.type_names[t]).to_lower(), p["name"], gs.country_name(dest_tag)])
 					break
 				continue
 		# interna
@@ -182,13 +266,13 @@ static func _migrate(gs: VGameState, p: Dictionary, tag: String, c: Dictionary, 
 		for dest_id in cands:
 			if int(dest_id) == int(p["id"]):
 				continue
-			var amount2 := int(float(pop["size"]) * minf(0.03, 0.01 * push))
+			var amount2 := int(float(ps.size[s]) * minf(0.03, 0.01 * push))
 			if amount2 < MIN_MOVE:
 				break
 			var dest2: Dictionary = gs.provinces[dest_id]
-			_transfer(gs, pop, dest2, pop["type"], amount2)
+			_transfer(gs, s, dest2, ps.type_names[t], amount2)
 			VPopulationSystem.recalc_province(gs, int(dest_id))
-			pop["migration_target"] = int(dest_id)
+			ps.migration_target[s] = int(dest_id)
 			stats["migrated"] = int(stats.get("migrated", 0)) + amount2
 			break
 

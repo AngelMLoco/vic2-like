@@ -6,39 +6,39 @@ extends RefCounted
 ## ctx (POP): {"vacancy": {tipo: plazas}, "civilized": bool, "military_spending": float}
 
 
-static func pop_ok(gs: VGameState, pop: Dictionary, cond: Dictionary, tag: String, ctx: Dictionary) -> bool:
-	var needs: Dictionary = pop["needs_satisfaction"]
+static func pop_ok(gs: VGameState, s: int, cond: Dictionary, tag: String, ctx: Dictionary) -> bool:
+	var ps := gs.pops
 	for k in cond:
 		var v = cond[k]
 		match k:
 			"min_literacy":
-				if float(pop["literacy"]) < float(v): return false
+				if ps.literacy[s] < float(v): return false
 			"max_literacy":
-				if float(pop["literacy"]) > float(v): return false
+				if ps.literacy[s] > float(v): return false
 			"min_life":
-				if float(needs["life"]) < float(v): return false
+				if ps.life[s] < float(v): return false
 			"max_life":
-				if float(needs["life"]) > float(v): return false
+				if ps.life[s] > float(v): return false
 			"min_everyday":
-				if float(needs["everyday"]) < float(v): return false
+				if ps.everyday[s] < float(v): return false
 			"max_everyday":
-				if float(needs["everyday"]) > float(v): return false
+				if ps.everyday[s] > float(v): return false
 			"min_luxury":
-				if float(needs["luxury"]) < float(v): return false
+				if ps.luxury[s] < float(v): return false
 			"min_unemployment":
-				if 1.0 - float(pop["employment"]) < float(v): return false
+				if 1.0 - ps.employment[s] < float(v): return false
 			"max_unemployment":
-				if 1.0 - float(pop["employment"]) > float(v): return false
+				if 1.0 - ps.employment[s] > float(v): return false
 			"min_cash_per_capita":
-				if float(pop["cash"]) / maxf(1.0, float(pop["size"])) < float(v): return false
+				if ps.cash[s] / maxf(1.0, float(ps.size[s])) < float(v): return false
 			"max_cash_per_capita":
-				if float(pop["cash"]) / maxf(1.0, float(pop["size"])) > float(v): return false
+				if ps.cash[s] / maxf(1.0, float(ps.size[s])) > float(v): return false
 			"min_consciousness":
-				if float(pop["consciousness"]) < float(v): return false
+				if ps.consciousness[s] < float(v): return false
 			"min_militancy":
-				if float(pop["militancy"]) < float(v): return false
+				if ps.militancy[s] < float(v): return false
 			"max_militancy":
-				if float(pop["militancy"]) > float(v): return false
+				if ps.militancy[s] > float(v): return false
 			"vacancy":
 				if int(ctx.get("vacancy", {}).get(v, 0)) <= 0: return false
 			"civilized":
@@ -77,42 +77,43 @@ static func compile_pop(cond: Dictionary) -> Array:
 	return out
 
 
-static func pop_ok_compiled(gs: VGameState, pop: Dictionary, compiled: Array, tag: String, ctx: Dictionary) -> bool:
+static func pop_ok_compiled(gs: VGameState, s: int, compiled: Array, tag: String, ctx: Dictionary) -> bool:
+	var ps := gs.pops
 	for e in compiled:
 		var code: int = e[0]
 		match code:
 			0:
-				if float(pop["literacy"]) < e[1]: return false
+				if ps.literacy[s] < e[1]: return false
 			1:
-				if float(pop["literacy"]) > e[1]: return false
+				if ps.literacy[s] > e[1]: return false
 			2:
-				if float(pop["needs_satisfaction"]["life"]) < e[1]: return false
+				if ps.life[s] < e[1]: return false
 			3:
-				if float(pop["needs_satisfaction"]["life"]) > e[1]: return false
+				if ps.life[s] > e[1]: return false
 			4:
-				if float(pop["needs_satisfaction"]["everyday"]) < e[1]: return false
+				if ps.everyday[s] < e[1]: return false
 			5:
-				if float(pop["needs_satisfaction"]["everyday"]) > e[1]: return false
+				if ps.everyday[s] > e[1]: return false
 			6:
-				if float(pop["needs_satisfaction"]["luxury"]) < e[1]: return false
+				if ps.luxury[s] < e[1]: return false
 			7:
-				if 1.0 - float(pop["employment"]) < e[1]: return false
+				if 1.0 - ps.employment[s] < e[1]: return false
 			8:
-				if 1.0 - float(pop["employment"]) > e[1]: return false
+				if 1.0 - ps.employment[s] > e[1]: return false
 			9:
-				if float(pop["cash"]) / maxf(1.0, float(pop["size"])) < e[1]: return false
+				if ps.cash[s] / maxf(1.0, float(ps.size[s])) < e[1]: return false
 			10:
-				if float(pop["cash"]) / maxf(1.0, float(pop["size"])) > e[1]: return false
+				if ps.cash[s] / maxf(1.0, float(ps.size[s])) > e[1]: return false
 			11:
-				if float(pop["consciousness"]) < e[1]: return false
+				if ps.consciousness[s] < e[1]: return false
 			12:
-				if float(pop["militancy"]) < e[1]: return false
+				if ps.militancy[s] < e[1]: return false
 			13:
-				if float(pop["militancy"]) > e[1]: return false
+				if ps.militancy[s] > e[1]: return false
 			14:
 				if int(ctx.get("vacancy", {}).get(e[1], 0)) <= 0: return false
 			_:
-				if not pop_ok(gs, pop, e[1], tag, ctx): return false
+				if not pop_ok(gs, s, e[1], tag, ctx): return false
 	return true
 
 

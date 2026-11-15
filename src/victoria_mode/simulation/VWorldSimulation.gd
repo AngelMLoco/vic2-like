@@ -111,6 +111,7 @@ func on_month() -> void:
 	gs.month_index += 1
 	var tf := VProfiler.begin()
 	VPopulationSystem.flush_demand(gs)
+	VPopulationSystem.close_militancy_diagnosis(gs)
 	VProfiler.end(gs, "m_population_flush", tf)
 	var tm := VProfiler.begin()
 	VMarketSystem.clear_month(gs)
@@ -177,6 +178,10 @@ func on_month() -> void:
 	tt = VProfiler.begin()
 	VRankingSystem.recalculate(gs)
 	VProfiler.end(gs, "m_ranking", tt)
+	if gs.month_index % 12 == 0:
+		tt = VProfiler.begin()
+		VPopulationSystem.merge_similar(gs)
+		VProfiler.end(gs, "m_pop_merge", tt)
 	tt = VProfiler.begin()
 	VPopulationSystem.prepare_month(gs)
 	VProfiler.end(gs, "m_population_prepare", tt)

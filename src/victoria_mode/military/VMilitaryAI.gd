@@ -232,14 +232,25 @@ static func _war_target(gs: VGameState, a: Dictionary, tag: String, cands: Array
 		return -1
 	var power := VArmySystem.army_power(gs, a)
 	var here: Vector2 = gs.provinces[int(a["province"])]["center"]
-	var scored := []
-	for id in cands:
-		scored.append(Vector2(here.distance_squared_to(gs.provinces[id]["center"]), float(id)))
-	scored.sort()
-	for v in scored:
-		var id := int(v.y)
-		if _danger(gs, a, id) <= power * 1.5:
-			return id
+	var excluded := {}
+	# el candidato más cercano (desempate por id); si es peligroso se descarta y se busca el siguiente.
+	# Sin ordenar ni crear arrays por ejército.
+	while excluded.size() < cands.size():
+		var best := -1
+		var bd := INF
+		for c in cands:
+			var id: int = c
+			if excluded.has(id):
+				continue
+			var dd := here.distance_squared_to(gs.provinces[id]["center"])
+			if dd < bd or (dd == bd and id < best):
+				bd = dd
+				best = id
+		if best < 0:
+			return -1
+		if _danger(gs, a, best) <= power * 1.5:
+			return best
+		excluded[best] = true
 	return -1
 
 
