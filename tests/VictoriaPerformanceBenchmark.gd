@@ -48,7 +48,8 @@ const GROUPS := {
 	"· efectos": ["event_effects"],
 	"· IA de eventos": ["event_ai"],
 	"· decisiones (IA)": ["decisions"],
-	"· magia": ["magic"],
+	"· magia (equilibrio de magos)": ["magic"],
+	"· crónica": ["chronicle"],
 }
 
 var years := 10
@@ -69,7 +70,7 @@ func _ready() -> void:
 		gs.flags["events_disabled"] = true
 		mode = "sin eventos"
 	elif OS.get_environment("VBENCH_NO_MAGIC") == "1":
-		gs.event_defs.erase("magic.awakening")
+		gs.event_defs.erase("magic.world.awakening")
 		VEventSystem._build_index(gs)
 		mode = "eventos sin magia"
 	print("modo: " + mode)
@@ -100,6 +101,11 @@ func _ready() -> void:
 	print("ms por año: " + ", ".join(year_ms.map(func(v): return "%.0f" % v)))
 	print("\n" + VProfiler.report(gs))
 	print("\n" + _path_summary(gs))
+	var st: Dictionary = VScopedState.es(gs)["stats"]
+	print("\nEventos: %d · tipos major/normal/notificación/oculto %d/%d/%d/%d · IA visibles %d ocultos %d · core %d magic %d country %d · %.2f por país y año" % [
+		int(st.get("fired", 0)), int(st.get("type_major", 0)), int(st.get("type_normal", 0)), int(st.get("type_notification", 0)), int(st.get("type_hidden", 0)),
+		int(st.get("ai_visible", 0)), int(st.get("ai_hidden", 0)), int(st.get("ns_core", 0)), int(st.get("ns_magic", 0)), int(st.get("ns_country", 0)),
+		float(st.get("fired", 0)) / maxf(1.0, float(gs.living_countries().size())) / float(years)])
 	var fp := fingerprint(gs)
 	print("\nHuella: " + JSON.stringify(fp))
 	_compare_baseline(fp)
@@ -155,7 +161,9 @@ static func fingerprint(gs: VGameState) -> Dictionary:
 		"rebel_factions_total": int(gs.next_ids.get("rebel", 1)) - 1, "armies": int(m["armies"]),
 		"pops": gs.pops.count(), "militancy": snappedf(float(s["mil"]), 0.01),
 		"events_fired": int(VScopedState.es(gs)["stats"].get("fired", 0)), "decisions": int(VScopedState.es(gs)["stats"].get("decisions", 0)),
-		"magic": gs.flags.get("GLOBAL_MAGIC_ACTIVATED", false)}
+		"magic": gs.flags.get("GLOBAL_MAGIC_ACTIVATED", false),
+		"magi": int(load("res://tests/VictoriaLongRunTest.gd").world_magi(gs)),
+		"chronicle": VScopedState.es(gs)["history"].size()}
 
 
 func _compare_baseline(fp: Dictionary) -> void:

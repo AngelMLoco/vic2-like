@@ -20,7 +20,7 @@ func _ready() -> void:
 	if OS.get_environment("VBAL_EVENTS") == "0":
 		gs.flags["events_disabled"] = true
 	elif OS.get_environment("VBAL_NO_MAGIC") == "1":
-		gs.event_defs.erase("magic.awakening")
+		gs.event_defs.erase("magic.world.awakening")
 		VEventSystem._build_index(gs)
 	var sim := VWorldSimulation.new(gs)
 	print(header())

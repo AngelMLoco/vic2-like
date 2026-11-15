@@ -165,7 +165,7 @@ Las provincias ya no guardan POPs. Las partidas v3 se rechazan con un mensaje.
 Añadir un evento, una decisión, una tecnología, un bien o una fábrica mágica = añadir JSON; no hay que tocar el
 código. El cargador valida todo y muestra errores claros.
 
-### Evento — `events/*.json`, `magic/events/*.json` → `events[]`
+### Evento — `content/<paquete>/events/*.json` → `events[]` (M4; rutas y espacios de nombres de M5)
 
 ```json
 {"id": "emergent.food_crisis", "scope": "country", "type": "normal", "cadence": "monthly",
@@ -272,3 +272,116 @@ available {cond}, cost {treasury, prestige, research}, effects, ai_weight (proba
 * Provincia: `magic {potential, deposit}`.
 
 **Guardado:** `save_version` = 5 (añade `events` y `magic` de provincia); las partidas v4 se rechazan.
+
+## Milestone 5 — Paquetes de contenido, escenarios, magia y crónica
+
+### Escenarios — `scenarios/scenarios.json`
+
+```json
+{"default": "prototype_136",
+ "scenarios": [{"id": "prototype_136", "name": "Prototipo — Año 136", "era": "prototype",
+   "history": "history/start_136.json", "content_packs": ["core", "prototype"]}],
+ "eras": [{"id": "prototype", "name": "Prototipo"}]}
+```
+
+El archivo de historia admite (todo opcional):
+
+* `start_date`, `flags`;
+* `provinces` {id: owner, controller, cores};
+* `relations`, `alliances`, `rivals`, `wars`;
+* `countries` {TAG: government, capital, literacy, prestige, treasury, brigades, ships, factory_levels,
+  technologies, inventions, reforms, flags, variables, modifiers, magic_branches}.
+
+Ejemplo completo en `docs/LoreBibleSchema.md`.
+
+### Paquetes — `content/<paquete>/`
+
+| Archivo | Contenido |
+|---|---|
+| `pack.json` | id, name, description, requires |
+| `events/*.json` | `{"events": [...]}` |
+| `decisions/*.json` | `{"decisions": [...]}` |
+| `modifiers.json` | `{"modifiers": [...]}` |
+| `chronicle.json` | `{"templates": {on_action: {"cat", "text", "text_target", "important"}}}` |
+| `art_manifest.json` | `{"style": {...}, "categories": [{"art_key", "title", "description", "composition", "location", "characters", "mood", "magic_visibility", "events"}]}` |
+| `magic_branches.json` | `{"branches": {TAG: {rama: nivel | {"level", "paths"}}}}` |
+| `lore/*.json` | Biblia de lore (`docs/LoreBibleSchema.md`) |
+
+`content/packs.json` → `load_order` es el orden por defecto si el escenario no declara paquetes.
+
+### Eventos: campos nuevos
+
+* `id` con espacio de nombres: `core.<economy|politics|society|religion|war|diplomacy|migration|technology>.*`,
+  `magic.<world|social|economy|politics|military>.*`, `country.<tag>.*` o `region.<id>.*`.
+* `category` (opcional): `politics` | `war` | `economy` | `diplomacy` | `society` | `magic`. Si falta, sale
+  del espacio de nombres.
+* `chronicle` (evento u opción): texto narrativo para la crónica. Marcadores: `{country}`, `{target}`, `{war}`,
+  `{province}`, `{reform}`, `{level}`, `{tech}` y `{year}`.
+* `art`: debe ser una categoría del manifiesto de arte.
+* Nuevo on_action `mage_brain_drain` (tag = origen, target = destino, amount). El contexto de `war_ended`
+  incluye `result`, `goals`, `war_months`, `war_name` y `primary`; el de `battle_won` / `battle_lost`,
+  `losses` (del enemigo) y `own_losses`.
+
+### Condiciones nuevas
+
+| Condición | Valor | Significado |
+|---|---|---|
+| `battle_losses`, `own_losses`, `peace_goals` (y `_below`) | número | Contexto de batalla o de paz |
+| `war_result` | `victory` / `defeat` / `white_peace` | Resultado de la paz |
+| `capital_occupied` | bool | Capital en manos de otro |
+| `magic_regulation` | [niveles] | Nivel actual de la reforma |
+| `religion_magic_attitude` | [actitudes] | Actitud mágica de la religión de Estado |
+| `magic_tradition` | [tradiciones] | Tradición mágica de la cultura principal |
+| `magic_path` | {rama: escuela} | La rama declara esa senda |
+| `is_rival` | bool | El objetivo es rival declarado |
+| `ruling_ideology` | ideología o lista de ideologías | Ideología del partido gobernante |
+| `magi_share`, `magi_unemployment`, `magi_target_ratio` | número | Magos frente a población, paro de magos, magos frente a capacidad |
+| `mage_emigration`, `mage_immigration` | número | Magos emigrados o inmigrados, media anual |
+| `arcane_academies`, `arcane_deposits`, `magic_factories` | número | Academias, yacimientos y fábricas mágicas |
+| `immigration`, `emigration` | número | Del último mes |
+| `war_months` | número | Duración de la guerra más larga |
+
+### Efectos nuevos
+
+* `set_magic_regulation`: id de nivel; decreto sin pasar por la cámara.
+* `mage_emigration`: fracción de magos que emigra ya.
+* `chronicle`: `"texto"` o `{"text", "cat", "important"}`.
+* `add_militancy` / `add_consciousness`: aceptan `pop_type` (tipo o lista de tipos) y son listables (`[{…}, {…}]`).
+
+### Magia — `magic/magic_rules.json` → `rules.mage_model`
+
+| Grupo | Claves | Uso |
+|---|---|---|
+| Capacidad | `base_share`, `no_branch_factor`, `branch_base`, `branch_per_level` | Capacidad social y factor por ramas |
+| Alfabetización | `literacy_ref`, `literacy_min`, `literacy_max` | Factor de alfabetización y sus límites |
+| Academias | `academy_capacity`, `academy_promotion`, `academy_posts`, `academy_research` | Efectos de cada academia |
+| Promoción | `convergence`, `min_promotion`, `max_pop_share_per_month`, `jobs_weight` | Ritmo hacia el objetivo y peso del paro |
+| Exceso | `demotion_rate`, `demote_to`, `excess_tolerance` | Degradación por encima del objetivo |
+| Migración | `emigration_rate`, `emigration_push_min`, `destinations` | Fuga de cerebros |
+| Salarios | `factory_wage_multiplier`, `practice_share`, `practice_pay` | Fábricas y práctica privada |
+| Fe y cultura | `religion_attitudes` {actitud: {promotion, tension}}, `culture_traditions` {tradición: factor}, `tension_magi_share_ref` | Modulación por religión y cultura |
+
+`mage_sources`, `mage_min_literacy` y `mage_min_branch` siguen en `rules`.
+
+**Modificadores leídos por el modelo:**
+
+* `mage_capacity`, `mage_promotion`, `mage_attraction`, `mage_practice`;
+* `mage_state_posts` (fracción de la población), `mage_military_posts` (fracción de los soldados);
+* `magic_research`, `magic_factory_efficiency`, `magi_militancy`, `religious_tension`.
+
+**Otros datos:**
+
+* `factories.json`: `workforce.magi` (magos por nivel).
+* `pop_types.json`: magos con oficio `arcane`.
+* `religions.json` → `magic_attitude`; `cultures.json` → `groups[].magic_tradition` (o por cultura).
+* `magic/magic_schools.json` → `schools: [{id, branch, name, min_level, effects}]` (vacío hasta el lore).
+
+### Reforma `magic_regulation` — `politics/reforms.json`
+
+`type: "magic"`, `issue: "magic_policy"`, `requires_flag: "GLOBAL_MAGIC_ACTIVATED"`, `movement: false`. La
+postura de cada ideología está en `ideologies.json` → `issues.magic_policy` (id de nivel).
+
+### Guardado v6
+
+Ids de eventos con espacio de nombres, reforma `magic_regulation`, `magic_stats` y `rivals` por nación, y
+escenario y paquetes en la cabecera. Las partidas v5 se rechazan.

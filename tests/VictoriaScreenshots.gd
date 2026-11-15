@@ -137,18 +137,18 @@ func _ready() -> void:
 	game.set_mapmode("political")
 	game.camera.center_on(gs.provinces[int(gs.countries["FRK"]["capital"])]["center"], 1.0)
 	_clear_events(game)
-	VEventDebug.run(gs, "fire_event emergent.food_crisis FRK")
+	VEventDebug.run(gs, "fire_event core.economy.food_crisis FRK")
 	game._check_events()
 	await _frames(20)
 	await _shot("m4_event_popup")
 	_clear_events(game)
-	VEventDebug.run(gs, "fire_event magic.awakening")
+	VEventDebug.run(gs, "fire_event magic.world.awakening")
 	game._check_events()
 	await _frames(20)
 	await _shot("m4_world_event")
 	_clear_events(game)
 	gs.countries["FRK"]["treasury"] = 20000.0
-	VEventDebug.run(gs, "fire_event magic.arcane_research FRK")
+	VEventDebug.run(gs, "fire_event magic.world.arcane_research FRK")
 	game._check_events()
 	if game.event_popup.visible:
 		game.event_popup._choose(0)
@@ -158,8 +158,42 @@ func _ready() -> void:
 	await _frames(6)
 	await _shot("m4_decisions_chronicle")
 	game.nation_window.close()
+	# M5: sociedad mágica (capacidad, empleo y regulación) y crónica filtrada por categoría
+	_clear_events(game)
+	VScopedState.change_variable(gs, "FRK", "arcane_academies", 2.0)
+	VMagicSystem.convert_pops(gs, "FRK", 0, {"from": ["clerks"], "to": "magi", "share": 0.05, "max": 8000})
+	VPopulationSystem.refresh_country_caches(gs)
+	VMagicSystem.country_monthly(gs, "FRK")
+	VEventEffects.apply(gs, {"start_war": {"cb": "humiliate"}}, {"tag": "FRK", "target": "RHE"})
+	_clear_events(game)
+	game.nation_window.open("politics")
+	await _frames(6)
+	var lbl := _find_label(game.nation_window._content, "sociedad mágica")
+	if lbl != null:
+		game.nation_window._content.get_parent().ensure_control_visible(lbl)
+		game.nation_window._content.get_parent().scroll_vertical += 330
+	await _frames(6)
+	await _shot("m5_magic_society")
+	game.nation_window._chron_cat = "war"
+	game.nation_window.rebuild()
+	await _frames(6)
+	game.nation_window._content.get_parent().scroll_vertical = 100000
+	await _frames(6)
+	await _shot("m5_chronicle_war")
+	game.nation_window._chron_cat = ""
+	game.nation_window.close()
 	print("capturas en ", ProjectSettings.globalize_path(out_dir) if out_dir.begins_with("user://") else out_dir)
 	get_tree().quit()
+
+
+func _find_label(root: Node, text: String) -> Control:
+	for ch in root.get_children():
+		if ch is Label and String(ch.text).to_lower().contains(text):
+			return ch
+		var r := _find_label(ch, text)
+		if r != null:
+			return r
+	return null
 
 
 func _frames(n: int) -> void:

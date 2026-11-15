@@ -517,3 +517,152 @@ Ganchos on_action que emiten los sistemas: `war_declared`, `war_ended`, `battle_
 
 `events` (todo `gs.event_state`) y `p["magic"]` en las provincias. Las definiciones (eventos, decisiones,
 modificadores, ramas) vienen de los datos y no se guardan. Las partidas v4 se rechazan.
+
+## Milestone 5 — Equilibrio fantástico, marco de lore y contenido
+
+### Población mágica: capacidad en lugar de ritmo fijo (`magic/VMageModel.gd`)
+
+En M4 los magos crecían a un ritmo fijo por POP fuente, y la curva era exponencial. En M5 crecen hacia la
+**capacidad** que cada sociedad puede sostener:
+
+```
+objetivo = población × base_share × f_rama × f_alfabetización × f_potencial × f_fe × f_empleo × (1 + mage_capacity)
+           + academias × academy_capacity
+promoción mensual = (objetivo − magos) × convergence × (1 + mage_promotion + academias × academy_promotion) × oportunidad
+```
+
+* **f_rama:** casi nula sin ramas mágicas; crece con la suma de niveles.
+* **f_alfabetización:** alfabetización frente a la de referencia.
+* **f_potencial:** población que vive en provincias con potencial mágico.
+* **f_fe:** actitud mágica de la religión de Estado × tradición mágica de la cultura principal.
+* **f_empleo:** con magos en paro, la sociedad sostiene menos.
+* **mage_capacity:** suma de regulación, tecnologías y eventos.
+
+La promoción solo ocurre con rama mágica o academia. Se reparte entre POPs fuente alfabetizados de provincias con
+potencial, ponderada por potencial, religión y cultura de cada POP. Cerca del objetivo se apaga sola. Las
+naciones pequeñas tienen un mínimo mensual, para que también converjan. Por encima del objetivo no hay
+promoción, y los magos sin empleo se degradan a oficinistas o emigran.
+
+**Empleo real** (los magos ya no son empleo estatal automático; su oficio es `arcane`):
+
+* **Fábricas mágicas** (`workforce.magi`). Los paga la fábrica; sin magos, la fábrica rinde menos.
+* **Plazas del Estado**, cubiertas con la misma tasa en toda la nación:
+  * academias (educación);
+  * administración mágica (`mage_state_posts`, administración);
+  * ejército (`mage_military_posts`, salarios militares).
+* **Práctica privada** (sanadores, adivinos). La pagan capitalistas y aristócratas: es una transferencia y
+  el dinero se conserva.
+
+Sin plaza, el mago está en paro, lo que reduce sus necesidades, sube su militancia, provoca emigración y crea
+presión política. Así puede surgir una **crisis de magos**.
+
+**Fuga de cerebros.** Cada mes, `world_monthly` ordena las naciones que reclutan magos (las que están por
+debajo de su objetivo) por atractivo: regulación, academias, empleo de magos, nivel de vida y paz. Los magos
+de naciones que los prohíben, persiguen o no emplean emigran hacia ellas con `_transfer` (personas reales) y
+disparan el gancho `mage_brain_drain`. `force_emigration` es el efecto `mage_emigration` de los eventos.
+
+**Estado:**
+
+* `c["magic_stats"]` se guarda: contadores acumulados y anuales de formados, degradados, emigrados e
+  inmigrados.
+* Derivados (se recalculan en un mes): `_magi_info`, que contiene el objetivo, el desglose, el paro y las
+  plazas; `_magi_state`, con las plazas y el sueldo del mes siguiente; `_magi_acc`, que es el empleo acumulado
+  por las particiones; y `_mil_extra`.
+
+### Política mágica (`magic/VMagicPolicy.gd`)
+
+La regulación de la magia es una **reforma** (`magic_regulation`) con cinco niveles provisionales: Prohibida,
+Tolerada, Licenciada, Promovida y Control estatal. Sus efectos son modificadores nacionales: capacidad,
+promoción, atracción, investigación arcana, eficiencia de fábricas mágicas, militancia de los magos, tensión
+religiosa, plazas estatales y práctica privada.
+
+* No genera movimientos genéricos (`movement: false`).
+* En la cámara, cada ideología apoya los cambios que acercan la ley a su postura (`ideologies.json` →
+  `issues.magic_policy`, en los datos) y se opone a los que la alejan.
+* La IA empuja cada trimestre hacia la postura del partido gobernante, corregida por la situación:
+  * clero hostil con muchos magos: más restrictiva;
+  * magos en paro: deja de fomentar;
+  * guerra con rama militar: control estatal;
+  * con academias: no prohíbe.
+* Los eventos pueden decretar un nivel (`set_magic_regulation`).
+
+**Religión y cultura.** `religions.json` → `magic_attitude` modula la promoción y la tensión religiosa. La
+tensión es militancia adicional del clero, proporcional a la proporción de magos (`_mil_extra`, componente
+`magic` del diagnóstico). `cultures.json` → `magic_tradition` modula la promoción.
+
+### Diagnóstico de militancia y conciencia
+
+`VPopulationSystem` separa la militancia en:
+
+* vida, diario, paro, lujo y movimiento;
+* cansancio bélico;
+* modificadores permanentes;
+* modificadores temporales de eventos (nación y provincia);
+* magia (regulación y tensión religiosa);
+* relajación, base, reformas;
+* **eventos** (efectos directos `add_militancy`, medidos en `VEventEffects._change_pops`).
+
+La conciencia se separa en:
+
+* alfabetización;
+* modificadores permanentes y temporales;
+* pobreza vital y diaria;
+* paro;
+* base y relajación;
+* eventos.
+
+`gs.market["mil_diag"]` / `["con_diag"]` guardan el último muestreo y `["diag_cum"]` los promedios acumulados
+desde el inicio (`cumulative_diagnosis`).
+
+### Paquetes de contenido, espacios de nombres y escenarios
+
+* **Escenarios.** `VDataLoader.new_game(scenario_id)` lee `scenarios/scenarios.json`, que define fecha,
+  historia y paquetes. El motor ya no asume el año 136. Las partidas guardan el escenario y se recargan con él.
+* **Paquetes** (`core/VContentPacks.gd`). Eventos, decisiones, modificadores, plantillas de crónica,
+  manifiesto de arte, ramas mágicas y lore se leen de `content/<paquete>/…` en el orden del escenario:
+  * `core`: sistémico;
+  * `prototype`: Tierra, temporal;
+  * `fantasy`: Chronicles of Aether, vacío.
+
+  Un id repetido es un error.
+* **Espacios de nombres.** `core.<categoría>.*`, `magic.<área>.*`, `country.<tag>.*`, `region.<id>.*`. La
+  categoría de la crónica sale del espacio de nombres o del campo `category`.
+* **Historia.** `_apply_province_history` (propiedad, control y núcleos antes de construir los estados),
+  `_apply_history` (fecha, capitales, relaciones, alianzas, guerras, gobierno y ejército) y
+  `_apply_late_history` (tecnologías, inventos, reformas, banderas, variables, modificadores, ramas mágicas
+  y rivales).
+* **Biblia de lore** (`core/VLoreLoader.gd`). `content/<paquete>/lore/*.json` se valida contra un esquema
+  mínimo y queda en `gs.lore`; no simula. Esquema completo en `docs/LoreBibleSchema.md`.
+* **Ramas mágicas.** Una rama admite `n` o `{"level": n, "paths": [...]}`: el nivel no es la escuela.
+  `magic/magic_schools.json` es el esquema de escuelas, vacío por ahora; si se rellena, el cargador valida las
+  sendas.
+
+### Crónica (`events/VChronicle.gd`)
+
+Cada entrada lleva categoría (politics, war, economy, diplomacy, society, magic), año y un texto narrativo
+opcional. Las fuentes son:
+
+* eventos y decisiones, con su título y opción o con el texto `chronicle` del evento, opción o decisión, que
+  admite marcadores `{country}`, `{target}`, etc.;
+* la **historia emergente**, desde los ganchos on_action que ya existían, con plantillas de
+  `content/core/chronicle.json`:
+  * guerra declarada (una entrada por guerra);
+  * capital ocupada;
+  * paz victoriosa, humillante o blanca (el contexto de `war_ended` lleva ahora `result`, `goals`,
+    `war_months` y `war_name`);
+  * reforma, gobierno, rebelión, esfera, saber arcano, fuga de cerebros y despertar.
+
+La interfaz (Política → Crónica) filtra por categoría y muestra «Año 143 — La magia regresó al mundo.».
+
+### Contenido y arte
+
+* **Eventos.** 109 eventos (56 nuevos). Las cadenas bélicas reaccionan a las bajas reales de cada batalla
+  (`battle_losses` / `own_losses`), a la capital ocupada, a la duración de la guerra y al resultado de la paz.
+  También hay cadenas económicas, sociales y de sociedad mágica (persecución, integración, academias, gremios,
+  paro de magos, fuga de cerebros, religión, ejército y la guerra por el cristal). Las opciones dejan banderas
+  que habilitan o bloquean eventos y opciones posteriores.
+* **Arte.** `content/core/art_manifest.json` define 24 categorías visuales, con la dirección de arte
+  provisional (óleo romántico/naturalista del XIX). Un evento con un `art_key` fuera del manifiesto es un error
+  de datos. `tools/art_manifest.py` rellena qué eventos usa cada categoría.
+* **Métricas de eventos.** Por tipo, jugador (ventanas mayores y normales, notificaciones, ocultos), IA
+  (visibles u ocultos), espacio de nombres y categoría (`event_state.stats`).

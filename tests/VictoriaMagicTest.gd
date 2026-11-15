@@ -29,10 +29,10 @@ func _ready() -> void:
 	check(not VDecisionSystem.list_available(gs, with_branch).has("found_arcane_academy"), "las decisiones mágicas no aparecen")
 	print("-- despertar (evento global de datos)")
 	gs.player_tag = with_branch
-	VEventSystem.debug_fire(gs, "magic.awakening")
+	VEventSystem.debug_fire(gs, "magic.world.awakening")
 	check(gs.flags.get("GLOBAL_MAGIC_ACTIVATED", false) and gs.flags.get("magic_unlocked", false), "GLOBAL_MAGIC_ACTIVATED y magic_unlocked activados")
 	var q := VEventSystem.pending(gs)
-	check(not q.is_empty() and q[0]["id"] == "magic.awakening", "el jugador recibe la ventana del acontecimiento mundial")
+	check(not q.is_empty() and q[0]["id"] == "magic.world.awakening", "el jugador recibe la ventana del acontecimiento mundial")
 	VEventSystem.choose(gs, 0, 0)
 	gs.player_tag = ""
 	check(VTechnologySystem.can_research(gs, with_branch, "arcane_theory"), "nación con rama de tecnología: puede investigar Teoría arcana")
@@ -122,17 +122,20 @@ func _ready() -> void:
 	var tag := "PRS"   # tecnología 1, economía 1, militar 1, política 1
 	var c: Dictionary = gs.countries[tag]
 	c["treasury"] = 10000.0
-	VEventSystem.debug_fire(gs, "magic.arcane_research", tag)
+	c["literacy"] = maxf(float(c["literacy"]), 0.3)  # requisito de la academia
+	VEventSystem.debug_fire(gs, "magic.world.arcane_research", tag)
 	var funded := VScopedState.has_country_flag(gs, tag, "ARCANE_RESEARCH_FUNDED")
 	if not funded:
 		# la IA eligió esperar: el jugador puede financiarla (misma opción, efectos reales)
-		VEventSystem.apply_option(gs, gs.event_defs["magic.arcane_research"], 0, {"tag": tag})
+		VEventSystem.apply_option(gs, gs.event_defs["magic.world.arcane_research"], 0, {"tag": tag})
 	check(VScopedState.has_country_flag(gs, tag, "ARCANE_RESEARCH_FUNDED"), "evento de investigación arcana → bandera de nación")
 	check(VDecisionSystem.list_available(gs, tag).has("found_arcane_academy"), "la decisión «Fundar la Academia Arcana» pasa a estar disponible")
+	var cap0 := float(VMageModel.capacity(gs, tag)["target"])
 	var err := VDecisionSystem.take(gs, tag, "found_arcane_academy")
 	check(err == "" and "arcane_theory" in c["technologies"], "fundar la academia desbloquea Teoría arcana (%s)" % err)
 	check(gs.mod(tag, "research") > 0.0 and VScopedState.has_country_modifier(gs, tag, "arcane_academy"), "modificador de la academia activo")
-	check(_magi(tag) > 0, "la academia forma a los primeros magos (%d)" % _magi(tag))
+	var cap1 := float(VMageModel.capacity(gs, tag)["target"])
+	check(VMageModel.academies(gs, tag) == 1 and cap1 > cap0, "la academia amplía la capacidad mágica sostenible (%d → %d)" % [int(cap0), int(cap1)])
 	var err2 := VDecisionSystem.take(gs, tag, "fund_ley_survey")
 	check(err2 == "", "estudio de líneas ley (rama de economía) (%s)" % err2)
 	var mp := VMagicSystem.country_magic_provinces(gs, tag)
@@ -140,7 +143,7 @@ func _ready() -> void:
 	for id in mp:
 		if float(gs.provinces[id]["magic"].get("deposit", 0.0)) > 0.0:
 			found = true
-			VEventSystem.debug_fire(gs, "magic.ley_discovery", tag, int(id))
+			VEventSystem.debug_fire(gs, "magic.world.ley_discovery", tag, int(id))
 			break
 	check(found, "descubrimiento de yacimiento en una provincia de Parsa")
 	var s1 := float(gs.market["acc_supply"].get(tag, {}).get("mana_crystal", 0.0))
@@ -158,8 +161,8 @@ func _ready() -> void:
 	if g2:
 		check(g2.flags.get("GLOBAL_MAGIC_ACTIVATED", false) and g2.flags.get("magic_unlocked", false), "banderas mágicas conservadas")
 		check(float(g2.provinces[prov].get("magic", {}).get("potential", 0.0)) == 1.0, "datos mágicos de provincia conservados")
-		check(int(g2.countries[tag].get("type_sizes", {}).get("magi", 0)) > 0 or _magi_in(g2, tag) > 0, "los magos sobreviven al guardado")
-		check(VScopedState.has_country_flag(g2, tag, "ARCANE_ACADEMY_FOUNDED") and g2.mod(tag, "mage_emergence") > 0.0, "banderas y modificadores mágicos conservados")
+		check(_magi_in(g2, with_branch) > 0 and _magi_in(g2, with_branch) == _magi(with_branch), "los magos sobreviven al guardado (%d)" % _magi_in(g2, with_branch))
+		check(VScopedState.has_country_flag(g2, tag, "ARCANE_ACADEMY_FOUNDED") and g2.mod(tag, "mage_capacity") > 0.0 and VMageModel.academies(g2, tag) == 1, "banderas, academias y modificadores mágicos conservados")
 		check(VTechnologySystem.can_research(g2, "RHE", "arcane_engineering") or "arcane_engineering" in g2.countries["RHE"]["technologies"] or not VTechnologySystem.can_research(g2, no_branch, "arcane_theory"), "el acceso por ramas se mantiene tras cargar")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("== %d fallos ==" % failures)

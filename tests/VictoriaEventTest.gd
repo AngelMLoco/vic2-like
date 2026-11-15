@@ -59,8 +59,8 @@ func test_loader() -> void:
 	check(" ".join(errs2).contains("no tiene opciones"), "detecta evento sin opciones")
 	# ids duplicados y follow-up inválido: carga desde un directorio temporal
 	var root := "user://_evtest/"
-	DirAccess.make_dir_recursive_absolute(root + "events")
-	var f := FileAccess.open(root + "events/test.json", FileAccess.WRITE)
+	DirAccess.make_dir_recursive_absolute(root + "content/testpack/events")
+	var f := FileAccess.open(root + "content/testpack/events/test.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"events": [
 		{"id": "dup", "options": [{"name": "a", "follow_up": {"id": "missing.event"}}]},
 		{"id": "dup", "options": [{"name": "b"}]}]}))
@@ -69,11 +69,12 @@ func test_loader() -> void:
 	gs2.countries = gs.countries
 	gs2.goods = gs.goods
 	gs2.technologies = gs.technologies
+	gs2.content_packs = ["testpack"]
 	VEventSystem.load_definitions(gs2, root)
 	var j2 := " | ".join(gs2.data_errors)
 	check("id de evento duplicado «dup»" in j2, "detecta id de evento duplicado")
 	check("follow-up a un evento inexistente «missing.event»" in j2, "detecta follow-up inválido")
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(root + "events/test.json"))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(root + "content/testpack/events/test.json"))
 
 
 # ------------------------------------------------------------------ motor de eventos
@@ -280,7 +281,7 @@ func test_frequency() -> void:
 
 # ------------------------------------------------------------------ guardado
 func test_save() -> void:
-	print("-- guardado v5")
+	print("-- guardado v6")
 	VScopedState.set_country_flag(gs, "FRK", "SAVED_FLAG")
 	VScopedState.change_variable(gs, "FRK", "test_var", 42.0, true)
 	VScopedState.add_country_modifier(gs, "FRK", "urban_growth", 12, "test")
@@ -288,7 +289,7 @@ func test_save() -> void:
 	var path := VSaveSystem.save_game(gs, "_event_test")
 	var err := []
 	var g2 := VSaveSystem.load_game(path, err)
-	check(g2 != null, "carga v5 (%s)" % (err[0] if not err.is_empty() else "ok"))
+	check(g2 != null, "carga v6 (%s)" % (err[0] if not err.is_empty() else "ok"))
 	if g2:
 		check(VScopedState.has_country_flag(g2, "FRK", "SAVED_FLAG") and is_equal_approx(VScopedState.get_variable(g2, "FRK", "test_var"), 42.0), "banderas y variables de nación se conservan")
 		check(VScopedState.has_country_modifier(g2, "FRK", "urban_growth") and g2.mod("FRK", "pop_growth") > 0.0, "modificadores temporales se conservan y vuelven a aplicarse")
@@ -297,10 +298,10 @@ func test_save() -> void:
 	var f := FileAccess.open(path, FileAccess.READ)
 	var data: Dictionary = JSON.parse_string(f.get_as_text())
 	f.close()
-	data["save_version"] = 4
+	data["save_version"] = 5
 	var fw := FileAccess.open(path, FileAccess.WRITE)
 	fw.store_string(JSON.stringify(data))
 	fw.close()
 	var err2 := []
-	check(VSaveSystem.load_game(path, err2) == null and not err2.is_empty(), "una partida v4 se rechaza limpiamente")
+	check(VSaveSystem.load_game(path, err2) == null and not err2.is_empty(), "una partida v5 se rechaza limpiamente")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

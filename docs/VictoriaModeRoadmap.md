@@ -106,7 +106,57 @@ de decisión.
 Pendiente (no es de este milestone): lore final del despertar, escuelas de magia definitivas, combate con
 cartas, arte de eventos (el motor ya resuelve `art_key`), crisis diplomáticas profundas, personajes y dinastías.
 
-## Siguiente paso (milestone 5)
+## Milestone 5 — Equilibrio fantástico, marco de lore y contenido — completado
+
+* **Decisión de rendimiento:** no se migra a C# ni a GDExtension. El objetivo práctico pasa a ser < 10 s/año
+  en el benchmark de 10 años.
+* **Magos con curva estable** (`VMageModel`). Crecen hacia la capacidad que la sociedad sostiene, no hay un
+  tope global. Hay empleo real (fábricas mágicas, academias, administración, ejército y práctica privada),
+  paro y crisis de magos, degradación del exceso, fuga de cerebros entre naciones y emigración forzada por
+  eventos.
+* **Política mágica real:** la reforma `magic_regulation` (Prohibida, Tolerada, Licenciada, Promovida, Control
+  estatal), con postura por ideología en los datos, apoyo en la cámara según esa postura e IA trimestral.
+  Las religiones tienen actitud mágica y las culturas, tradición mágica (valores PROTOTYPE).
+* **Academias sistémicas:** capacidad, promoción, plazas de docencia e investigación pagadas con el
+  presupuesto de educación, e investigación arcana.
+* **Diagnóstico** de militancia y conciencia por componentes (incluidos eventos, magia y modificadores
+  temporales), con promedios acumulados.
+* **Marco de lore:**
+  * paquetes de contenido `core` / `prototype` / `fantasy`;
+  * espacios de nombres de eventos;
+  * escenarios / bookmarks;
+  * historia inicial ampliada (provincias, rivales, tecnologías, reformas, banderas, variables, modificadores,
+    ramas mágicas);
+  * biblia de lore con esquema y plantillas (`docs/LoreBibleSchema.md`);
+  * ramas mágicas con nivel y sendas, y esquema de escuelas.
+* **Contenido:** 109 eventos (56 nuevos) en cadenas de varias etapas: guerra, economía, sociedad,
+  migración, religión y sociedad mágica. Reaccionan al estado real y recuerdan las decisiones con banderas.
+  Hay 14 decisiones.
+* **Crónica:** historia nacional por categorías, historia emergente desde on_action y filtros en la interfaz.
+* **Arte:** manifiesto de 24 categorías visuales con dirección de óleo del XIX (sin generar imágenes).
+* **Guardado v6.**
+
+Pendiente (no es de este milestone):
+
+* lore definitivo de Chronicles of Aether (lo aporta el autor);
+* mapa de fantasía;
+* escuelas de magia finales;
+* personajes y dinastías;
+* combate con cartas;
+* crisis internacionales completas;
+* colonización profunda;
+* ilustraciones (el manifiesto ya describe los encargos).
+
+## Siguiente paso (milestone 6)
+
+* Introducir el lore definitivo en el paquete `fantasy`: mundo, eras, naciones, religiones con su actitud
+  mágica y culturas con su tradición.
+* Mapa de fantasía y escenario de la Era I.
+* Primeras cadenas nacionales `country.<tag>.*` y regionales.
+* Generar las 24 ilustraciones del manifiesto.
+* Escuelas de magia sobre `magic_schools.json` y `paths`.
+
+## (histórico) Siguiente paso previsto tras M4 (milestone 5)
 
 * Contenido: más cadenas GFM-like, arte de eventos y el lore definitivo del despertar.
 * Mapa: el mapa de fantasía definitivo.

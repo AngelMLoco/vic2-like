@@ -109,11 +109,11 @@ func _ready() -> void:
 	check(absf(float(c["avg_militancy"]) - mil / tot) < 0.2, "militancia media nacional coherente (%.2f / %.2f)" % [float(c["avg_militancy"]), mil / tot])
 	check(gs.market.has("mil_diag") and gs.market["mil_diag"].has("net"), "diagnóstico de militancia disponible")
 	# guardar / cargar
-	print("-- guardado v4")
+	print("-- guardado v6")
 	var path := VSaveSystem.save_game(gs, "_popstore_test")
 	var err := []
 	var gs2 := VSaveSystem.load_game(path, err)
-	check(gs2 != null, "carga de la partida v4 (%s)" % (err[0] if not err.is_empty() else "ok"))
+	check(gs2 != null, "carga de la partida v6 (%s)" % (err[0] if not err.is_empty() else "ok"))
 	if gs2:
 		var ps2 := gs2.pops
 		check(ps2.count() == ps.count(), "mismo número de POPs (%d)" % ps2.count())

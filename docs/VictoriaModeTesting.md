@@ -394,3 +394,104 @@ La primera versión daba a los 50 años una mediana de precios de 0,25 y tesoros
 lujo de aristócratas y capitalistas y era casi inalcanzable, así que bloqueaba el gasto en lujo extra: los
 ricos atesoraban en los bancos y el dinero dejaba de circular. Se quitó el elixir de esas cestas. Además, los
 costes de eventos y decisiones van ahora a los POPs del país (`VEventEffects.spend`) en vez de destruirse.
+
+## Milestone 5 — Equilibrio fantástico, marco de lore y contenido
+
+### Comandos
+
+```
+godot --headless --path . res://tests/VictoriaMageBalanceTest.tscn        # modelo de magos (§46)
+godot --headless --path . res://tests/VictoriaContentTest.tscn            # contenido, marco de lore, crónica, diagnóstico (§49)
+godot --headless --path . res://tests/VictoriaPlayerExperienceTest.tscn   # paz / guerra / crisis mágica, 5 años cada una (§19)
+godot --headless --path . res://tests/VictoriaLongRunTest.tscn -- 100     # 100 años, informe cada 10 años (§16, §47, §48)
+godot --headless --path . -s tests/VictoriaContentCheck.gd                 # carga de contenido: recuento y errores de datos
+godot --headless --path . -s tests/VictoriaMageProbe.gd -- 20              # sonda de calibración de la curva de magos
+python tools/art_manifest.py [--check]                                     # manifiesto de arte: eventos por categoría
+```
+
+`VictoriaLongRunTest` admite las mismas variables que el balance: `VBAL_EVENTS=0` y `VBAL_NO_MAGIC=1`.
+
+### Pruebas automáticas (todas con 0 fallos)
+
+| Escena | Comprobaciones |
+|---|---|
+| VictoriaMageBalanceTest | 25: sin magia no hay magos; tras el despertar aparecen; la promoción se frena cerca del objetivo y se detiene por encima; la prohibición reduce capacidad y promoción; las academias amplían la capacidad; el paro reduce la capacidad y la formación; las plazas públicas reducen el paro; hay fuga de cerebros entre naciones; emigración forzada |
+| VictoriaContentTest | 47: paquetes y escenario; espacios de nombres; arte en el manifiesto; ramas de cadena y banderas que habilitan o bloquean eventos y opciones; efecto económico real; eventos que responden a la guerra y a la magia reales; crónica con categorías e historia emergente; biblia de lore validada; escenario desconocido; historia (banderas, variables, rivales); sendas mágicas; diagnóstico por componentes |
+| VictoriaPlayerExperienceTest | 10: tres escenarios de 5 años con contenido, sin interrupciones constantes y con pocos acontecimientos mayores |
+| VictoriaEventTest / VictoriaMagicTest | 76 / 39 (guardado v6; la academia amplía la capacidad en vez de regalar magos) |
+| VPopStoreTest / VictoriaM3Test / VictoriaSmokeTest | 28 / 80 / 53, sin regresiones |
+
+### Rendimiento (mismo equipo, 10 años, misma partida)
+
+| Versión | Media | Tramo 5→10 |
+|---|---|---|
+| M4 (`fe22fef`) | 8,72 s/año | 9,03 s/año |
+| M5 | 9,38 s/año | 9,47 s/año |
+
+Objetivo (< 10 s/año): cumplido. Coste por sección en M5 (ms/año, tramo 5→10):
+
+| Sección | ms/año |
+|---|---|
+| Planificador de eventos (total; M4: 474) | 816 |
+| · evaluación de triggers | 367 |
+| · decisiones | 79 |
+| Equilibrio de magos (M4: 50, que incluía la promoción fija) | 160 |
+| Crónica | 2 |
+
+El resto de la diferencia es una economía y unas guerras distintas. En 100 años el coste por año sube de
+9,8 a 11,2 s, porque la población pasa de 740 a 1230 M y hay más POPs; no es un benchmark.
+
+### Frecuencia de eventos
+
+En el benchmark de 10 años hay 1421 eventos, 1,61 por país y año. Por tipo: 43 mayores, 1263 normales,
+50 notificaciones y 65 ocultos. Por espacio de nombres: core 1287, magic 124, country 10.
+
+Experiencia del jugador (Frankia, 5 años por escenario, el «jugador» elige como la IA):
+
+| Escenario | Ventanas/año | Mayores | Notificaciones/año | Entradas de crónica |
+|---|---|---|---|---|
+| Paz | 3,6 | 0 | 0,2 | 19 |
+| Guerra (contra la Liga Renana) | 3,2 | 0 | 0 | 18 |
+| Crisis mágica | 5,6 | 0 | 0,2 | 37 |
+
+### 50 años (`VictoriaBalanceTest -- 50`): 0 problemas
+
+En el año 50: población 944 M, vida 0,73, diario 0,28, paro 0,13, militancia 0,60, conciencia 0,89, 502
+fábricas, mediana de precios 0,80, 110 guerras, 14 facciones rebeldes con riesgo en 6 naciones, 176 458 magos,
+7882 eventos y 933 decisiones. Coincide con el año 50 del largo plazo: la simulación es determinista.
+
+### 100 años (`VictoriaLongRunTest -- 100`)
+
+| Año | Población | Vida | Paro | Militancia media (p50 / p90 / máx) | Conciencia | Facciones rebeldes | Riesgo rebelde | Magos | % mundo | Máx. nacional | Paro de magos |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 10 | 741 M | 0,83 | 0,03 | 0,34 (0,25 / 1,23 / 3,1) | 0,22 | 0 | 0 | 32 617 | 0,0044 % | 0,18 % | 7 % |
+| 25 | 818 M | 0,82 | 0,06 | 0,46 (0,17 / 1,33 / 4,3) | 0,19 | 0 | 1 | 124 090 | 0,0152 % | 0,28 % | 29 % |
+| 50 | 944 M | 0,73 | 0,13 | 0,60 (0,22 / 1,12 / 2,7) | 0,89 | 14 | 6 | 176 458 | 0,0187 % | 0,24 % | 22 % |
+| 70 | 1067 M | 0,69 | 0,20 | 0,85 (0,47 / 1,82 / 3,0) | 1,70 | 36 | 16 | 218 314 | 0,0205 % | 0,21 % | 31 % |
+| 100 | 1231 M | 0,57 | 0,31 | 1,03 (0,47 / 2,54 / 5,7) | 3,14 | 111 | 50 de 85 | 307 442 | 0,0250 % | 0,93 % (TAW) | 34 % |
+
+* **Magos.** El crecimiento por década es ×2,8, ×1,7, ×1,0, ×1,1, ×1,1, ×1,1, ×1,1, ×1,1 y ×1,2: la curva es
+  logística, no exponencial. Antes, en M4, la curva se doblaba cada década y llegaba a 160 071 magos en el
+  año 50.
+* **Regulación en el año 100:** 11 naciones con magia licenciada, 12 prohibida, 5 tolerada y 1 promovida.
+* **Hasta 191 guerras** en 100 años.
+* **Diagnóstico acumulado (media mensual por persona).**
+  * Militancia: movimiento +0,0069, cansancio bélico +0,0040, vida +0,0033, eventos +0,0024 y paro +0,0015,
+    frente a base −0,015, relajación −0,0032 y modificadores temporales −0,0025.
+  * Conciencia: alfabetización +0,0168, pobreza +0,0124 y eventos +0,0033, frente a base −0,02 y
+    relajación −0,0113.
+
+### Diagnóstico: tendencia política a largo plazo
+
+* **El origen no son los eventos ni la magia.** El primer largo plazo de M5 (relajación de la conciencia
+  0,005) llegaba en el año 100 a una conciencia media de 6,2, con riesgo rebelde en 61 de 86 naciones. El
+  diagnóstico separado muestra que la causa es la alfabetización (+0,017/mes por persona con alfabetización
+  0,9). Los eventos aportan +0,003 y la magia ≈ 0.
+* **Corrección.** `consciousness_relaxation` pasa de 0,005 a 0,01, con lo que el equilibrio de una sociedad
+  muy alfabetizada baja a la mitad. Además, el radicalismo de un movimiento pesa más en la cámara (0,2 → 0,6).
+  * Conciencia en el año 100: 6,2 → 3,1.
+  * Riesgo rebelde en el año 50: 21 → 6 naciones.
+* **Pendiente.** En las últimas décadas la economía de base se degrada: la población crece un 66 %, el paro
+  llega a 0,31 y las necesidades vitales bajan a 0,57. Con ello vuelve el riesgo rebelde (50 de 85 naciones
+  en el año 100), aunque la militancia sigue repartida: mediana 0,47 y 55 naciones por debajo de 1. Es un
+  problema del modelo económico a 100 años, no de M5.
