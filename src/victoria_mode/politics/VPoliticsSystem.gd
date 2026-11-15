@@ -414,6 +414,10 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 			mv["months"] = int(mv["months"]) + 3
 			if share > 0.08 and float(mv["organisation"]) > 0.3:
 				mv["radicalism"] = minf(1.0, float(mv["radicalism"]) + 0.02 * float(mv["organisation"]))
+			else:
+				# M3.2: un movimiento que no crece se enfría poco a poco (antes el radicalismo quedaba congelado
+				# con apoyo entre el 3 % y el 8 % y seguía empujando la militancia indefinidamente)
+				mv["radicalism"] = maxf(0.0, float(mv["radicalism"]) - 0.01)
 		else:
 			mv["organisation"] = maxf(0.0, float(mv["organisation"]) - 0.05)
 			mv["radicalism"] = maxf(0.0, float(mv["radicalism"]) - 0.03)
