@@ -15,6 +15,13 @@ static func new_game() -> VGameState:
 	gs.rebuild_territory()
 	_apply_history(gs)
 	VPopulationSystem.generate_initial(gs)
+	VPoliticsSystem.setup_new_game(gs)
+	VTechnologySystem.setup_new_game(gs)
+	for tag in gs.countries:
+		VModifiers.recompute(gs, tag)
+	VMarketSystem.setup_new_game(gs)
+	VProductionSystem.setup_new_game(gs)
+	VBudgetSystem.setup_new_game(gs)
 	VRankingSystem.recalculate(gs)
 	print("[VictoriaMode] mundo cargado en %d ms: %d provincias terrestres, %d estados, %d países" % [
 		Time.get_ticks_msec() - t0, gs.first_sea_id - 1, gs.states.size(), gs.countries.size()])
@@ -54,6 +61,21 @@ static func _load_definitions(gs: VGameState) -> void:
 	gs.ideologies = _index(VJson.load_array(ROOT + "ideologies/ideologies.json", "ideologies"))
 	for id in gs.ideologies:
 		gs.ideologies[id]["color_obj"] = Color(gs.ideologies[id].get("color", "888888"))
+	gs.economy_rules = VJson.load_dict(ROOT + "economy/economy_rules.json")
+	gs.promotion_rules = VJson.load_array(ROOT + "pops/promotion.json", "rules")
+	var iss := VJson.load_dict(ROOT + "politics/issues.json")
+	gs.issues = _index(iss.get("issues", []))
+	gs.issue_conditionals = iss.get("conditional", [])
+	var ref := VJson.load_dict(ROOT + "politics/reforms.json")
+	for r in ref.get("reforms", []):
+		gs.reforms[r["id"]] = r
+		gs.reform_order.append(r["id"])
+	gs.reform_meta = {"movement_names": ref.get("movement_names", {}), "cooldown_months": int(ref.get("cooldown_months", 6))}
+	gs.party_templates = VJson.load_array(ROOT + "politics/party_templates.json", "templates")
+	var tech := VJson.load_dict(ROOT + "technologies/technologies.json")
+	gs.technologies = _index(tech.get("technologies", []))
+	gs.tech_categories = tech.get("categories", [])
+	gs.inventions = _index(VJson.load_array(ROOT + "technologies/inventions.json", "inventions"))
 
 
 static func _hash_color(key: String) -> Color:
@@ -158,8 +180,9 @@ static func _load_countries(gs: VGameState) -> void:
 		d["income_daily"] = 0.0
 		d["expense_daily"] = 0.0
 		d["research_points"] = 0.0
-		d["budget"] = {"tax_poor": 0.35, "tax_middle": 0.35, "tax_rich": 0.35, "tariffs": 0.0,
-			"education": 0.5, "administration": 0.5, "military": 0.6, "social": 0.0, "stockpile": 0.5}
+		d["budget"] = {"tax_poor": 0.15, "tax_middle": 0.2, "tax_rich": 0.25, "tariffs": 0.1,
+			"education": 0.6, "administration": 0.6, "military": 0.6, "social": 0.3, "stockpile": 0.4}
+		d["mods"] = {}
 		gs.countries[tag] = d
 		gs.country_order.append(tag)
 

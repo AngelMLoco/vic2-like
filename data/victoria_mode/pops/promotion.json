@@ -1,0 +1,220 @@
+{
+ "_doc": "Reglas de movilidad social (promoción y democión). Se evalúan cada mes para cada POP del tipo 'from'. rate = fracción mensual máxima del POP que cambia. Condiciones disponibles: min/max_literacy, min/max_life, min/max_everyday, min_luxury, min/max_unemployment, min/max_cash_per_capita, min_consciousness, vacancy (factory_workers | factory_clerks | rgo | admin | clergy | military | officers), reform_min{}, reform_max{}, civilized, min_military_spending.",
+ "rules": [
+  {
+   "from": "farmers",
+   "to": "craftsmen",
+   "rate": 0.006,
+   "conditions": {
+    "min_literacy": 0.1,
+    "vacancy": "factory_workers"
+   }
+  },
+  {
+   "from": "labourers",
+   "to": "craftsmen",
+   "rate": 0.006,
+   "conditions": {
+    "min_literacy": 0.1,
+    "vacancy": "factory_workers"
+   }
+  },
+  {
+   "from": "farmers",
+   "to": "labourers",
+   "rate": 0.01,
+   "conditions": {
+    "min_unemployment": 0.15,
+    "vacancy": "rgo"
+   }
+  },
+  {
+   "from": "labourers",
+   "to": "farmers",
+   "rate": 0.01,
+   "conditions": {
+    "min_unemployment": 0.15,
+    "vacancy": "rgo"
+   }
+  },
+  {
+   "from": "craftsmen",
+   "to": "clerks",
+   "rate": 0.004,
+   "conditions": {
+    "min_literacy": 0.4,
+    "vacancy": "factory_clerks"
+   }
+  },
+  {
+   "from": "craftsmen",
+   "to": "labourers",
+   "rate": 0.02,
+   "conditions": {
+    "min_unemployment": 0.25,
+    "max_life": 0.85
+   }
+  },
+  {
+   "from": "craftsmen",
+   "to": "artisans",
+   "rate": 0.004,
+   "conditions": {
+    "min_unemployment": 0.3,
+    "min_life": 0.5
+   }
+  },
+  {
+   "from": "farmers",
+   "to": "artisans",
+   "rate": 0.0006,
+   "conditions": {
+    "min_life": 0.95,
+    "min_everyday": 0.6,
+    "min_literacy": 0.15
+   }
+  },
+  {
+   "from": "artisans",
+   "to": "farmers",
+   "rate": 0.006,
+   "conditions": {
+    "max_life": 0.7
+   }
+  },
+  {
+   "from": "artisans",
+   "to": "craftsmen",
+   "rate": 0.006,
+   "conditions": {
+    "max_everyday": 0.35,
+    "vacancy": "factory_workers"
+   }
+  },
+  {
+   "from": "artisans",
+   "to": "capitalists",
+   "rate": 0.0008,
+   "conditions": {
+    "min_luxury": 0.4,
+    "min_literacy": 0.3,
+    "min_cash_per_capita": 0.004,
+    "civilized": true
+   }
+  },
+  {
+   "from": "clerks",
+   "to": "capitalists",
+   "rate": 0.0008,
+   "conditions": {
+    "min_luxury": 0.4,
+    "min_literacy": 0.5,
+    "min_cash_per_capita": 0.004,
+    "civilized": true
+   }
+  },
+  {
+   "from": "clerks",
+   "to": "craftsmen",
+   "rate": 0.02,
+   "conditions": {
+    "min_unemployment": 0.25
+   }
+  },
+  {
+   "from": "farmers",
+   "to": "soldiers",
+   "rate": 0.002,
+   "conditions": {
+    "vacancy": "military",
+    "min_military_spending": 0.3
+   }
+  },
+  {
+   "from": "labourers",
+   "to": "soldiers",
+   "rate": 0.002,
+   "conditions": {
+    "vacancy": "military",
+    "min_military_spending": 0.3
+   }
+  },
+  {
+   "from": "farmers",
+   "to": "clergy",
+   "rate": 0.0006,
+   "conditions": {
+    "min_literacy": 0.25,
+    "vacancy": "clergy"
+   }
+  },
+  {
+   "from": "artisans",
+   "to": "bureaucrats",
+   "rate": 0.001,
+   "conditions": {
+    "min_literacy": 0.4,
+    "vacancy": "admin"
+   }
+  },
+  {
+   "from": "soldiers",
+   "to": "officers",
+   "rate": 0.001,
+   "conditions": {
+    "min_literacy": 0.3,
+    "vacancy": "officers"
+   }
+  },
+  {
+   "from": "soldiers",
+   "to": "farmers",
+   "rate": 0.01,
+   "conditions": {
+    "max_military_spending": 0.15
+   }
+  },
+  {
+   "from": "capitalists",
+   "to": "artisans",
+   "rate": 0.01,
+   "conditions": {
+    "max_everyday": 0.5
+   }
+  },
+  {
+   "from": "aristocrats",
+   "to": "artisans",
+   "rate": 0.005,
+   "conditions": {
+    "max_everyday": 0.4
+   }
+  },
+  {
+   "from": "clergy",
+   "to": "artisans",
+   "rate": 0.01,
+   "conditions": {
+    "max_life": 0.6
+   }
+  },
+  {
+   "from": "bureaucrats",
+   "to": "artisans",
+   "rate": 0.01,
+   "conditions": {
+    "max_life": 0.6
+   }
+  },
+  {
+   "from": "slaves",
+   "to": "farmers",
+   "rate": 1.0,
+   "conditions": {
+    "reform_min": {
+     "slavery": 1
+    }
+   }
+  }
+ ]
+}

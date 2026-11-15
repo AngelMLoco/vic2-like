@@ -1,0 +1,204 @@
+{
+ "_doc": "Cuestiones políticas (issues). Cada POP tiene una posición preferida por cuestión, derivada de su ideología dominante, de issue_bias de su tipo y de las reglas condicionales. 'reforms' indica qué reformas empuja la cuestión (para movimientos).",
+ "issues": [
+  {
+   "id": "suffrage",
+   "name": "Sufragio",
+   "positions": [
+    {
+     "id": "no_voting",
+     "name": "Sin voto"
+    },
+    {
+     "id": "wealth_voting",
+     "name": "Voto censitario"
+    },
+    {
+     "id": "weighted_voting",
+     "name": "Voto ponderado"
+    },
+    {
+     "id": "universal_voting",
+     "name": "Sufragio universal"
+    }
+   ]
+  },
+  {
+   "id": "political_reform",
+   "name": "Reforma política",
+   "positions": [
+    {
+     "id": "no_political_reform",
+     "name": "Ninguna"
+    },
+    {
+     "id": "moderate_political_reform",
+     "name": "Moderada"
+    },
+    {
+     "id": "extensive_political_reform",
+     "name": "Amplia"
+    }
+   ]
+  },
+  {
+   "id": "social_reform",
+   "name": "Reforma social",
+   "positions": [
+    {
+     "id": "no_social_reform",
+     "name": "Ninguna"
+    },
+    {
+     "id": "moderate_social_reform",
+     "name": "Moderada"
+    },
+    {
+     "id": "extensive_social_reform",
+     "name": "Amplia"
+    }
+   ]
+  },
+  {
+   "id": "trade",
+   "name": "Comercio",
+   "positions": [
+    {
+     "id": "protectionism",
+     "name": "Proteccionismo"
+    },
+    {
+     "id": "free_trade",
+     "name": "Libre comercio"
+    }
+   ]
+  },
+  {
+   "id": "economic_policy",
+   "name": "Política económica",
+   "positions": [
+    {
+     "id": "planned_economy",
+     "name": "Economía planificada"
+    },
+    {
+     "id": "state_capitalism",
+     "name": "Capitalismo de Estado"
+    },
+    {
+     "id": "interventionism",
+     "name": "Intervencionismo"
+    },
+    {
+     "id": "laissez_faire",
+     "name": "Laissez-faire"
+    }
+   ]
+  },
+  {
+   "id": "religious_policy",
+   "name": "Política religiosa",
+   "positions": [
+    {
+     "id": "moralism",
+     "name": "Moralismo"
+    },
+    {
+     "id": "pluralism",
+     "name": "Pluralismo"
+    },
+    {
+     "id": "secularism",
+     "name": "Secularismo"
+    }
+   ]
+  },
+  {
+   "id": "citizenship",
+   "name": "Ciudadanía",
+   "positions": [
+    {
+     "id": "residency",
+     "name": "Solo residentes"
+    },
+    {
+     "id": "limited_citizenship",
+     "name": "Ciudadanía limitada"
+    },
+    {
+     "id": "full_citizenship",
+     "name": "Ciudadanía plena"
+    }
+   ]
+  },
+  {
+   "id": "military_policy",
+   "name": "Política militar",
+   "positions": [
+    {
+     "id": "jingoism",
+     "name": "Belicismo"
+    },
+    {
+     "id": "pro_military",
+     "name": "Promilitar"
+    },
+    {
+     "id": "anti_military",
+     "name": "Antimilitar"
+    },
+    {
+     "id": "pacifism",
+     "name": "Pacifismo"
+    }
+   ]
+  },
+  {
+   "id": "slavery",
+   "name": "Esclavitud",
+   "positions": [
+    {
+     "id": "keep_slavery",
+     "name": "Mantener"
+    },
+    {
+     "id": "abolish_slavery",
+     "name": "Abolir"
+    }
+   ]
+  }
+ ],
+ "conditional": [
+  {
+   "if": {
+    "max_life": 0.6
+   },
+   "issue": "social_reform",
+   "position": "extensive_social_reform"
+  },
+  {
+   "if": {
+    "max_everyday": 0.35,
+    "min_consciousness": 2.0
+   },
+   "issue": "social_reform",
+   "position": "moderate_social_reform"
+  },
+  {
+   "if": {
+    "min_literacy": 0.35,
+    "min_consciousness": 3.0
+   },
+   "issue": "political_reform",
+   "position": "extensive_political_reform"
+  },
+  {
+   "if": {
+    "min_literacy": 0.2,
+    "min_consciousness": 1.5
+   },
+   "issue": "suffrage",
+   "position": "weighted_voting"
+  }
+ ]
+}

@@ -1,0 +1,176 @@
+{
+ "_doc": "Inventos: se separan de las tecnologías. Al investigar 'technology' entran en el bote de inventos posibles; cada mes tienen 'chance' (mensual) de activarse si se cumplen 'conditions' (condiciones nacionales: min_literacy, min_prestige...).",
+ "inventions": [
+  {
+   "id": "line_infantry",
+   "name": "Infantería de línea",
+   "technology": "flintlock_drill",
+   "chance": 0.06,
+   "conditions": {},
+   "effects": {
+    "military_strength": 0.05
+   }
+  },
+  {
+   "id": "field_kitchens",
+   "name": "Cocinas de campaña",
+   "technology": "military_logistics",
+   "chance": 0.05,
+   "conditions": {},
+   "effects": {
+    "military_strength": 0.03,
+    "leadership": 0.05
+   }
+  },
+  {
+   "id": "bastion_forts",
+   "name": "Fortificaciones abaluartadas",
+   "technology": "siege_engineering",
+   "chance": 0.05,
+   "conditions": {},
+   "effects": {
+    "military_strength": 0.05
+   }
+  },
+  {
+   "id": "copper_hulls",
+   "name": "Cascos forrados de cobre",
+   "technology": "naval_carpentry",
+   "chance": 0.06,
+   "conditions": {},
+   "effects": {
+    "naval_strength": 0.05
+   }
+  },
+  {
+   "id": "lighthouses",
+   "name": "Faros",
+   "technology": "navigation_charts",
+   "chance": 0.05,
+   "conditions": {},
+   "effects": {
+    "trade_efficiency": 0.03
+   }
+  },
+  {
+   "id": "merchant_guild_halls",
+   "name": "Lonjas de mercaderes",
+   "technology": "double_entry_bookkeeping",
+   "chance": 0.06,
+   "conditions": {
+    "min_literacy": 0.15
+   },
+   "effects": {
+    "tax_efficiency": 0.03
+   }
+  },
+  {
+   "id": "letters_of_credit",
+   "name": "Letras de cambio",
+   "technology": "chartered_banks",
+   "chance": 0.05,
+   "conditions": {
+    "min_literacy": 0.2
+   },
+   "effects": {
+    "bank_capacity": 0.25
+   }
+  },
+  {
+   "id": "craft_schools",
+   "name": "Escuelas de oficios",
+   "technology": "guild_reform",
+   "chance": 0.05,
+   "conditions": {},
+   "effects": {
+    "artisan_efficiency": 0.05
+   }
+  },
+  {
+   "id": "lending_libraries",
+   "name": "Bibliotecas de préstamo",
+   "technology": "printing_houses",
+   "chance": 0.06,
+   "conditions": {
+    "min_literacy": 0.15
+   },
+   "effects": {
+    "literacy_growth": 0.1
+   }
+  },
+  {
+   "id": "broadsheets",
+   "name": "Pasquines y gacetas",
+   "technology": "printing_houses",
+   "chance": 0.05,
+   "conditions": {
+    "min_literacy": 0.2
+   },
+   "effects": {
+    "consciousness_growth": 0.1
+   }
+  },
+  {
+   "id": "botanical_gardens",
+   "name": "Jardines botánicos",
+   "technology": "natural_philosophy",
+   "chance": 0.05,
+   "conditions": {},
+   "effects": {
+    "rgo_efficiency": 0.03
+   }
+  },
+  {
+   "id": "vaccination_trials",
+   "name": "Ensayos de inoculación",
+   "technology": "public_hygiene",
+   "chance": 0.05,
+   "conditions": {
+    "min_literacy": 0.25
+   },
+   "effects": {
+    "pop_growth": 0.002
+   }
+  },
+  {
+   "id": "crop_rotation",
+   "name": "Rotación de cultivos",
+   "technology": "water_mills",
+   "chance": 0.07,
+   "conditions": {},
+   "effects": {
+    "rgo_efficiency": 0.05
+   }
+  },
+  {
+   "id": "spinning_frames",
+   "name": "Hiladoras mecánicas",
+   "technology": "water_mills",
+   "chance": 0.06,
+   "conditions": {},
+   "effects": {
+    "factory_efficiency": 0.05
+   }
+  },
+  {
+   "id": "blast_furnaces",
+   "name": "Altos hornos",
+   "technology": "steel_making",
+   "chance": 0.05,
+   "conditions": {},
+   "effects": {
+    "factory_efficiency": 0.05
+   }
+  },
+  {
+   "id": "salt_curing",
+   "name": "Salazones industriales",
+   "technology": "food_preservation",
+   "chance": 0.06,
+   "conditions": {},
+   "effects": {
+    "rgo_efficiency": 0.02
+   }
+  }
+ ]
+}

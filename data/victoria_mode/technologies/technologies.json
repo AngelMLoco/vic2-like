@@ -1,0 +1,437 @@
+{
+ "_doc": "Árbol tecnológico. category: army/navy/commerce/culture/industry (la categoría 'magic' se añadirá tras GLOBAL_MAGIC_ACTIVATED). cost en puntos de investigación. effects se suman a los modificadores nacionales. unlocks_factories: tipos de fábrica que permite construir.",
+ "categories": [
+  {
+   "id": "army",
+   "name": "Ejército"
+  },
+  {
+   "id": "navy",
+   "name": "Armada"
+  },
+  {
+   "id": "commerce",
+   "name": "Comercio"
+  },
+  {
+   "id": "culture",
+   "name": "Cultura"
+  },
+  {
+   "id": "industry",
+   "name": "Industria"
+  }
+ ],
+ "technologies": [
+  {
+   "id": "flintlock_drill",
+   "name": "Instrucción con mosquete",
+   "category": "army",
+   "tier": 1,
+   "cost": 900,
+   "prerequisites": [],
+   "effects": {
+    "military_strength": 0.1
+   },
+   "unlocks_factories": [
+    "small_arms_factory"
+   ],
+   "description": ""
+  },
+  {
+   "id": "military_logistics",
+   "name": "Logística militar",
+   "category": "army",
+   "tier": 2,
+   "cost": 1400,
+   "prerequisites": [
+    "flintlock_drill"
+   ],
+   "effects": {
+    "military_strength": 0.1,
+    "leadership": 0.1
+   },
+   "unlocks_factories": [
+    "ammunition_factory"
+   ],
+   "description": ""
+  },
+  {
+   "id": "siege_engineering",
+   "name": "Ingeniería de asedio",
+   "category": "army",
+   "tier": 3,
+   "cost": 2000,
+   "prerequisites": [
+    "military_logistics"
+   ],
+   "effects": {
+    "military_strength": 0.15
+   },
+   "unlocks_factories": [
+    "artillery_factory"
+   ],
+   "description": ""
+  },
+  {
+   "id": "general_staff",
+   "name": "Estado mayor",
+   "category": "army",
+   "tier": 4,
+   "cost": 2800,
+   "prerequisites": [
+    "siege_engineering"
+   ],
+   "effects": {
+    "leadership": 0.25,
+    "military_strength": 0.1
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "conscription_registry",
+   "name": "Registro de reclutamiento",
+   "category": "army",
+   "tier": 5,
+   "cost": 3800,
+   "prerequisites": [
+    "general_staff"
+   ],
+   "effects": {
+    "military_strength": 0.2
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "naval_carpentry",
+   "name": "Carpintería naval",
+   "category": "navy",
+   "tier": 1,
+   "cost": 900,
+   "prerequisites": [],
+   "effects": {
+    "naval_strength": 0.1
+   },
+   "unlocks_factories": [
+    "shipyard"
+   ],
+   "description": ""
+  },
+  {
+   "id": "navigation_charts",
+   "name": "Cartas de navegación",
+   "category": "navy",
+   "tier": 2,
+   "cost": 1400,
+   "prerequisites": [
+    "naval_carpentry"
+   ],
+   "effects": {
+    "naval_strength": 0.1,
+    "trade_efficiency": 0.05
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "ship_of_the_line",
+   "name": "Navío de línea",
+   "category": "navy",
+   "tier": 3,
+   "cost": 2000,
+   "prerequisites": [
+    "navigation_charts"
+   ],
+   "effects": {
+    "naval_strength": 0.2
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "naval_doctrine",
+   "name": "Doctrina naval",
+   "category": "navy",
+   "tier": 4,
+   "cost": 2800,
+   "prerequisites": [
+    "ship_of_the_line"
+   ],
+   "effects": {
+    "naval_strength": 0.15
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "steam_experiments",
+   "name": "Experimentos con vapor",
+   "category": "navy",
+   "tier": 5,
+   "cost": 3800,
+   "prerequisites": [
+    "naval_doctrine"
+   ],
+   "effects": {
+    "naval_strength": 0.2,
+    "rgo_efficiency": 0.03
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "double_entry_bookkeeping",
+   "name": "Contabilidad de partida doble",
+   "category": "commerce",
+   "tier": 1,
+   "cost": 900,
+   "prerequisites": [],
+   "effects": {
+    "tax_efficiency": 0.05,
+    "admin_efficiency": 0.05
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "guild_reform",
+   "name": "Reforma gremial",
+   "category": "commerce",
+   "tier": 2,
+   "cost": 1400,
+   "prerequisites": [
+    "double_entry_bookkeeping"
+   ],
+   "effects": {
+    "artisan_efficiency": 0.1
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "chartered_banks",
+   "name": "Bancos con privilegio",
+   "category": "commerce",
+   "tier": 3,
+   "cost": 2000,
+   "prerequisites": [
+    "guild_reform"
+   ],
+   "effects": {
+    "tax_efficiency": 0.05,
+    "bank_capacity": 0.5
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "market_regulation",
+   "name": "Regulación del mercado",
+   "category": "commerce",
+   "tier": 4,
+   "cost": 2800,
+   "prerequisites": [
+    "chartered_banks"
+   ],
+   "effects": {
+    "factory_efficiency": 0.05,
+    "admin_efficiency": 0.1
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "economic_theory",
+   "name": "Teoría económica",
+   "category": "commerce",
+   "tier": 5,
+   "cost": 3800,
+   "prerequisites": [
+    "market_regulation"
+   ],
+   "effects": {
+    "tax_efficiency": 0.1,
+    "research": 0.05
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "scholasticism",
+   "name": "Escolástica",
+   "category": "culture",
+   "tier": 1,
+   "cost": 900,
+   "prerequisites": [],
+   "effects": {
+    "research": 0.1
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "printing_houses",
+   "name": "Imprentas",
+   "category": "culture",
+   "tier": 2,
+   "cost": 1400,
+   "prerequisites": [
+    "scholasticism"
+   ],
+   "effects": {
+    "literacy_growth": 0.2,
+    "consciousness_growth": 0.05
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "natural_philosophy",
+   "name": "Filosofía natural",
+   "category": "culture",
+   "tier": 3,
+   "cost": 2000,
+   "prerequisites": [
+    "printing_houses"
+   ],
+   "effects": {
+    "research": 0.15
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "public_hygiene",
+   "name": "Higiene pública",
+   "category": "culture",
+   "tier": 4,
+   "cost": 2800,
+   "prerequisites": [
+    "natural_philosophy"
+   ],
+   "effects": {
+    "pop_growth": 0.002
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "academies",
+   "name": "Academias",
+   "category": "culture",
+   "tier": 5,
+   "cost": 3800,
+   "prerequisites": [
+    "public_hygiene"
+   ],
+   "effects": {
+    "literacy_growth": 0.3,
+    "research": 0.1
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "water_mills",
+   "name": "Molinos hidráulicos",
+   "category": "industry",
+   "tier": 1,
+   "cost": 900,
+   "prerequisites": [],
+   "effects": {
+    "factory_efficiency": 0.05,
+    "rgo_efficiency": 0.05
+   },
+   "unlocks_factories": [],
+   "description": ""
+  },
+  {
+   "id": "steel_making",
+   "name": "Fabricación de acero",
+   "category": "industry",
+   "tier": 2,
+   "cost": 1400,
+   "prerequisites": [
+    "water_mills"
+   ],
+   "effects": {
+    "factory_efficiency": 0.05
+   },
+   "unlocks_factories": [
+    "steel_mill"
+   ],
+   "description": ""
+  },
+  {
+   "id": "industrial_chemistry",
+   "name": "Química industrial",
+   "category": "industry",
+   "tier": 3,
+   "cost": 2000,
+   "prerequisites": [
+    "steel_making"
+   ],
+   "effects": {
+    "factory_efficiency": 0.05
+   },
+   "unlocks_factories": [
+    "cement_factory",
+    "explosives_factory"
+   ],
+   "description": ""
+  },
+  {
+   "id": "food_preservation",
+   "name": "Conservación de alimentos",
+   "category": "industry",
+   "tier": 3,
+   "cost": 2000,
+   "prerequisites": [
+    "water_mills"
+   ],
+   "effects": {
+    "rgo_efficiency": 0.05
+   },
+   "unlocks_factories": [
+    "canned_food_factory"
+   ],
+   "description": ""
+  },
+  {
+   "id": "agricultural_chemistry",
+   "name": "Química agrícola",
+   "category": "industry",
+   "tier": 4,
+   "cost": 2800,
+   "prerequisites": [
+    "industrial_chemistry"
+   ],
+   "effects": {
+    "rgo_size": 0.1
+   },
+   "unlocks_factories": [
+    "fertilizer_factory"
+   ],
+   "description": ""
+  },
+  {
+   "id": "mechanical_workshops",
+   "name": "Talleres mecánicos",
+   "category": "industry",
+   "tier": 5,
+   "cost": 3800,
+   "prerequisites": [
+    "agricultural_chemistry"
+   ],
+   "effects": {
+    "factory_efficiency": 0.1
+   },
+   "unlocks_factories": [
+    "machine_parts_factory"
+   ],
+   "description": ""
+  }
+ ]
+}

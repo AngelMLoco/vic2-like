@@ -44,6 +44,40 @@ var pop_types := {}
 var pop_distribution := {}
 var governments := {}
 var ideologies := {}
+var economy_rules := {}
+var promotion_rules: Array = []
+var issues := {}  # id -> {id, name, positions[]}
+var issue_conditionals: Array = []
+var reforms := {}  # id -> {id, name, type, issue, default, levels[]}
+var reform_order: Array = []
+var reform_meta := {}
+var party_templates: Array = []
+var technologies := {}
+var tech_categories: Array = []
+var inventions := {}
+
+## Mercado mundial (ver VMarketSystem): precios, historial, acumuladores y ratios de llenado.
+var market := {}
+## Contador de meses transcurridos desde el inicio (para ciclos electorales, etc.).
+var month_index: int = 0
+## Rendimiento: últimas mediciones (ms) — ver VProfiler.
+var profile := {}
+## Registro de acontecimientos recientes (promociones, migraciones, elecciones, inventos...).
+var log_entries: Array = []
+
+func log_event(tag: String, text: String) -> void:
+	log_entries.append({"date": date.short_text(), "tag": tag, "text": text})
+	if log_entries.size() > 300:
+		log_entries = log_entries.slice(log_entries.size() - 300)
+
+
+func reform_level(tag: String, reform_id: String) -> int:
+	return int(countries.get(tag, {}).get("reforms", {}).get(reform_id, 0))
+
+
+func mod(tag: String, key: String) -> float:
+	return float(countries.get(tag, {}).get("mods", {}).get(key, 0.0))
+
 
 ## Instancias de estado: "sid:TAG" -> {state, owner, provinces[], factories[]}
 var state_instances := {}

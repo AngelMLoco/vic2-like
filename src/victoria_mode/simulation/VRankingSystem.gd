@@ -17,23 +17,33 @@ const STATUS_NAMES := {
 
 static func industry_score(gs: VGameState, tag: String) -> float:
 	var score := 0.0
-	for si in gs.country_state_instances(tag):
+	for si in gs.state_instances.values():
+		if si["owner"] != tag:
+			continue
 		for f in si["factories"]:
-			score += float(f["level"]) * 4.0 * (0.5 + 0.5 * float(f.get("employment", 1.0)))
+			if f.get("open", true):
+				score += float(f["level"]) * 4.0 * (0.5 + 0.5 * float(f.get("hiring", 1.0)))
 	return score
 
 
 static func military_score(gs: VGameState, tag: String) -> float:
-	var mil: Dictionary = gs.countries[tag]["military"]
-	var soldiers := 0
-	for id in gs.owned_provinces(tag):
-		for pop in gs.provinces[id]["pops"]:
-			if pop["type"] == "soldiers":
-				soldiers += int(pop["size"])
-	return float(mil.get("brigades", 0)) * 2.2 + float(mil.get("ships", 0)) * 0.9 + sqrt(float(soldiers)) * 0.05
+	var c: Dictionary = gs.countries[tag]
+	var mil: Dictionary = c["military"]
+	var soldiers := float(c.get("type_sizes", {}).get("soldiers", 0))
+	var strength := 1.0 + gs.mod(tag, "military_strength")
+	var naval := 1.0 + gs.mod(tag, "naval_strength")
+	return (float(mil.get("brigades", 0)) * 2.2 * strength + float(mil.get("ships", 0)) * 0.9 * naval + sqrt(soldiers) * 0.05)
 
 
 static func recalculate(gs: VGameState) -> void:
+	var ind := {}
+	var count := {}
+	for si in gs.state_instances.values():
+		var o: String = si["owner"]
+		for f in si["factories"]:
+			count[o] = int(count.get(o, 0)) + 1
+			if f.get("open", true):
+				ind[o] = float(ind.get(o, 0.0)) + float(f["level"]) * 4.0 * (0.5 + 0.5 * float(f.get("hiring", 1.0)))
 	var rows := []
 	for tag in gs.country_order:
 		var c: Dictionary = gs.countries[tag]
@@ -41,7 +51,8 @@ static func recalculate(gs: VGameState) -> void:
 			c["rank"] = 0
 			c["total_score"] = 0.0
 			continue
-		c["industry_score"] = industry_score(gs, tag)
+		c["industry_score"] = float(ind.get(tag, 0.0))
+		c["_factory_count"] = int(count.get(tag, 0))
 		c["military_score"] = military_score(gs, tag)
 		c["total_score"] = float(c["prestige"]) + float(c["industry_score"]) + float(c["military_score"])
 		rows.append(tag)

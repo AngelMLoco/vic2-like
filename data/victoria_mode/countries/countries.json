@@ -28,7 +28,12 @@
    "literacy": 0.32,
    "description": "Monarquía insular con la mayor flota mercante del mundo conocido. Su parlamento de mercaderes impulsa manufacturas y colonias.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 2,
+    "public_meetings": 1,
+    "political_parties": 2
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -168,7 +173,12 @@
    "literacy": 0.34,
    "description": "República de comerciantes, diques y bancos; su riqueza supera con mucho su tamaño.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 2,
+    "public_meetings": 1,
+    "political_parties": 2
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -240,7 +250,10 @@
    "literacy": 0.22,
    "description": "Principado mediterráneo de cortes y fueros, dueño de puertos ricos.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -310,7 +323,11 @@
    "literacy": 0.3,
    "description": "Ciudades libres del Rin unidas por el comercio y el miedo a sus vecinos.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 1,
+    "political_parties": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -345,7 +362,11 @@
    "literacy": 0.36,
    "description": "Estado militar de llanuras y cuarteles, disciplinado y ambicioso.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 1,
+    "school_system": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -415,7 +436,12 @@
    "literacy": 0.38,
    "description": "Cantones montañeses neutrales, famosos por sus mercenarios y relojeros.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 2,
+    "press": 2,
+    "public_meetings": 1,
+    "political_parties": 2
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -488,7 +514,11 @@
    "literacy": 0.27,
    "description": "Llanura rica de talleres de seda y bancos; cuna de ideas nuevas.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 1,
+    "political_parties": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -628,7 +658,10 @@
    "literacy": 0.3,
    "description": "Fiordos, pescadores y madereros bajo una corona modesta.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -665,7 +698,11 @@
    "literacy": 0.34,
    "description": "Potencia báltica de minas de hierro y viejas glorias militares.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 1,
+    "school_system": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -737,7 +774,10 @@
    "literacy": 0.15,
    "description": "Mancomunidad de nobles con un rey electo y una dieta indomable.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "political_parties": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -947,7 +987,12 @@
    "literacy": 0.25,
    "description": "Liga de ciudades marítimas heredera de una cultura milenaria.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "press": 2,
+    "public_meetings": 1,
+    "political_parties": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -1266,7 +1311,9 @@
    "literacy": 0.15,
    "description": "Puertos de mercaderes y templos en la costa oriental.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -1301,7 +1348,9 @@
    "literacy": 0.04,
    "description": "Tribus del desierto unidas por un emir y una fe severa.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "slavery": 0
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -1336,7 +1385,9 @@
    "literacy": 0.06,
    "description": "Reino del incienso y las terrazas.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "slavery": 0
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -1371,7 +1422,9 @@
    "literacy": 0.06,
    "description": "Sultanato marinero que domina las rutas del océano.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "slavery": 0
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -1406,7 +1459,9 @@
    "literacy": 0.06,
    "description": "Reino del Nilo, granero del mundo antiguo.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "slavery": 0
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -1476,7 +1531,11 @@
    "literacy": 0.14,
    "description": "República mercantil que resurge del recuerdo de su antigua grandeza.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "voting": 1,
+    "political_parties": 1,
+    "slavery": 0
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -2808,7 +2867,9 @@
    "literacy": 0.02,
    "description": "Señorío de montículos y maizales del gran río.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "slavery": 0
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,
@@ -2878,7 +2939,9 @@
    "literacy": 0.04,
    "description": "Imperio de lagos y templos escalonados.",
    "technologies": [],
-   "reforms": {},
+   "reforms": {
+    "slavery": 0
+   },
    "magic_branches": {
     "technology": 0,
     "economy": 0,

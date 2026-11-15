@@ -4,61 +4,174 @@
    "id": "monarquia_absoluta",
    "name": "Monarquía absoluta",
    "elections": false,
-   "description": "Monarca absoluto: sin elecciones; el rey nombra al partido gobernante."
+   "description": "Monarca absoluto: sin elecciones; el rey nombra al partido gobernante.",
+   "appoint_ruling_party": true,
+   "allowed_parties": [
+    "tradicionalista",
+    "conservador",
+    "liberal"
+   ],
+   "can_reform": true,
+   "reform_caps": {
+    "voting": 0,
+    "political_parties": 1,
+    "press": 1
+   }
   },
   {
    "id": "monarquia_constitucional",
    "name": "Monarquía constitucional",
    "elections": true,
-   "description": "Corona fuerte con una cámara electa de poderes limitados."
+   "description": "Corona fuerte con una cámara electa de poderes limitados.",
+   "election_interval_months": 60,
+   "appoint_ruling_party": false,
+   "allowed_parties": [
+    "tradicionalista",
+    "conservador",
+    "liberal",
+    "radical",
+    "socialista",
+    "autoritario"
+   ],
+   "can_reform": true,
+   "reform_caps": {
+    "voting": 2
+   }
   },
   {
    "id": "monarquia_parlamentaria",
    "name": "Monarquía parlamentaria",
    "elections": true,
-   "description": "El gobierno sale del parlamento; la corona reina pero no gobierna."
+   "description": "El gobierno sale del parlamento; la corona reina pero no gobierna.",
+   "election_interval_months": 48,
+   "appoint_ruling_party": false,
+   "allowed_parties": [
+    "tradicionalista",
+    "conservador",
+    "liberal",
+    "radical",
+    "socialista",
+    "comunitarista",
+    "autoritario"
+   ],
+   "can_reform": true,
+   "reform_caps": {}
   },
   {
    "id": "republica",
    "name": "República",
    "elections": true,
-   "description": "Gobierno electo sin monarca."
+   "description": "Gobierno electo sin monarca.",
+   "election_interval_months": 48,
+   "appoint_ruling_party": false,
+   "allowed_parties": [
+    "tradicionalista",
+    "conservador",
+    "liberal",
+    "radical",
+    "socialista",
+    "comunitarista",
+    "autoritario"
+   ],
+   "can_reform": true,
+   "reform_caps": {}
   },
   {
    "id": "republica_oligarquica",
    "name": "República oligárquica",
    "elections": true,
-   "description": "República de grandes familias y mercaderes; voto censitario."
+   "description": "República de grandes familias y mercaderes; voto censitario.",
+   "election_interval_months": 48,
+   "appoint_ruling_party": false,
+   "allowed_parties": [
+    "tradicionalista",
+    "conservador",
+    "liberal",
+    "radical"
+   ],
+   "can_reform": true,
+   "reform_caps": {
+    "voting": 1
+   }
   },
   {
    "id": "teocracia",
    "name": "Teocracia",
    "elections": false,
-   "description": "Gobierno del clero en nombre de la fe."
+   "description": "Gobierno del clero en nombre de la fe.",
+   "appoint_ruling_party": true,
+   "allowed_parties": [
+    "tradicionalista",
+    "conservador"
+   ],
+   "can_reform": true,
+   "reform_caps": {
+    "voting": 0,
+    "press": 1,
+    "political_parties": 0,
+    "trade_unions": 0
+   }
   },
   {
    "id": "dictadura",
    "name": "Dictadura",
    "elections": false,
-   "description": "Poder concentrado en un caudillo militar o un shogun."
+   "description": "Poder concentrado en un caudillo militar o un shogun.",
+   "appoint_ruling_party": true,
+   "allowed_parties": [
+    "tradicionalista",
+    "conservador",
+    "autoritario"
+   ],
+   "can_reform": true,
+   "reform_caps": {
+    "voting": 0,
+    "press": 1,
+    "political_parties": 1
+   }
   },
   {
    "id": "jefatura_militar",
    "name": "Jefatura militar",
    "elections": false,
-   "description": "Caudillos y consejos de guerra."
+   "description": "Caudillos y consejos de guerra.",
+   "appoint_ruling_party": true,
+   "allowed_parties": [
+    "tradicionalista",
+    "conservador",
+    "autoritario"
+   ],
+   "can_reform": true,
+   "reform_caps": {
+    "voting": 0,
+    "press": 1,
+    "political_parties": 1
+   }
   },
   {
    "id": "jefatura_tribal",
    "name": "Jefatura tribal",
    "elections": false,
-   "description": "Consejos de ancianos y jefes de clan."
+   "description": "Consejos de ancianos y jefes de clan.",
+   "appoint_ruling_party": true,
+   "allowed_parties": [
+    "tradicionalista"
+   ],
+   "can_reform": false,
+   "reform_caps": {}
   },
   {
    "id": "horda",
    "name": "Horda",
    "elections": false,
-   "description": "Confederación nómada bajo un kan."
+   "description": "Confederación nómada bajo un kan.",
+   "appoint_ruling_party": true,
+   "allowed_parties": [
+    "tradicionalista"
+   ],
+   "can_reform": false,
+   "reform_caps": {}
   }
- ]
+ ],
+ "_doc": "Gobiernos: elections + election_interval_months; appoint_ruling_party (el jefe de Estado elige partido); allowed_parties (ideologías que pueden gobernar); can_reform; reform_caps (nivel máximo por reforma)."
 }

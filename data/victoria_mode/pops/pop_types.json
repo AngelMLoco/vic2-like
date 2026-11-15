@@ -1,5 +1,5 @@
 {
- "_doc": "Tipos de POP. strata: poor/middle/rich (impuestos y necesidades). literacy_mult multiplica la alfabetización base del país. Se pueden añadir tipos nuevos (magos, alquimistas...) solo con datos.",
+ "_doc": "Tipos de POP. Cantidades de necesidades por cada 10.000 personas y mes. job: rgo_farm | rgo_mine | rgo_any | factory_worker | factory_clerk | artisan | education | administration | military | leadership | rgo_owner | investor | none. gov_wage: salario estatal por 10.000/mes con el gasto al 100 %. spend_fraction: parte del efectivo que el POP está dispuesto a gastar en un mes (el resto se ahorra). Para añadir un tipo nuevo basta con añadirlo aquí (y, si se quiere al inicio, en initial_distribution).",
  "pop_types": [
   {
    "id": "farmers",
@@ -7,24 +7,42 @@
    "strata": "poor",
    "color": "8fae4a",
    "literacy_mult": 0.6,
+   "job": "rgo_farm",
+   "gov_wage": 0,
+   "spend_fraction": 1.0,
+   "vote_weight": 1,
+   "issue_bias": {},
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 2.4,
+     "fish": 0.5,
+     "cattle": 0.45,
+     "fruit": 0.4,
+     "wool": 1.1,
+     "timber": 0.6
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.35,
+     "furniture": 0.22,
+     "regular_clothes": 0.4,
+     "tea": 0.2,
+     "coffee": 0.2,
+     "tobacco": 0.4,
+     "sugar": 0.3,
+     "coal": 0.35,
+     "glass": 0.1,
+     "iron": 0.05,
+     "cotton": 0.12,
+     "dye": 0.005
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.3,
+     "luxury_clothes": 0.03,
+     "luxury_furniture": 0.03,
+     "spices": 0.2,
+     "canned_food": 0.1,
+     "paper": 0.2,
+     "opium": 0.1
     }
    }
   },
@@ -34,51 +52,42 @@
    "strata": "poor",
    "color": "a8865a",
    "literacy_mult": 0.6,
+   "job": "rgo_mine",
+   "gov_wage": 0,
+   "spend_fraction": 1.0,
+   "vote_weight": 1,
+   "issue_bias": {},
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 2.4,
+     "fish": 0.5,
+     "cattle": 0.45,
+     "fruit": 0.4,
+     "wool": 1.1,
+     "timber": 0.6
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.35,
+     "furniture": 0.22,
+     "regular_clothes": 0.4,
+     "tea": 0.2,
+     "coffee": 0.2,
+     "tobacco": 0.4,
+     "sugar": 0.3,
+     "coal": 0.35,
+     "glass": 0.1,
+     "iron": 0.05,
+     "cotton": 0.12,
+     "dye": 0.005
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
-    }
-   }
-  },
-  {
-   "id": "craftsmen",
-   "name": "Artesanos fabriles",
-   "strata": "poor",
-   "color": "6a8ab8",
-   "literacy_mult": 0.8,
-   "needs": {
-    "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
-    },
-    "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
-    },
-    "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.3,
+     "luxury_clothes": 0.03,
+     "luxury_furniture": 0.03,
+     "spices": 0.2,
+     "canned_food": 0.1,
+     "paper": 0.2,
+     "opium": 0.1
     }
    }
   },
@@ -88,24 +97,89 @@
    "strata": "poor",
    "color": "4a4a4a",
    "literacy_mult": 0.0,
+   "job": "rgo_any",
+   "gov_wage": 0,
+   "spend_fraction": 1.0,
+   "vote_weight": 0,
+   "issue_bias": {},
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 2.4,
+     "fish": 0.5,
+     "cattle": 0.45,
+     "fruit": 0.4,
+     "wool": 1.1,
+     "timber": 0.6
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.35,
+     "furniture": 0.22,
+     "regular_clothes": 0.4,
+     "tea": 0.2,
+     "coffee": 0.2,
+     "tobacco": 0.4,
+     "sugar": 0.3,
+     "coal": 0.35,
+     "glass": 0.1,
+     "iron": 0.05,
+     "cotton": 0.12,
+     "dye": 0.005
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.3,
+     "luxury_clothes": 0.03,
+     "luxury_furniture": 0.03,
+     "spices": 0.2,
+     "canned_food": 0.1,
+     "paper": 0.2,
+     "opium": 0.1
+    }
+   }
+  },
+  {
+   "id": "craftsmen",
+   "name": "Obreros",
+   "strata": "poor",
+   "color": "6a8ab8",
+   "literacy_mult": 0.8,
+   "job": "factory_worker",
+   "gov_wage": 0,
+   "spend_fraction": 1.0,
+   "vote_weight": 1,
+   "issue_bias": {
+    "economic_policy": "interventionism"
+   },
+   "needs": {
+    "life": {
+     "grain": 2.4,
+     "fish": 0.5,
+     "cattle": 0.45,
+     "fruit": 0.4,
+     "wool": 1.1,
+     "timber": 0.6
+    },
+    "everyday": {
+     "liquor": 0.35,
+     "furniture": 0.22,
+     "regular_clothes": 0.4,
+     "tea": 0.2,
+     "coffee": 0.2,
+     "tobacco": 0.4,
+     "sugar": 0.3,
+     "coal": 0.35,
+     "glass": 0.1,
+     "iron": 0.05,
+     "cotton": 0.12,
+     "dye": 0.005
+    },
+    "luxury": {
+     "wine": 0.3,
+     "luxury_clothes": 0.03,
+     "luxury_furniture": 0.03,
+     "spices": 0.2,
+     "canned_food": 0.1,
+     "paper": 0.2,
+     "opium": 0.1
     }
    }
   },
@@ -115,24 +189,44 @@
    "strata": "poor",
    "color": "8a3a2a",
    "literacy_mult": 0.7,
+   "job": "military",
+   "gov_wage": 30,
+   "spend_fraction": 1.0,
+   "vote_weight": 1,
+   "issue_bias": {
+    "military_policy": "pro_military"
+   },
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 2.4,
+     "fish": 0.5,
+     "cattle": 0.45,
+     "fruit": 0.4,
+     "wool": 1.1,
+     "timber": 0.6
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.35,
+     "furniture": 0.22,
+     "regular_clothes": 0.4,
+     "tea": 0.2,
+     "coffee": 0.2,
+     "tobacco": 0.4,
+     "sugar": 0.3,
+     "coal": 0.35,
+     "glass": 0.1,
+     "iron": 0.05,
+     "cotton": 0.12,
+     "dye": 0.005
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.3,
+     "luxury_clothes": 0.03,
+     "luxury_furniture": 0.03,
+     "spices": 0.2,
+     "canned_food": 0.1,
+     "paper": 0.2,
+     "opium": 0.1
     }
    }
   },
@@ -142,24 +236,50 @@
    "strata": "middle",
    "color": "c8945a",
    "literacy_mult": 1.0,
+   "job": "artisan",
+   "gov_wage": 0,
+   "spend_fraction": 0.9,
+   "vote_weight": 2,
+   "issue_bias": {
+    "trade": "protectionism"
+   },
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 5.76,
+     "fish": 1.2,
+     "cattle": 1.48,
+     "fruit": 1.26,
+     "wool": 2.64,
+     "timber": 1.44
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.98,
+     "furniture": 0.616,
+     "regular_clothes": 1.12,
+     "tea": 0.56,
+     "coffee": 0.56,
+     "tobacco": 1.12,
+     "sugar": 0.84,
+     "coal": 0.98,
+     "glass": 0.28,
+     "paper": 0.4,
+     "furs": 0.1,
+     "iron": 0.14,
+     "cotton": 0.336,
+     "dye": 0.014
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.9,
+     "luxury_clothes": 0.09,
+     "luxury_furniture": 0.09,
+     "spices": 0.6,
+     "canned_food": 0.3,
+     "paper": 0.6,
+     "opium": 0.3,
+     "precious_metal": 0.05,
+     "silk": 0.05,
+     "furs": 0.1,
+     "sulphur": 0.056
     }
    }
   },
@@ -169,24 +289,48 @@
    "strata": "middle",
    "color": "5ab0c8",
    "literacy_mult": 1.8,
+   "job": "factory_clerk",
+   "gov_wage": 0,
+   "spend_fraction": 0.9,
+   "vote_weight": 2,
+   "issue_bias": {},
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 5.76,
+     "fish": 1.2,
+     "cattle": 1.48,
+     "fruit": 1.26,
+     "wool": 2.64,
+     "timber": 1.44
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.98,
+     "furniture": 0.616,
+     "regular_clothes": 1.12,
+     "tea": 0.56,
+     "coffee": 0.56,
+     "tobacco": 1.12,
+     "sugar": 0.84,
+     "coal": 0.98,
+     "glass": 0.28,
+     "paper": 0.4,
+     "furs": 0.1,
+     "iron": 0.14,
+     "cotton": 0.336,
+     "dye": 0.014
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.9,
+     "luxury_clothes": 0.09,
+     "luxury_furniture": 0.09,
+     "spices": 0.6,
+     "canned_food": 0.3,
+     "paper": 0.6,
+     "opium": 0.3,
+     "precious_metal": 0.05,
+     "silk": 0.05,
+     "furs": 0.1,
+     "sulphur": 0.056
     }
    }
   },
@@ -196,24 +340,50 @@
    "strata": "middle",
    "color": "e8e0c8",
    "literacy_mult": 2.4,
+   "job": "education",
+   "gov_wage": 95,
+   "spend_fraction": 0.9,
+   "vote_weight": 2,
+   "issue_bias": {
+    "religious_policy": "moralism"
+   },
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 5.76,
+     "fish": 1.2,
+     "cattle": 1.48,
+     "fruit": 1.26,
+     "wool": 2.64,
+     "timber": 1.44
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.98,
+     "furniture": 0.616,
+     "regular_clothes": 1.12,
+     "tea": 0.56,
+     "coffee": 0.56,
+     "tobacco": 1.12,
+     "sugar": 0.84,
+     "coal": 0.98,
+     "glass": 0.28,
+     "paper": 0.4,
+     "furs": 0.1,
+     "iron": 0.14,
+     "cotton": 0.336,
+     "dye": 0.014
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.9,
+     "luxury_clothes": 0.09,
+     "luxury_furniture": 0.09,
+     "spices": 0.6,
+     "canned_food": 0.3,
+     "paper": 0.6,
+     "opium": 0.3,
+     "precious_metal": 0.05,
+     "silk": 0.05,
+     "furs": 0.1,
+     "sulphur": 0.056
     }
    }
   },
@@ -223,24 +393,48 @@
    "strata": "middle",
    "color": "c8c85a",
    "literacy_mult": 2.0,
+   "job": "administration",
+   "gov_wage": 95,
+   "spend_fraction": 0.9,
+   "vote_weight": 2,
+   "issue_bias": {},
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 5.76,
+     "fish": 1.2,
+     "cattle": 1.48,
+     "fruit": 1.26,
+     "wool": 2.64,
+     "timber": 1.44
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.98,
+     "furniture": 0.616,
+     "regular_clothes": 1.12,
+     "tea": 0.56,
+     "coffee": 0.56,
+     "tobacco": 1.12,
+     "sugar": 0.84,
+     "coal": 0.98,
+     "glass": 0.28,
+     "paper": 0.4,
+     "furs": 0.1,
+     "iron": 0.14,
+     "cotton": 0.336,
+     "dye": 0.014
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.9,
+     "luxury_clothes": 0.09,
+     "luxury_furniture": 0.09,
+     "spices": 0.6,
+     "canned_food": 0.3,
+     "paper": 0.6,
+     "opium": 0.3,
+     "precious_metal": 0.05,
+     "silk": 0.05,
+     "furs": 0.1,
+     "sulphur": 0.056
     }
    }
   },
@@ -250,24 +444,50 @@
    "strata": "middle",
    "color": "c85a4a",
    "literacy_mult": 1.6,
+   "job": "leadership",
+   "gov_wage": 95,
+   "spend_fraction": 0.9,
+   "vote_weight": 2,
+   "issue_bias": {
+    "military_policy": "jingoism"
+   },
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 5.76,
+     "fish": 1.2,
+     "cattle": 1.48,
+     "fruit": 1.26,
+     "wool": 2.64,
+     "timber": 1.44
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 0.98,
+     "furniture": 0.616,
+     "regular_clothes": 1.12,
+     "tea": 0.56,
+     "coffee": 0.56,
+     "tobacco": 1.12,
+     "sugar": 0.84,
+     "coal": 0.98,
+     "glass": 0.28,
+     "paper": 0.4,
+     "furs": 0.1,
+     "iron": 0.14,
+     "cotton": 0.336,
+     "dye": 0.014
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 0.9,
+     "luxury_clothes": 0.09,
+     "luxury_furniture": 0.09,
+     "spices": 0.6,
+     "canned_food": 0.3,
+     "paper": 0.6,
+     "opium": 0.3,
+     "precious_metal": 0.05,
+     "silk": 0.05,
+     "furs": 0.1,
+     "sulphur": 0.056
     }
    }
   },
@@ -277,24 +497,53 @@
    "strata": "rich",
    "color": "a85ac8",
    "literacy_mult": 1.8,
+   "job": "rgo_owner",
+   "gov_wage": 0,
+   "spend_fraction": 0.65,
+   "vote_weight": 4,
+   "issue_bias": {
+    "trade": "protectionism",
+    "social_reform": "no_social_reform"
+   },
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 9.6,
+     "fish": 2.0,
+     "cattle": 2.8,
+     "fruit": 2.4,
+     "wool": 4.4,
+     "timber": 2.4
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 2.45,
+     "furniture": 1.54,
+     "regular_clothes": 2.8,
+     "tea": 1.4,
+     "coffee": 1.4,
+     "tobacco": 2.8,
+     "sugar": 2.1,
+     "coal": 2.45,
+     "glass": 0.7,
+     "paper": 1.0,
+     "furs": 0.6,
+     "wine": 0.6,
+     "iron": 0.35,
+     "cotton": 0.84,
+     "dye": 0.035
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 3.3,
+     "luxury_clothes": 0.63,
+     "luxury_furniture": 0.63,
+     "spices": 2.2,
+     "canned_food": 1.1,
+     "paper": 2.2,
+     "opium": 1.1,
+     "precious_metal": 0.5,
+     "silk": 0.4,
+     "tropical_wood": 0.4,
+     "furs": 0.25,
+     "sulphur": 0.14
     }
    }
   },
@@ -304,55 +553,82 @@
    "strata": "rich",
    "color": "e8b43a",
    "literacy_mult": 2.0,
+   "job": "investor",
+   "gov_wage": 0,
+   "spend_fraction": 0.6,
+   "vote_weight": 4,
+   "issue_bias": {
+    "economic_policy": "laissez_faire",
+    "trade": "free_trade"
+   },
    "needs": {
     "life": {
-     "grain": 1.0,
-     "fish": 0.2,
-     "fruit": 0.1,
-     "wool": 0.1
+     "grain": 9.6,
+     "fish": 2.0,
+     "cattle": 2.8,
+     "fruit": 2.4,
+     "wool": 4.4,
+     "timber": 2.4
     },
     "everyday": {
-     "regular_clothes": 0.2,
-     "furniture": 0.1,
-     "liquor": 0.1,
-     "coffee": 0.05,
-     "tea": 0.05
+     "liquor": 2.45,
+     "furniture": 1.54,
+     "regular_clothes": 2.8,
+     "tea": 1.4,
+     "coffee": 1.4,
+     "tobacco": 2.8,
+     "sugar": 2.1,
+     "coal": 2.45,
+     "glass": 0.7,
+     "paper": 1.0,
+     "furs": 0.6,
+     "wine": 0.6,
+     "iron": 0.35,
+     "cotton": 0.84,
+     "dye": 0.035
     },
     "luxury": {
-     "luxury_clothes": 0.02,
-     "luxury_furniture": 0.02,
-     "wine": 0.05
+     "wine": 3.3,
+     "luxury_clothes": 0.63,
+     "luxury_furniture": 0.63,
+     "spices": 2.2,
+     "canned_food": 1.1,
+     "paper": 2.2,
+     "opium": 1.1,
+     "precious_metal": 0.5,
+     "silk": 0.4,
+     "tropical_wood": 0.4,
+     "furs": 0.25,
+     "sulphur": 0.14
     }
    }
   }
  ],
  "initial_distribution": {
-  "_doc": "Fracción de la población provincial por tipo al crear el escenario. El resto trabaja el RGO (farmers si rgo=farm, labourers si rgo=mine).",
+  "_doc": "Fracción de la población provincial al crear el escenario. El resto trabaja el RGO. Obreros y oficinistas se crean según las plazas de fábrica del estado; los esclavos solo si la nación permite la esclavitud.",
   "civilized": {
    "aristocrats": 0.012,
    "clergy": 0.016,
-   "bureaucrats": 0.007,
+   "bureaucrats": 0.008,
    "officers": 0.003,
    "soldiers": 0.03,
-   "artisans": 0.06
-  },
-  "civilized_developed": {
-   "craftsmen": 0.03,
-   "clerks": 0.004,
-   "capitalists": 0.003
+   "artisans": 0.06,
+   "capitalists": 0.0015
   },
   "uncivilized": {
    "aristocrats": 0.014,
    "clergy": 0.02,
-   "bureaucrats": 0.003,
+   "bureaucrats": 0.004,
    "officers": 0.002,
    "soldiers": 0.03,
-   "artisans": 0.03
+   "artisans": 0.035
   },
   "unowned": {
    "aristocrats": 0.01,
    "clergy": 0.02,
    "soldiers": 0.02
-  }
+  },
+  "slaves_if_allowed": 0.06,
+  "factory_staff_headroom": 1.05
  }
 }

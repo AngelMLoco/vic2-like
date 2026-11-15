@@ -1,0 +1,56 @@
+{
+ "_doc": "Constantes de la economía mensual (todas las cantidades son por mes; las poblaciones en unidades de 10.000 personas).",
+ "rgo_value_per_10k": 26.0,
+ "rgo_owner_share": 0.2,
+ "rgo_headroom": 1.12,
+ "rgo_calibration_min": 0.15,
+ "rgo_calibration_max": 3.0,
+ "factory_value_per_level": 300.0,
+ "artisan_value_per_10k": 150.0,
+ "factory_wage_multiplier": 1.6,
+ "factory_reinvest_share": 0.3,
+ "factory_input_stock_months": 1.0,
+ "factory_close_months": 6,
+ "factory_max_level": 10,
+ "artisan_switch_rate": 0.15,
+ "price_adjust": 0.08,
+ "price_min": 0.25,
+ "price_max": 4.0,
+ "price_history": 24,
+ "tax_efficiency_base": 0.5,
+ "interest_domestic": 0.04,
+ "interest_foreign": 0.09,
+ "bank_deposit_share": 0.05,
+ "max_debt_months_of_income": 36,
+ "construction_months": 6,
+ "stockpile_goods": {
+  "small_arms": 0.02,
+  "ammunition": 0.03,
+  "artillery": 0.004,
+  "canned_food": 0.02,
+  "sailing_ships": 0.0
+ },
+ "stockpile_per_ship": {
+  "sailing_ships": 0.01,
+  "fabric": 0.05
+ },
+ "investment_policies": [
+  "laissez_faire",
+  "interventionism"
+ ],
+ "government_build_policies": [
+  "state_capitalism",
+  "interventionism",
+  "planned_economy"
+ ],
+ "subsidy_policies": [
+  "state_capitalism",
+  "interventionism",
+  "planned_economy"
+ ],
+ "calibration_tier_weights": [
+  1.0,
+  0.5,
+  0.1
+ ]
+}

@@ -1,46 +1,187 @@
 {
+ "_doc": "Ideologías. strata_affinity: peso base por estrato (deriva ideológica). reform_support: apoyo (+) u oposición (-) a ampliar reformas políticas/sociales (cámara alta). issues: posición preferida por cuestión.",
  "ideologies": [
   {
    "id": "tradicionalista",
    "name": "Tradicionalista",
    "group": "conservative",
-   "color": "5a3a8a"
+   "color": "5a3a8a",
+   "strata_affinity": {
+    "poor": 0.45,
+    "middle": 0.25,
+    "rich": 0.4
+   },
+   "reform_support": {
+    "political": -1.0,
+    "social": -0.4
+   },
+   "issues": {
+    "suffrage": "no_voting",
+    "political_reform": "no_political_reform",
+    "social_reform": "no_social_reform",
+    "trade": "protectionism",
+    "economic_policy": "state_capitalism",
+    "religious_policy": "moralism",
+    "citizenship": "residency",
+    "military_policy": "jingoism",
+    "slavery": "keep_slavery"
+   }
   },
   {
    "id": "conservador",
    "name": "Conservador",
    "group": "conservative",
-   "color": "3a5aa8"
+   "color": "3a5aa8",
+   "strata_affinity": {
+    "poor": 0.35,
+    "middle": 0.4,
+    "rich": 0.45
+   },
+   "reform_support": {
+    "political": -0.3,
+    "social": 0.1
+   },
+   "issues": {
+    "suffrage": "wealth_voting",
+    "political_reform": "no_political_reform",
+    "social_reform": "moderate_social_reform",
+    "trade": "protectionism",
+    "economic_policy": "interventionism",
+    "religious_policy": "moralism",
+    "citizenship": "limited_citizenship",
+    "military_policy": "pro_military",
+    "slavery": "abolish_slavery"
+   }
   },
   {
    "id": "liberal",
    "name": "Liberal",
    "group": "liberal",
-   "color": "e8c83a"
+   "color": "e8c83a",
+   "strata_affinity": {
+    "poor": 0.12,
+    "middle": 0.28,
+    "rich": 0.15
+   },
+   "reform_support": {
+    "political": 1.0,
+    "social": -0.2
+   },
+   "issues": {
+    "suffrage": "weighted_voting",
+    "political_reform": "extensive_political_reform",
+    "social_reform": "no_social_reform",
+    "trade": "free_trade",
+    "economic_policy": "laissez_faire",
+    "religious_policy": "pluralism",
+    "citizenship": "limited_citizenship",
+    "military_policy": "anti_military",
+    "slavery": "abolish_slavery"
+   }
   },
   {
    "id": "radical",
    "name": "Radical",
    "group": "liberal",
-   "color": "e8883a"
+   "color": "e8883a",
+   "strata_affinity": {
+    "poor": 0.05,
+    "middle": 0.07,
+    "rich": 0.0
+   },
+   "reform_support": {
+    "political": 1.0,
+    "social": 0.6
+   },
+   "issues": {
+    "suffrage": "universal_voting",
+    "political_reform": "extensive_political_reform",
+    "social_reform": "moderate_social_reform",
+    "trade": "free_trade",
+    "economic_policy": "laissez_faire",
+    "religious_policy": "secularism",
+    "citizenship": "full_citizenship",
+    "military_policy": "pacifism",
+    "slavery": "abolish_slavery"
+   }
   },
   {
    "id": "socialista",
    "name": "Socialista",
    "group": "socialist",
-   "color": "c83a3a"
+   "color": "c83a3a",
+   "strata_affinity": {
+    "poor": 0.03,
+    "middle": 0.0,
+    "rich": 0.0
+   },
+   "reform_support": {
+    "political": 0.6,
+    "social": 1.0
+   },
+   "issues": {
+    "suffrage": "universal_voting",
+    "political_reform": "moderate_political_reform",
+    "social_reform": "extensive_social_reform",
+    "trade": "protectionism",
+    "economic_policy": "state_capitalism",
+    "religious_policy": "secularism",
+    "citizenship": "full_citizenship",
+    "military_policy": "anti_military",
+    "slavery": "abolish_slavery"
+   }
   },
   {
    "id": "comunitarista",
    "name": "Comunitarista",
    "group": "socialist",
-   "color": "8a1a1a"
+   "color": "8a1a1a",
+   "strata_affinity": {
+    "poor": 0.0,
+    "middle": 0.0,
+    "rich": 0.0
+   },
+   "reform_support": {
+    "political": 0.3,
+    "social": 1.0
+   },
+   "issues": {
+    "suffrage": "universal_voting",
+    "political_reform": "moderate_political_reform",
+    "social_reform": "extensive_social_reform",
+    "trade": "protectionism",
+    "economic_policy": "planned_economy",
+    "religious_policy": "secularism",
+    "citizenship": "full_citizenship",
+    "military_policy": "pro_military",
+    "slavery": "abolish_slavery"
+   }
   },
   {
    "id": "autoritario",
    "name": "Autoritario",
    "group": "conservative",
-   "color": "4a4a4a"
+   "color": "4a4a4a",
+   "strata_affinity": {
+    "poor": 0.0,
+    "middle": 0.0,
+    "rich": 0.0
+   },
+   "reform_support": {
+    "political": -1.0,
+    "social": 0.2
+   },
+   "issues": {
+    "suffrage": "no_voting",
+    "political_reform": "no_political_reform",
+    "social_reform": "moderate_social_reform",
+    "trade": "protectionism",
+    "economic_policy": "state_capitalism",
+    "religious_policy": "moralism",
+    "citizenship": "residency",
+    "military_policy": "jingoism",
+    "slavery": "abolish_slavery"
+   }
   }
  ]
 }

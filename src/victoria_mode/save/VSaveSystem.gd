@@ -7,14 +7,21 @@ extends RefCounted
 ## Si save_version no coincide y no hay migración, la carga se rechaza limpiamente.
 
 const SAVE_DIR := "user://victoria_mode/saves/"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const MODE_ID := "victoria_mode"
 
+## v2 (milestone 2): economía, política y tecnología. Las partidas v1 se rechazan con un mensaje.
 const COUNTRY_FIELDS := ["prestige", "treasury", "literacy", "infamy", "war_exhaustion", "relations", "allies",
-	"wars", "sphere_leader", "influence", "military", "budget", "research_points", "capital", "technologies",
-	"reforms", "government", "ruling_party", "civilized", "magic_branches"]
+	"wars", "sphere_leader", "influence", "military", "budget", "capital", "technologies",
+	"reforms", "government", "ruling_party", "civilized", "magic_branches",
+	"acc", "budget_last", "debt", "debt_foreign", "bank", "stockpile", "pay_ratio", "admin_efficiency", "tax_efficiency",
+	"monthly_income", "monthly_expense", "monthly_balance", "income_daily", "expense_daily", "projects",
+	"artisan_profit", "artisan_best", "inventions", "research", "research_progress", "research_points",
+	"research_points_monthly", "research_points_daily", "parties", "ruling_party_index", "next_election_month",
+	"last_election", "upper_house", "movements", "reform_cooldown", "voter_ideology", "acc_mobility",
+	"acc_mobility_last", "_tier_demand"]
 const PROVINCE_FIELDS := ["owner", "controller", "cores", "occupation", "fort", "naval_base", "infrastructure",
-	"life_rating", "rgo", "culture", "religion", "pops"]
+	"life_rating", "rgo", "culture", "religion", "pops", "rgo_data", "avg_life", "unemployment", "rgo_free"]
 
 
 static func list_saves() -> Array:
@@ -71,6 +78,10 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 		var f: Array = gs.state_instances[key]["factories"]
 		if not f.is_empty():
 			factories[key] = f
+	var market := {}
+	for k in gs.market:
+		if not str(k).begins_with("_"):
+			market[k] = gs.market[k]
 	var data := {
 		"save_version": SAVE_VERSION,
 		"mode": MODE_ID,
@@ -88,6 +99,9 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 		"countries": countries,
 		"provinces": provinces,
 		"state_factories": factories,
+		"market": market,
+		"month_index": gs.month_index,
+		"log": gs.log_entries,
 	}
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
@@ -113,6 +127,11 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 	gs.player_tag = data.get("player_tag", "")
 	gs.flags = data.get("flags", {})
 	gs.next_pop_id = int(data.get("next_pop_id", gs.next_pop_id))
+	gs.month_index = int(data.get("month_index", 0))
+	gs.log_entries = data.get("log", [])
+	var market: Dictionary = data.get("market", {})
+	for k in market:
+		gs.market[k] = market[k]
 	var countries: Dictionary = data.get("countries", {})
 	for tag in countries:
 		if not gs.countries.has(tag):
@@ -134,9 +153,23 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 	var sf: Dictionary = data.get("state_factories", {})
 	for key in sf:
 		if gs.state_instances.has(key):
+			for f in sf[key]:
+				f["id"] = int(f["id"])
+				f["level"] = int(f["level"])
+				f["loss_months"] = int(f.get("loss_months", 0))
 			gs.state_instances[key]["factories"] = sf[key]
 	for id in range(1, gs.first_sea_id):
 		VPopulationSystem.recalc_province(gs, id)
+	for tag in gs.countries:
+		var c: Dictionary = gs.countries[tag]
+		c["ruling_party_index"] = int(c.get("ruling_party_index", 0))
+		c["next_election_month"] = int(c.get("next_election_month", -1))
+		c["reform_cooldown"] = int(c.get("reform_cooldown", 0))
+		for r in c.get("reforms", {}):
+			c["reforms"][r] = int(c["reforms"][r])
+		VModifiers.recompute(gs, tag)
+	VProductionSystem.derive_rates(gs)
+	VPopulationSystem.refresh_country_caches(gs)
 	VRankingSystem.recalculate(gs)
 	return gs
 
@@ -147,6 +180,8 @@ static func _fix_pop_numbers(p: Dictionary) -> void:
 		pop["size"] = int(pop["size"])
 		pop["id"] = int(pop["id"])
 		pop["province"] = int(pop["province"])
+		pop["unemployed_months"] = int(pop.get("unemployed_months", 0))
+		pop["migration_target"] = int(pop.get("migration_target", 0))
 	p["fort"] = int(p.get("fort", 0))
 	p["naval_base"] = int(p.get("naval_base", 0))
 	p["infrastructure"] = int(p.get("infrastructure", 0))

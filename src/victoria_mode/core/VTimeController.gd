@@ -64,6 +64,7 @@ func _process(delta: float) -> void:
 
 func _tick() -> void:
 	var new_month := date.advance_day()
-	day_passed.emit()
+	# el cierre de mes (mercado, presupuesto...) va antes del primer día del mes nuevo
 	if new_month:
 		month_passed.emit()
+	day_passed.emit()
