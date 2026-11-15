@@ -89,7 +89,7 @@ Sin estados degenerados (colapso demográfico, todos ricos, precios disparados, 
 paro masivo, militancia mundial extrema, todas las fábricas con beneficio). En 10 años: 15 naciones celebran
 elecciones, 116 cambios de reforma, 183 tecnologías y 22 inventos.
 
-Rendimiento (Godot 4.4.1, Ryzen + RX 6800, headless):
+Rendimiento (Godot 4.4.1, equipo de desarrollo con GPU AMD RX 6800, headless):
 
 | Sección | Media | Máx. |
 |---|---|---|
