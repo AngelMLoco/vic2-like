@@ -563,7 +563,7 @@ func _build_politics() -> void:
 		bu.disabled = not up["ok"]
 		box.add_child(bd)
 		box.add_child(bu)
-		rrows.append([r["name"], "Política" if r["type"] == "political" else "Social", " → ".join(levels), box])
+		rrows.append([r["name"], {"political": "Política", "social": "Social", "magic": "Magia"}.get(r["type"], r["type"]), " → ".join(levels), box])
 	_table(["Reforma", "Tipo", "Niveles (actual entre corchetes)", ""], rrows, [190, 70, 520, 70])
 	_section("Movimientos")
 	var mrows := []
@@ -579,8 +579,35 @@ func _build_politics() -> void:
 	else:
 		_table(["Movimiento", "Apoyo", "Organización", "Radicalismo", ""], mrows, [300, 80, 110, 100, 160])
 	_note("Un movimiento reúne a los POPs con conciencia ≥ 1,5 que desean más de una reforma (según sus issues). Si se ignora gana organización y radicalismo, que eleva la militancia de sus partidarios. Conceder la reforma lo desactiva. Las rebeliones armadas llegarán con el milestone militar.")
+	_build_magic_society(tag)
 	_build_decisions(tag)
 	_build_chronicle(tag)
+
+
+## M5: sociedad mágica (capacidad, empleo y política de los magos).
+func _build_magic_society(tag: String) -> void:
+	if not VMagicSystem.is_active(gs):
+		return
+	var c := _country()
+	var info: Dictionary = c.get("_magi_info", {})
+	var cap: Dictionary = info.get("capacity", {})
+	var st: Dictionary = c.get("magic_stats", {})
+	var rp := VPoliticsSystem.ruling_party(gs, tag)
+	var stance := VMagicPolicy.stance(gs, String(rp.get("ideology", "")))
+	var lv := VMagicPolicy.levels(gs)
+	_section("Sociedad mágica")
+	_table(["Concepto", "Valor"], [
+		["Regulación de la magia", lv[gs.reform_level(tag, VMagicPolicy.REFORM)]["name"]],
+		["Postura del partido gobernante", lv[stance]["name"] if stance >= 0 else "—"],
+		["Magos", "%s (%.3f%% de la población)" % [UiTheme.fmt_int(int(info.get("magi", 0))), float(info.get("share", 0.0)) * 100.0]],
+		["Capacidad sostenible", "%s · rama ×%.2f · alfabetización ×%.2f · potencial ×%.2f · fe y cultura ×%.2f · política ×%.2f · empleo ×%.2f" % [
+			UiTheme.fmt_int(int(info.get("target", 0))), float(cap.get("f_branch", 0)), float(cap.get("f_lit", 0)), float(cap.get("f_potential", 0)),
+			float(cap.get("f_faith", 0)), float(cap.get("f_policy", 0)), float(cap.get("f_jobs", 1))]],
+		["Academias arcanas", str(VMageModel.academies(gs, tag))],
+		["Empleo", "fábricas %s · Estado y práctica privada %s · paro %.0f%%" % [UiTheme.fmt_int(int(info.get("private_jobs", 0))), UiTheme.fmt_int(int(info.get("state_jobs", 0))), float(info.get("unemployment", 0.0)) * 100.0]],
+		["Último año", "formados %s · degradados %s · emigrados %s · inmigrados %s" % [UiTheme.fmt_int(int(st.get("promoted_y", 0))), UiTheme.fmt_int(int(st.get("demoted_y", 0))), UiTheme.fmt_int(int(st.get("emigrated_y", 0))), UiTheme.fmt_int(int(st.get("immigrated_y", 0)))]],
+	], [260, 620])
+	_note("Los magos tienden a la capacidad que el país puede sostener (población, ramas mágicas, alfabetización, potencial de sus tierras, religión y cultura, política y empleo). Sin plazas en fábricas mágicas, academias, administración, ejército o práctica privada quedan en paro, se radicalizan o emigran a países que los atraen.")
 
 
 const _DECISION_CATS := {"industrial": "Industria", "political": "Política", "diplomatic": "Diplomacia", "military": "Ejército", "magic": "Arcano"}
@@ -650,24 +677,32 @@ func _msg_text(t: String) -> void:
 		_msg.text = t
 
 
-## Crónica de la partida: eventos importantes, decisiones y grandes acontecimientos (últimos 25).
+## Crónica de la partida contada como historia nacional (M5): eventos, decisiones e historia emergente
+## (guerras, capitales, paces, reformas, rebeliones, esferas, magia), con filtros por categoría.
+var _chron_cat := ""
+
+
 func _build_chronicle(tag: String) -> void:
-	var h: Array = VScopedState.es(gs)["history"]
-	var rows := []
-	for i in range(h.size() - 1, -1, -1):
-		var e: Dictionary = h[i]
-		if e["tag"] != tag and e["tag"] != "" and not e.get("important", false):
-			continue
-		if e["tag"] != tag and e["tag"] != "":
-			continue
-		rows.append([e["date"], e["title"], e.get("option", "")])
-		if rows.size() >= 25:
-			break
 	_section("Crónica")
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 6)
+	var cats: Array = [""] + VChronicle.CATEGORIES
+	for cat in cats:
+		var name: String = "Todo" if cat == "" else VChronicle.CATEGORY_NAMES[cat]
+		var b := UiTheme.button(name, func():
+			_chron_cat = cat
+			rebuild(), 96.0)
+		b.disabled = cat == _chron_cat
+		bar.add_child(b)
+	_content.add_child(bar)
+	var rows := []
+	for e in VChronicle.entries_for(gs, tag, _chron_cat, 30):
+		var opt: String = e.get("option", "") if String(e.get("text", "")) != "" else ""
+		rows.append([VChronicle.line(e), VChronicle.CATEGORY_NAMES.get(String(e.get("cat", "politics")), ""), opt])
 	if rows.is_empty():
 		_note("Todavía no ha ocurrido nada digno de la crónica.")
 	else:
-		_table(["Fecha", "Acontecimiento", "Decisión tomada"], rows, [150, 420, 320])
+		_table(["Historia", "Tema", "Decisión"], rows, [620, 100, 240])
 
 
 var _msg: Label
