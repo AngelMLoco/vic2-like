@@ -100,3 +100,53 @@ Previstos (ya contemplados en los datos y en el modelo, se implementan en fases 
 `VRankingSystem`: total = prestigio + industria (niveles de fábrica × empleo) + militar
 (brigadas, barcos, soldier POPs). Las naciones civilizadas se ordenan antes que las no civilizadas;
 las 8 primeras son Grandes Potencias y las 8 siguientes Potencias Secundarias. Se recalcula cada mes.
+
+## Milestone 2 — población, economía, política y tecnología
+
+Nuevos módulos (todos reciben el `VGameState`; ninguno vive en `VictoriaGame.gd`):
+
+```
+core/VModifiers.gd            modificadores nacionales = tecnologías + inventos + niveles de reforma
+core/VConditions.gd           evaluador de condiciones data-driven (POPs y naciones)
+core/VProfiler.gd             medias móviles por sección (ms)
+economy/VMarketSystem.gd      mercado interno → esfera → mundial, precios, aranceles, historial
+economy/VProductionSystem.gd  RGO, fábricas por partición de estado, artesanos, empleo estatal, inversión
+economy/VBudgetSystem.gd      impuestos por estrato, gastos, deuda, banco nacional, IA presupuestaria
+population/VPopulationSystem.gd  modelo de POP, cestas de necesidades, consecuencias
+population/VMobilitySystem.gd    promoción/democión (reglas en datos), migración interna e internacional
+politics/VPoliticsSystem.gd   partidos, elecciones, cámara alta, reformas por niveles, movimientos
+technology/VTechnologySystem.gd  investigación, árbol, inventos, base de magia (magic_unlocked)
+```
+
+### El ciclo mensual de un POP
+
+```
+trabajo (RGO / fábrica / artesanía / empleo estatal)
+  → renta (salario, parte del propietario, beneficio, sueldo estatal) − impuesto del estrato × eficiencia
+  → compra: vida → diario → lujo, con su efectivo y el llenado del mercado; riqueza sobrante → más lujo
+  → ahorro / depósito en el banco nacional (clase media y ricos)
+  → crecimiento (vida, life rating, sanidad, tecnología), alfabetización (clero × educación),
+    conciencia (alfabetización, prensa, pobreza) antes que militancia (pobreza grave, paro, movimientos)
+  → deriva ideológica (estrato, alfabetización, necesidades, sindicatos) → issues
+  → promoción / democión / cambio de oficio / migración / emigración
+```
+
+### Dinero y mercado
+
+Los productores registran su oferta y los compradores su demanda en el mercado interno de su nación
+durante el mes, usando los precios y ratios de llenado del mes anterior. Al cerrar el mes se casa
+oferta y demanda: primero dentro de cada nación, después en la esfera (API preparada; hoy sin esferas)
+y por último en el mercado mundial, donde los importadores se atienden por orden de ranking.
+El precio mundial se mueve según demanda/oferta, acotado a [0,25 ; 4] × precio base, con historial de 24 meses.
+El dinero se crea al vender y se destruye al comprar; para que no se acumule fuera de la circulación,
+los ricos gastan su excedente en lujo adicional, los capitalistas y aristócratas invierten, y la IA
+presupuestaria mantiene el tesoro cerca de 8 meses de gasto (baja impuestos o sube gasto).
+
+### Reparto temporal (rendimiento)
+
+`VWorldSimulation` reparte las provincias en 28 cubos (`id % 28`); el día *d* del mes procesa el cubo *d−1*
+(fábricas de las particiones cuya provincia clave cae en el cubo, producción, POPs, movilidad). El cierre de mes
+(mercado, presupuesto, tecnología, política, inversión, destinos de migración, agregados, ranking)
+ocurre antes del primer día del mes siguiente (`VTimeController` emite `month_passed` antes de `day_passed`).
+Nada se ejecuta por frame. Durante los 12 primeros meses del escenario la productividad de cada RGO se
+recalibra suavemente hacia la demanda observada (el mapa de prueba reparte recursos al azar).

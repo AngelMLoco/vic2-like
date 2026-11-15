@@ -77,6 +77,23 @@ func _ready() -> void:
 	game.camera.center_on(gs.provinces[bcap]["center"], 2.4)
 	await _frames(50)
 	await _shot("13_occupation_overlay")
+	# milestone 2: pantallas tras varios meses de simulación
+	for id in ids:
+		gs.provinces[id]["controller"] = gs.provinces[id]["owner"]
+	game.world_map.refresh_overlay()
+	for i in 240:
+		game.clock._tick()
+	VTechnologySystem.set_research(gs, "FRK", VTechnologySystem.available(gs, "FRK")[0])
+	for key in ["production", "budget", "technology", "politics", "population", "trade", "alerts"]:
+		game.nation_window.open(key)
+		await _frames(4)
+		await _shot("m2_" + key)
+	game.nation_window.close()
+	game._select_province(cap)
+	game.camera.center_on(gs.provinces[cap]["center"], 1.0)
+	game.set_mapmode("needs")
+	await _frames(40)
+	await _shot("m2_mapmode_needs")
 	print("capturas en ", ProjectSettings.globalize_path(out_dir) if out_dir.begins_with("user://") else out_dir)
 	get_tree().quit()
 

@@ -57,3 +57,50 @@ ocupación sin cambio de propietario, `change_owner`, guardado y carga (fecha, n
 * Rendimiento en GPUs integradas (el shader hace 8 lecturas de textura por píxel).
 * Desplazamiento por bordes en monitores múltiples / ventana sin foco.
 * Escala de interfaz distinta de 1.0 (Opciones).
+
+## Milestone 2
+
+```bash
+# Prueba de humo ampliada (incluye un año simulado con la interfaz cargada)
+"$GODOT" --headless --path . res://tests/VictoriaSmokeTest.tscn
+# Balance y rendimiento sin interfaz: N años sin intervención (VBAL_DEBUG=1 añade volcado de mercado y de Frankia)
+"$GODOT" --headless --path . res://tests/VictoriaBalanceTest.tscn -- 10
+```
+
+La prueba de humo añade: POPs con necesidades/efectivo/issues, renta de los POPs, oferta y demanda,
+cambio de precios, producción RGO, fábricas que consumen insumos y producen, satisfacción en [0,1],
+desempleo real (RGO sin plazas), impuestos que reducen la renta neta, presupuesto que mueve el tesoro,
+aranceles que encarecen importaciones, elecciones con POPs reales, la cámara liberal rechaza reformas sociales
+y aprueba una política, tiempo de espera entre reformas, las reformas no saltan niveles, investigación,
+tecnología completada, invento activado, un año completo sin error, cambio de alfabetización, promoción y
+migración, guardado/carga de tesoro, deuda, precios, tecnologías, reformas, fábricas y efectivo de los POPs,
+y rechazo limpio de partidas v1. **Último resultado: 0 fallos.**
+
+`VictoriaBalanceTest` (10 años, sin jugador, determinista) — último resultado:
+
+| Año | Pobl. (M) | Vida | Diario | Lujo | Paro | Milit. | Conc. | Alfab. | Fábricas abiertas/cerradas | Precio mediano |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 711 | 1.00 | 0.50 | 0.10 | 0.00 | 1.00 | 0.59 | 0.06 | 119/0 | 1.00 |
+| 1 | 715 | 0.72 | 0.27 | 0.07 | 0.03 | 0.93 | 0.50 | 0.08 | 92/29 | 0.96 |
+| 5 | 728 | 0.73 | 0.30 | 0.06 | 0.03 | 0.84 | 0.43 | 0.12 | 344/33 | 1.01 |
+| 10 | 736 | 0.66 | 0.28 | 0.08 | 0.05 | 0.82 | 0.59 | 0.17 | 920/129 | 0.92 |
+
+Sin estados degenerados (colapso demográfico, todos ricos, precios disparados, cierre total de fábricas,
+paro masivo, militancia mundial extrema, todas las fábricas con beneficio). En 10 años: 15 naciones celebran
+elecciones, 116 cambios de reforma, 183 tecnologías y 22 inventos.
+
+Rendimiento (Godot 4.4.1, Ryzen + RX 6800, headless):
+
+| Sección | Media | Máx. |
+|---|---|---|
+| Carga del mundo | 630 ms | — |
+| Tick diario (un cubo de 1/28 de las provincias) | 24 ms | 54 ms |
+| Producción / población / movilidad por cubo | 7 / 17 / 8 ms | — |
+| Cierre de mes total | 265 ms | 356 ms |
+| · mercado | 22 ms | 42 ms |
+| · sistemas nacionales (presupuesto, tecnología, política, inversión) | 116 ms | 157 ms |
+| · agregados de POPs | 64 ms | 95 ms |
+| Un año simulado sin interfaz / con interfaz | ≈13,5 s / ≈12,4 s | — |
+
+Pendiente: el cierre de mes (~0,27 s) se nota como un pequeño tirón a velocidad 5; repartir también los
+sistemas nacionales entre días es la siguiente optimización.

@@ -80,3 +80,24 @@ Para añadir un tipo de POP (p. ej. magos) basta con añadirlo a `pop_types.json
 date, player_tag, flags, next_pop_id, countries{tag:{campos mutables}}, provinces{id:{owner,controller,
 cores,occupation,fort,naval_base,infrastructure,life_rating,rgo,culture,religion,pops}}, state_factories{"sid:TAG":[…]}}`.
 Si `save_version` no coincide y `_migrate()` no lo convierte, la carga se rechaza con un mensaje.
+
+## Milestone 2
+
+| Archivo | Esquema |
+|---|---|
+| `pops/pop_types.json` | `pop_types[{id,name,strata,color,literacy_mult,job,gov_wage,spend_fraction,vote_weight,issue_bias{issue:pos},needs{life,everyday,luxury: {good: qty por 10.000/mes}}}]`, `initial_distribution{civilized,uncivilized,unowned,slaves_if_allowed,factory_staff_headroom}`. `job`: rgo_farm, rgo_mine, rgo_any, factory_worker, factory_clerk, artisan, education, administration, military, leadership, rgo_owner, investor. |
+| `pops/promotion.json` | `rules[{from,to,rate,conditions{…}}]` — condiciones: min/max_literacy, min/max_life, min/max_everyday, min_luxury, min/max_unemployment, min/max_cash_per_capita, min_consciousness, min/max_militancy, vacancy (factory_workers, factory_clerks, rgo, admin, clergy, military, officers), reform_min{}, reform_max{}, civilized, min/max_military_spending. |
+| `economy/economy_rules.json` | constantes: valor RGO por 10.000 trabajadores, parte del propietario, valor por nivel de fábrica y por 10.000 artesanos, multiplicador salarial, reinversión, cierre, límites y velocidad de precios, intereses, construcción, bienes de la reserva militar y políticas que permiten inversión privada / construcción estatal / subvenciones. |
+| `factories/factories.json` | además: `requires_tech`, `artisan` (los artesanos pueden fabricarlo). inputs/outputs = una unidad de receta; el número de recetas al mes sale de `factory_value_per_level` y los precios base. |
+| `politics/issues.json` | `issues[{id,name,positions[{id,name}]}]`, `conditional[{if{condiciones de POP},issue,position}]` |
+| `politics/reforms.json` | `reforms[{id,name,type: political/social,issue,default,levels[{id,name,effects{}}]}]`, `movement_names{}`, `cooldown_months`. Efectos usados: vote_rule, consciousness_growth, militancy_growth, ideology_drift, factory_wage, socialist_drift, pop_growth, social_cost, literacy_growth, pension, unemployment_benefit, worker_militancy, factory_throughput. |
+| `politics/party_templates.json` | `templates[{ideology,name,requires_reform{},policies{economic_policy,trade_policy,religious_policy,citizenship_policy,war_policy}}]` → cada nación recibe «<nombre> de <nación>». Un país puede definir `custom_parties`. |
+| `governments/governments.json` | además: `election_interval_months`, `appoint_ruling_party`, `allowed_parties[]`, `can_reform`, `reform_caps{reforma: nivel máx.}`. |
+| `ideologies/ideologies.json` | además: `strata_affinity{poor,middle,rich}`, `reform_support{political,social}` (−1…1), `issues{issue: posición}`. |
+| `technologies/technologies.json` | `categories[]`, `technologies[{id,name,category,tier,cost,prerequisites[],effects{},unlocks_factories[]}]` |
+| `technologies/inventions.json` | `inventions[{id,name,technology,chance (mensual),conditions{min_literacy,min_prestige,civilized,has_tech,flag},effects{}}]` |
+| `countries/countries.json` | `reforms{}` = niveles iniciales distintos del valor por defecto. |
+
+Guardado: `save_version` = 2. Añade economía (mercado, fábricas con stock y caja, RGO), presupuesto, deuda, banco,
+proyectos, tecnologías, inventos, investigación, partidos, elecciones, cámara alta, movimientos y registro.
+Las partidas v1 se rechazan con un mensaje claro.
