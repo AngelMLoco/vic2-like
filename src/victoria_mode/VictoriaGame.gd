@@ -16,6 +16,7 @@ var labels: VMapLabels
 var units: VMapUnits
 var unit_panel: VUnitPanel
 var peace_window: VPeaceWindow
+var event_popup: VEventPopup
 var selected_armies: Array = []
 var selected_fleet: int = 0
 var _known_offers := {}
@@ -129,6 +130,10 @@ func _build_ui() -> void:
 	peace_window.setup(gs)
 	peace_window.changed.connect(_on_units_changed)
 	ui_root.add_child(peace_window)
+	event_popup = VEventPopup.new()
+	event_popup.setup(gs)
+	event_popup.resolved.connect(func(): top_bar.refresh(); nation_window.refresh_live())
+	ui_root.add_child(event_popup)
 
 	country_select = VCountrySelect.new()
 	country_select.setup(gs)
@@ -234,6 +239,16 @@ func _on_day() -> void:
 	if unit_panel.visible:
 		unit_panel.refresh()
 	_check_offers()
+	_check_events()
+
+
+## Eventos del jugador: la cola de VEventSystem se muestra en orden; pausa según la opción
+## gs.flags["events_no_pause"] (por defecto se pausa).
+func _check_events() -> void:
+	if gs.player_tag == "" or event_popup.visible or VEventSystem.pending(gs).is_empty():
+		return
+	if event_popup.show_next() and not gs.flags.get("events_no_pause", false):
+		clock.set_paused(true)
 
 
 ## Ofertas de paz de la IA al jugador: aviso y apertura de la ventana de paz.

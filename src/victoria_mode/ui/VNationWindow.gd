@@ -579,6 +579,95 @@ func _build_politics() -> void:
 	else:
 		_table(["Movimiento", "Apoyo", "Organización", "Radicalismo", ""], mrows, [300, 80, 110, 100, 160])
 	_note("Un movimiento reúne a los POPs con conciencia ≥ 1,5 que desean más de una reforma (según sus issues). Si se ignora gana organización y radicalismo, que eleva la militancia de sus partidarios. Conceder la reforma lo desactiva. Las rebeliones armadas llegarán con el milestone militar.")
+	_build_decisions(tag)
+	_build_chronicle(tag)
+
+
+const _DECISION_CATS := {"industrial": "Industria", "political": "Política", "diplomatic": "Diplomacia", "military": "Ejército", "magic": "Arcano"}
+
+
+## Decisiones (estilo Victoria II): disponibles, potenciales (con el motivo) y tomadas.
+func _build_decisions(tag: String) -> void:
+	var lists := VDecisionSystem.list_for(gs, tag)
+	_section("Decisiones")
+	if lists["available"].is_empty() and lists["potential"].is_empty():
+		_note("No hay decisiones a la vista. Aparecen según la situación del país (industria, política, guerra y magia).")
+	for d in lists["available"]:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var tip := "%s
+
+Coste: %s
+Efectos:
+%s" % [d["desc"], _cost_text(d["cost"]), VEventEffects.describe(gs, d["effects"])]
+		var b := UiTheme.button("Tomar", func(): _take_decision(tag, d["id"]), 90.0, tip)
+		row.add_child(b)
+		var l := UiTheme.label("%s  ·  %s" % [d["name"], _DECISION_CATS.get(d["category"], d["category"])], 14, UiTheme.POSITIVE)
+		l.tooltip_text = tip
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.add_child(l)
+		_content.add_child(row)
+	if not lists["potential"].is_empty():
+		var rows := []
+		for e in lists["potential"]:
+			var d2: Dictionary = e[0]
+			var l2 := UiTheme.label(d2["name"], 14, UiTheme.TEXT_DIM)
+			l2.tooltip_text = "%s
+
+No disponible: %s
+Efectos:
+%s" % [d2["desc"], e[1], VEventEffects.describe(gs, d2["effects"])]
+			l2.mouse_filter = Control.MOUSE_FILTER_PASS
+			rows.append([l2, _DECISION_CATS.get(d2["category"], d2["category"]), e[1]])
+		_table(["Potenciales", "Tipo", "Por qué no está disponible"], rows, [300, 110, 480])
+	if not lists["taken"].is_empty():
+		var names := []
+		for d3 in lists["taken"]:
+			names.append(d3["name"])
+		_note("Tomadas: " + ", ".join(names))
+
+
+func _cost_text(cost: Dictionary) -> String:
+	var parts := []
+	if float(cost.get("treasury", 0.0)) > 0.0:
+		parts.append(UiTheme.fmt_money(float(cost["treasury"])))
+	if float(cost.get("prestige", 0.0)) > 0.0:
+		parts.append("%.0f de prestigio" % float(cost["prestige"]))
+	if float(cost.get("research", 0.0)) > 0.0:
+		parts.append("%.0f de investigación" % float(cost["research"]))
+	return ", ".join(parts) if not parts.is_empty() else "ninguno"
+
+
+func _take_decision(tag: String, id: String) -> void:
+	var err := VDecisionSystem.take(gs, tag, id)
+	if err != "":
+		_msg_text(err)
+	rebuild()
+
+
+func _msg_text(t: String) -> void:
+	if _msg != null:
+		_msg.text = t
+
+
+## Crónica de la partida: eventos importantes, decisiones y grandes acontecimientos (últimos 25).
+func _build_chronicle(tag: String) -> void:
+	var h: Array = VScopedState.es(gs)["history"]
+	var rows := []
+	for i in range(h.size() - 1, -1, -1):
+		var e: Dictionary = h[i]
+		if e["tag"] != tag and e["tag"] != "" and not e.get("important", false):
+			continue
+		if e["tag"] != tag and e["tag"] != "":
+			continue
+		rows.append([e["date"], e["title"], e.get("option", "")])
+		if rows.size() >= 25:
+			break
+	_section("Crónica")
+	if rows.is_empty():
+		_note("Todavía no ha ocurrido nada digno de la crónica.")
+	else:
+		_table(["Fecha", "Acontecimiento", "Decisión tomada"], rows, [150, 420, 320])
 
 
 var _msg: Label
