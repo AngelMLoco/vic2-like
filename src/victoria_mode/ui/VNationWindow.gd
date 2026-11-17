@@ -202,6 +202,7 @@ func _build_production() -> void:
 		["Inversión privada", "Permitida" if policy in gs.economy_rules.get("investment_policies", []) else "No permitida"],
 		["Construcción estatal / subvenciones", "%s / %s" % ["Sí" if policy in gs.economy_rules.get("government_build_policies", []) else "No", "Sí" if policy in gs.economy_rules.get("subsidy_policies", []) else "No"]],
 	], [320, 360])
+	_build_development(tag, c)
 	# proyectos
 	if not c.get("projects", []).is_empty():
 		_section("Proyectos en construcción")
@@ -211,19 +212,27 @@ func _build_production() -> void:
 			pb.value = float(pr["progress"]) * 100.0
 			pb.custom_minimum_size = Vector2(160, 14)
 			pb.show_percentage = false
+			var inv_name: String = {"capitalists": "Capitalistas", "government": "Estado", "aristocrats": "Aristócratas"}.get(String(pr["investor"]), String(pr["investor"]))
+			if pr.get("kind", "factory") == "rgo":
+				var pp := gs.province(int(pr["prov"]))
+				prow.append(["Mejoras rurales (%s)" % gs.good_name(String(pp.get("rgo", ""))), String(pp.get("name", "")), inv_name, pb])
+				continue
 			prow.append([gs.factory_types[pr["type"]]["name"] + (" (ampliación)" if pr["expand"] else ""),
-				gs.states[int(str(pr["state_key"]).split(":")[0])]["name"], "Capitalistas" if pr["investor"] == "capitalists" else "Estado", pb])
+				gs.states[int(str(pr["state_key"]).split(":")[0])]["name"], inv_name, pb])
 		_table(["Fábrica", "Estado", "Inversor", "Progreso"], prow, [260, 220, 110, 160])
 	# construir (Estado)
 	_section("Construir fábrica (Estado)")
 	var hb := HBoxContainer.new()
 	_build_type_opt = OptionButton.new()
+	var insts := gs.country_state_instances(tag)
+	var first_si: Dictionary = insts[0] if not insts.is_empty() else {}
 	var types: Array = gs.factory_types.keys()
 	types.sort()
 	for t in types:
 		var ok := VProductionSystem.can_build_type(gs, tag, t)
 		_build_type_opt.add_item("%s%s · margen %.0f/mes" % [gs.factory_types[t]["name"], "" if ok else " (requiere tecnología)", VProductionSystem.expected_margin(gs, tag, t)])
 		_build_type_opt.set_item_metadata(_build_type_opt.item_count - 1, t)
+		_build_type_opt.set_item_tooltip(_build_type_opt.item_count - 1, VInvestmentSystem.explain(gs, tag, t, first_si))
 		_build_type_opt.set_item_disabled(_build_type_opt.item_count - 1, not ok)
 	hb.add_child(_build_type_opt)
 	_build_state_opt = OptionButton.new()
@@ -269,12 +278,13 @@ func _build_production() -> void:
 	for id in gs.owned_provinces(tag):
 		var rd: Dictionary = gs.provinces[id].get("rgo_data", {})
 		var g: String = rd.get("good", gs.provinces[id]["rgo"])
-		var e: Array = by_good.get(g, [0, 0, 0, 0.0, 0.0])
+		var e: Array = by_good.get(g, [0, 0, 0, 0.0, 0.0, 0])
 		e[0] += 1
 		e[1] += int(rd.get("workers", 0))
 		e[2] += int(rd.get("max_workers", 0))
 		e[3] += float(rd.get("output", 0.0))
 		e[4] += float(rd.get("revenue", 0.0))
+		e[5] += int(gs.provinces[id].get("rgo_dev", 0))
 		by_good[g] = e
 	var keys := by_good.keys()
 	keys.sort_custom(func(a, b): return by_good[a][4] > by_good[b][4])
@@ -282,8 +292,62 @@ func _build_production() -> void:
 	for g in keys:
 		var e: Array = by_good[g]
 		grows.append([gs.good_name(g), str(e[0]), "%s / %s" % [UiTheme.fmt_big(e[1]), UiTheme.fmt_big(e[2])], "%.1f" % e[3], "%.1f" % e[4],
-			"%.2f" % VMarketSystem.price(gs, g)])
-	_table(["Bien", "Prov.", "Trabajadores / máx.", "Producción/mes", "Ingresos/mes", "Precio"], grows, [200, 50, 170, 110, 110, 70])
+			"%.2f" % VMarketSystem.price(gs, g), str(e[5])])
+	_table(["Bien", "Prov.", "Trabajadores / máx.", "Producción/mes", "Ingresos/mes", "Precio", "Mejoras"], grows, [200, 50, 170, 110, 110, 70, 70])
+
+
+## M5.5: desarrollo económico (empleo por clase, capacidad de inversión, capital, urbanización, motivos).
+func _build_development(tag: String, c: Dictionary) -> void:
+	var ps := gs.pops
+	var cls := {"rgo": [0.0, 0.0], "craftsmen": [0.0, 0.0], "clerks": [0.0, 0.0], "artisans": [0.0, 0.0], "state": [0.0, 0.0], "magi": [0.0, 0.0]}
+	var rgo_cap := 0.0
+	var urban := 0.0
+	var pop := 0.0
+	for id in c["provinces"]:
+		var p: Dictionary = gs.provinces[id]
+		rgo_cap += float(p.get("rgo_data", {}).get("max_workers", 0))
+		for s: int in p["pop_slots"]:
+			var tn: String = ps.type_names[ps.type_id[s]]
+			var sz := float(ps.size[s])
+			pop += sz
+			var k := "rgo" if tn in ["farmers", "labourers", "slaves"] else ("state" if tn in ["clergy", "bureaucrats", "soldiers", "officers"] else tn)
+			if cls.has(k):
+				cls[k][0] += sz
+				cls[k][1] += sz * (1.0 - ps.employment[s])
+			if tn in VEconomyDiagnostics.URBAN_TYPES:
+				urban += sz
+	var fac_jobs := 0
+	for si in gs.country_state_instances(tag):
+		for f in si["factories"]:
+			if f["open"]:
+				fac_jobs += int(float(gs.factory_types.get(f["type"], {}).get("workforce", {}).get("craftsmen", 9000)) * int(f["level"]))
+	var cap: Dictionary = c.get("_inv_capacity", VInvestmentSystem.capacity(gs, tag))
+	var act := VInvestmentSystem.active_counts(c)
+	var names := {"rgo": "Campesinos y jornaleros (RGO)", "craftsmen": "Obreros", "clerks": "Oficinistas", "artisans": "Artesanos", "state": "Empleo estatal", "magi": "Magos"}
+	var rows := []
+	for k in cls:
+		if float(cls[k][0]) <= 0.0:
+			continue
+		rows.append([names[k], UiTheme.fmt_big(cls[k][0]), "%.1f%%" % (float(cls[k][1]) / float(cls[k][0]) * 100.0)])
+	_section("Desarrollo económico")
+	_table(["Clase", "Personas", "Paro"], rows, [300, 120, 100])
+	var reasons: Dictionary = c.get("_inv_reasons", {})
+	var rk := reasons.keys()
+	rk.sort_custom(func(a, b): return int(reasons[a]) > int(reasons[b]))
+	var reason_names := {"policy": "la política no lo permite", "slots_full": "capacidad llena", "no_profitable": "nada rentable",
+		"insufficient_demand": "poca demanda", "input_shortage": "faltan insumos", "no_labour": "faltan trabajadores",
+		"insufficient_funds": "falta capital", "state_capacity_full": "estados sin plazas", "same_type_pending": "ya en construcción",
+		"technology_missing": "falta tecnología", "cooldown": "espera"}
+	var rtxt := []
+	for k in rk.slice(0, 3):
+		rtxt.append("%s (%d)" % [reason_names.get(k, k), int(reasons[k])])
+	_table(["Concepto", "Valor"], [
+		["Plazas RGO / plazas de fábrica", "%s / %s" % [UiTheme.fmt_big(rgo_cap), UiTheme.fmt_big(fac_jobs)]],
+		["Urbanización", "%.1f%%" % (urban / maxf(1.0, pop) * 100.0)],
+		["Capacidad de inversión (activos/máx.)", "privada %d/%d · Estado %d/%d · rural %d/%d" % [act["private"], cap.get("private", 1), act["government"], cap.get("government", 1), act["rgo"], cap.get("rgo", 1)]],
+		["Capital invertible", "capitalistas %s · aristócratas %s" % [UiTheme.fmt_money(VInvestmentSystem.capitalist_pool(gs, c)), UiTheme.fmt_money(VInvestmentSystem.aristocrat_pool(gs, c))]],
+		["Por qué no se invierte (meses)", ", ".join(rtxt) if not rtxt.is_empty() else "—"],
+	], [320, 560])
 
 
 func _fmt_stock(stock: Dictionary) -> String:
@@ -605,9 +669,20 @@ func _build_magic_society(tag: String) -> void:
 			float(cap.get("f_faith", 0)), float(cap.get("f_policy", 0)), float(cap.get("f_jobs", 1))]],
 		["Academias arcanas", str(VMageModel.academies(gs, tag))],
 		["Empleo", "fábricas %s · Estado y práctica privada %s · paro %.0f%%" % [UiTheme.fmt_int(int(info.get("private_jobs", 0))), UiTheme.fmt_int(int(info.get("state_jobs", 0))), float(info.get("unemployment", 0.0)) * 100.0]],
+		["Economía mágica", _magic_economy_text(tag)],
 		["Último año", "formados %s · degradados %s · emigrados %s · inmigrados %s" % [UiTheme.fmt_int(int(st.get("promoted_y", 0))), UiTheme.fmt_int(int(st.get("demoted_y", 0))), UiTheme.fmt_int(int(st.get("emigrated_y", 0))), UiTheme.fmt_int(int(st.get("immigrated_y", 0)))]],
 	], [260, 620])
 	_note("Los magos tienden a la capacidad que el país puede sostener (población, ramas mágicas, alfabetización, potencial de sus tierras, religión y cultura, política y empleo). Sin plazas en fábricas mágicas, academias, administración, ejército o práctica privada quedan en paro, se radicalizan o emigran a países que los atraen.")
+
+
+func _magic_economy_text(tag: String) -> String:
+	var nf := int(VEventConditions.country_num(gs, tag, VEventConditions.CNUM_FIELDS.find("magic_factories")))
+	var deps := VMagicSystem.country_deposit_provinces(gs, tag).size()
+	var short := []
+	for g in ["mana_crystal", "arcane_reagents", "enchanted_components", "alchemical_elixir"]:
+		if VMarketSystem.is_available(gs, g) and VMarketSystem.fill_buy(gs, tag, g) < 0.8:
+			short.append("%s %.0f%%" % [gs.good_name(g), VMarketSystem.fill_buy(gs, tag, g) * 100.0])
+	return "fábricas mágicas %d · yacimientos %d · escasez: %s" % [nf, deps, ", ".join(short) if not short.is_empty() else "ninguna"]
 
 
 const _DECISION_CATS := {"industrial": "Industria", "political": "Política", "diplomatic": "Diplomacia", "military": "Ejército", "magic": "Arcano"}
