@@ -495,3 +495,108 @@ fábricas, mediana de precios 0,80, 110 guerras, 14 facciones rebeldes con riesg
   llega a 0,31 y las necesidades vitales bajan a 0,57. Con ello vuelve el riesgo rebelde (50 de 85 naciones
   en el año 100), aunque la militancia sigue repartida: mediana 0,47 y 55 naciones por debajo de 1. Es un
   problema del modelo económico a 100 años, no de M5.
+
+## M5.5 — Economía de largo plazo y transición industrial
+
+### Comandos
+
+```
+godot --headless --path . res://tests/VictoriaEconomicLongRunTest.tscn -- 100   # diagnóstico económico (0/25/50/75/100) y línea cada 5 años
+VBAL_EVENTS=0   godot … VictoriaEconomicLongRunTest.tscn -- 100                 # control: economía base (sin eventos ni magia)
+VBAL_NO_MAGIC=1 godot … VictoriaEconomicLongRunTest.tscn -- 100                 # control: eventos sin magia
+godot --headless --path . res://tests/VictoriaInvestmentTest.tscn               # capacidad, paralelos, mismo tipo, plazas, desarrollo rural, crecimiento gradual
+godot --headless --path . res://tests/VictoriaMagicEconomyTest.tscn -- [meses]  # cadena cristal → reactivos → refinería → empleo de magos
+```
+
+Cada punto de control del largo plazo informa de:
+
+* trabajo por clase con plazas y paro (RGO, fábricas, oficinistas, artesanos, Estado, magos);
+* fábricas y niveles, utilización y particiones llenas;
+* proyectos por año (privados, del Estado, rurales, nuevas, ampliaciones);
+* capital de capitalistas y aristócratas, y motivos por los que no se invierte;
+* déficit de necesidades vitales de los pobres repartido en paro, salarios y escasez;
+* renta por tipo de POP;
+* escaseces y excedentes;
+* 10 países con más paro, más industrializados y más pobres;
+* migración y flujos de dinero.
+
+### Pruebas (0 fallos)
+
+| Escena | Comprobaciones | Qué cubre |
+|---|---|---|
+| VictoriaInvestmentTest | 28 | Una potencia tiene más capacidad que una nación pequeña; varios proyectos con techo; capacidades estatal y rural separadas; mismo tipo en los estados B y C a la vez, pero no dos en el mismo; planes sin estado+tipo repetidos y con margen positivo; plazas por estado que crecen con la infraestructura; mejora rural con paro rural y aristócratas, más plazas tras ella y límite por provincia; inicios por año acotados con capital ilimitado; la industria no se duplica en un año; auditoría monetaria |
+| VictoriaMagicEconomyTest | 6 | Con rama, yacimientos, academias, magos y capital: cristal al mercado; demanda de reactivos; la IA inicia una refinería sin forzarla (mes 1); producción de reactivos; magos empleados en la fábrica; localización junto al yacimiento |
+| Resto | — | Sin regresiones (ver la tabla de M5) |
+
+### Antes y después a 100 años (`VictoriaEconomicLongRunTest`)
+
+«Antes» es M5 (`79bfbca`); para el año 100 se usa el largo plazo de M5. «Después» es M5.5 en la corrida
+normal.
+
+| Año | Población | Paro | Necesidades vitales | Riesgo rebelde | Fábricas | Plazas RGO | Fábricas mágicas |
+|---|---|---|---|---|---|---|---|
+| 25 antes | 818 M | 6 % | 0,82 | 1 | 333 | 733 M | 0 |
+| 25 después | 801 M | 3,7 % | 0,88 | 1 | 346 | 756 M | 0 |
+| 50 antes | 944 M | 13 % | 0,73 | 6 | 502 | 760 M | 1 |
+| 50 después | 925 M | 7,3 % | 0,85 | 3 | 809 | 830 M | 13 |
+| 75 antes | 1097 M | 22 % | 0,66 | 25 | 628 | 771 M | 6 |
+| 75 después | 994 M | 8,6 % | 0,72 | 12 | 1240 | 870 M | 14 |
+| 100 antes | 1231 M | 31 % | 0,57 | 50 de 85 | — | ≈ 770 M | 4–5 |
+| 100 después | 1101 M | 10,8 % | 0,81 | 31 de 86 | 1423 | 922 M | 18 |
+
+Corridas de control en el año 100:
+
+| Control | Paro | Necesidades vitales | Riesgo rebelde | Fábricas | Mediana de precios |
+|---|---|---|---|---|---|
+| Sin eventos ni magia | 11 % | 0,81 | 26/86 | 1669 | 0,26 |
+| Eventos sin magia | 10 % | 0,85 | 25/86 | 1279 | 0,34 |
+| Normal | 10,8 % | 0,81 | 31/86 | 1423 | 0,32 |
+
+La economía de base explica casi todo. Eventos y magia no cambian el resultado económico de forma apreciable.
+
+### Proyectos por año (corrida normal)
+
+| Año | Privados | Estado | Rurales | Fábricas nuevas | Ampliaciones |
+|---|---|---|---|---|---|
+| 25 | 13 | 4 | 18 | 11 | 4 |
+| 50 | 11 | 19 | 30 | 21 | 7 |
+| 100 | 7 | 15 | 34 | 15 | 7 |
+
+Sin proyectos estancados.
+
+### Lo que se midió antes de cambiar nada (M5, 25/50/75 años)
+
+* **Trabajo.** Los trabajadores rurales pasan de 627 a 930 M y las plazas RGO de 706 a 770 M: paro rural del
+  25 %. Las fábricas tienen unos 8 M de plazas y la urbanización es del 4 %.
+* **Inversión privada.** No ocurre el 85–89 % de los meses-nación por política (países no civilizados o con
+  política sin inversión privada).
+* **Capital.** Los aristócratas acumulan 19,8 M sin invertir, frente a 4,1 M de los capitalistas.
+* **Déficit de necesidades vitales en el año 75:** 51 % escasez de materias primas (a ×4), 42 % salarios bajos
+  y 8 % paro.
+* **Magia.** 0 % de llenado de los bienes mágicos y 1–6 fábricas mágicas.
+
+### Diagnóstico de la deflación tardía (abierto)
+
+* La masa monetaria no se encoge: llega a 40–48 M en el año 75, desde 4 M. Los flujos del libro de dinero
+  cuadran (residuo < 0,01 %).
+* La mediana de precios cae al suelo (×0,25–0,35) entre los años 60 y 75 porque la producción —RGO
+  desarrollado, eficiencia tecnológica, fábricas y artesanos— crece más deprisa que la demanda. Esta depende
+  de cestas fijas por persona y solo los ricos amplían el lujo.
+* El bienestar real se mantiene (necesidades vitales 0,81–0,85), pero la renta nominal de campesinos y
+  obreros es muy baja y las señales de precio pierden resolución.
+* Solución pendiente: demanda que crezca con la renta (cestas por tramos de riqueza) o salida de producción
+  de los productores no rentables.
+
+### Rendimiento
+
+| Benchmark de 10 años (mismo equipo, libre) | Media | Tramo 5→10 |
+|---|---|---|
+| M5 | 9,38 s/año | 9,47 s/año |
+| M5.5 | 9,70 s/año | 10,2 s/año |
+
+La economía cuesta unos +0,3 s/año: inversión, desarrollo rural, recorte de salarios y transición
+demográfica. El diagnóstico pesado solo lo ejecutan las pruebas. En las corridas de 100 años con tres procesos
+en paralelo, la media es de 10,6–12,7 s/año; no es una medida limpia.
+
+El balance de 50 años (`VictoriaBalanceTest -- 50`) da 0 problemas: población 925 M, vida 0,85, paro 0,07,
+809 fábricas y mediana de precios 0,77.

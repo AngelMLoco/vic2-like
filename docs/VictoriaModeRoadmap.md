@@ -147,7 +147,26 @@ Pendiente (no es de este milestone):
 * colonización profunda;
 * ilustraciones (el manifiesto ya describe los encargos).
 
+## M5.5 — Economía de largo plazo y transición industrial — completada
+
+* **Diagnóstico económico** (`VEconomyDiagnostics`, solo pruebas) y motivos de no inversión.
+* **Desarrollo rural (RGO):** separa tamaño y eficiencia, lo financian aristócratas o el Estado y tiene límite
+  por provincia.
+* **Inversión por capacidad:** proyectos privados en paralelo según tamaño, capitalistas y capital;
+  capacidad estatal propia con programa contra el paro; duplicados por estado y tipo; plazas de fábrica
+  por estado definidas en datos; puntuación con escasez, tendencia, paro y urbanización; saturación mundial;
+  subvenciones temporales; crecimiento gradual.
+* **Economía mágica con consumidores reales:** academias que consumen reactivos e industrias corrientes que
+  usan componentes y reactivos. Hay fábricas mágicas sin forzarlas (18 en el año 100).
+* **Transición demográfica**, salarios sin dinero impreso y consumo de la riqueza.
+* **Resultado a 100 años:** paro del 31 % al 10,8 %, necesidades vitales de 0,57 a 0,81 y riesgo rebelde de
+  50/85 a 31/86.
+* **Pendiente:** deflación nominal tardía (precios hacia el suelo tras unos 70 años) y riesgo rebelde aún en
+  un tercio de las naciones a 100 años, ligado a la conciencia y no a la economía.
+
 ## Siguiente paso (milestone 6)
+
+* Antes del mundo de fantasía: demanda que crezca con la renta (deflación nominal tardía).
 
 * Introducir el lore definitivo en el paquete `fantasy`: mundo, eras, naciones, religiones con su actitud
   mágica y culturas con su tradición.

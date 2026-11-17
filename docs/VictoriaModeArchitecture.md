@@ -666,3 +666,119 @@ La interfaz (Política → Crónica) filtra por categoría y muestra «Año 143 
   de datos. `tools/art_manifest.py` rellena qué eventos usa cada categoría.
 * **Métricas de eventos.** Por tipo, jugador (ventanas mayores y normales, notificaciones, ocultos), IA
   (visibles u ocultos), espacio de nombres y categoría (`event_state.stats`).
+
+## M5.5 — Economía de largo plazo y transición industrial
+
+### Diagnóstico (antes de cambiar reglas)
+
+`economy/VEconomyDiagnostics.gd` hace una instantánea del mundo: trabajo por clase con plazas y paro (RGO,
+fábricas, oficinistas, artesanos, Estado, magos), fábricas y niveles, utilización, particiones llenas,
+proyectos, capital de capitalistas y aristócratas, salarios por tipo de POP, descomposición del déficit de
+necesidades vitales de los pobres, 10 escaseces, rankings por país y migración.
+
+Recorre todo el mundo, así que **solo lo usan pruebas y depuración**. En partida solo hay contadores baratos:
+
+* `note_reason`: motivo de cada mes-nación sin inversión privada (política, capacidad llena, nada rentable,
+  poca demanda, faltan insumos, falta mano de obra, falta capital, estados sin plazas, falta tecnología).
+* `note_stat`: proyectos iniciados, completados y abandonados por tipo de inversor.
+
+Hallazgos del modelo M5 a 100 años:
+
+1. **El RGO es el gran empleador y su capacidad era fija.** `base_size` sale de los trabajadores iniciales.
+   En 75 años los trabajadores rurales pasan de 627 a 930 M y las plazas de 706 a 770 M: paro rural del 25 %.
+2. **La industria apenas absorbe población.** Hay unos 8 M de plazas de obrero frente a 930 M de campesinos,
+   y la urbanización es del 4 %. Aunque se duplique, no resuelve el paro.
+3. **La inversión privada no ocurre el 85–89 % de los meses-nación por política.** Son países no civilizados
+   o con políticas sin inversión privada. Además había un único enfriamiento nacional de 3 meses, un solo tipo
+   bloqueaba todo el país, y el límite de 6 fábricas por partición estaba oculto en el código.
+4. **El déficit de necesidades vitales** (0,66 en el año 75) es un 51 % escasez de materias primas (a ×4 de
+   precio) y un 42 % salarios bajos. Con el RGO fijo, la oferta primaria no sigue a la demanda.
+5. **Los aristócratas acumulan capital ocioso:** 19,8 M frente a 4,1 M de los capitalistas.
+6. **La cadena mágica no tenía consumidores finales relevantes.** Solo la necesidad diaria de los magos: unos
+   15 reactivos al mes en todo el mundo, lo que equivale a 1–2 niveles de refinería.
+
+### Desarrollo rural (RGO)
+
+* `p["rgo_dev"]` (se guarda; sin él vale 0) es el nivel de mejoras rurales de la provincia. Cada nivel suma
+  +15 % de plazas (**tamaño**) y +2 % de productividad (**eficiencia**). Son dos cosas distintas: las
+  tecnologías agrícolas dan eficiencia sin crear plazas, y las mejoras crean plazas.
+* **Límite por provincia:** `max_base` + infraestructura × `max_per_infrastructure` + modificador
+  `rgo_development_max` (tecnologías agrícolas). Así el campo ayuda pero no absorbe todo el paro: sigue
+  habiendo sobrepoblación rural que empuja a migrar e industrializarse.
+* **Financiación.** Los aristócratas financian la mejora: es su papel inversor, en el campo y no en fábricas.
+  Si no pueden, la hace el Estado con política de construcción estatal. Se exige:
+  * paro rural ≥ 8 %;
+  * un RGO rentable (renta por trabajador ≥ coste de vida);
+  * demanda del bien (escasez, tendencia o precio medio ≥ 85 % del base).
+* **Coste.** Bienes de construcción (madera, fertilizante, maquinaria) proporcionales al tamaño del RGO. El
+  capital sale de los inversores (`VMoney.destroyed("investment")`) y los bienes se compran al mercado mientras
+  dura el proyecto.
+
+### Inversión por capacidad (`economy/VInvestmentSystem.gd`)
+
+* **Capacidad privada.** Son los proyectos simultáneos: 1 + niveles de fábrica / 25 + capitalistas / 40 000 +
+  capital / 3000, con un techo de 10, multiplicado por (1 + `investment_capacity`).
+  * Una nación pequeña tiene 1 proyecto y una potencia industrial, 3–10.
+  * Los inicios por mes son 1 + capacidad / 4.
+  * Los inicios por año no pasan de max(3, niveles × 12 %): crecimiento gradual, sin explosión industrial.
+* **Capacidad estatal (independiente).** Un proyecto privado no bloquea uno del Estado. Con paro ≥ 8 % el
+  Estado lanza un **programa industrial** reservando solo 6 meses de gasto en vez de 12. Respeta insumos,
+  demanda y tecnología.
+* **Capacidad rural:** 1 + provincias / 20 (máximo 5).
+* **Duplicados por estado y tipo.** Puede haber una acería en el estado A y otro proyecto de acería en el B.
+  En cada estado entra como mucho una fábrica nueva por mes, porque la mano de obra es local.
+* **Puntuación de una fábrica nueva:** margen esperado con precios medios de 6 meses × (1 + escasez + tendencia
+  de 6 frente a 12 meses + presión de paro local y nacional + urbanización + bonos de la industria mágica).
+  * **Sin margen positivo no se construye.** El paro acelera, pero no justifica fábricas absurdas.
+  * La demanda futura cuenta con medias y tendencias, no con una subida de un mes.
+* **Mano de obra real:**
+  * obreros parados;
+  * 10 % del paro rural y 1,2 % de los campesinos alfabetizados (el campo solo llega a la fábrica por
+    promoción, que es lenta);
+  * menos las vacantes que ya existen y los obreros que reservan los proyectos en construcción del estado;
+  * no se construye donde las fábricas aún no encuentran obreros;
+  * las fábricas mágicas cuentan además los magos parados.
+* **Plazas de fábrica por partición (regla de datos):** `base` + infraestructura × `per_infrastructure` +
+  urbanización × `per_urbanisation` + `state_factory_slots` (tecnología), con un máximo de 14.
+* **Subvenciones (IA).** Se dan durante 12 meses a fábricas con pérdidas pero cerca de la rentabilidad y con
+  plantilla, si el tesoro está sano. Se retiran al vencer o si la fábrica es inviable.
+* **Proyectos estancados.** Si los bienes de construcción no llegan, se cuentan; a los 24 meses el proyecto se
+  abandona.
+* **El jugador** usa las mismas reglas con `government_build`: plazas del estado y un proyecto por estado y
+  tipo. El desplegable de construcción explica cada fábrica (margen, demanda, insumos, trabajadores, paro
+  local, plazas).
+
+### Economía mágica con consumidores reales
+
+* **Academias:** consumen reactivos arcanos (3 al mes por academia), pagados con el presupuesto de educación.
+* **Industria corriente con insumos mágicos:**
+  * `arcane_machine_works`: componentes encantados + acero → maquinaria, más barata que la convencional;
+  * `alchemical_fertilizer_works`: reactivos + azufre → fertilizante, que piden las mejoras rurales.
+
+  Es demanda aguas abajo real: la magia entra en la industria y en el campo.
+* **Inversión mágica.** Tiene bonos por paro de magos, academias, yacimientos y rama económica, pero exige
+  viabilidad. Se localiza en estados con yacimientos, magos e infraestructura.
+
+### Correcciones que salieron de las corridas largas (M5.5)
+
+Con la economía ya respondiendo, las corridas de 100 años destaparon tres cuellos más. Ninguno se resolvió
+tocando la militancia.
+
+1. **Equilibrio malthusiano demasiado bajo.** El crecimiento solo se detiene con necesidades vitales ≈ 0,45.
+   Al mejorar la economía, la población llegaba a 1,6–1,9 mil millones en 100 años y el paro volvía al 25 %.
+   Se añade una **transición demográfica**: el crecimiento positivo se multiplica por
+   (1 − `demographic_transition` × alfabetización). La mortalidad por pobreza y la realimentación por
+   necesidades vitales no cambian, y no hay tope de población.
+2. **Dinero impreso por fábricas en pérdidas.** El déficit de caja se «perdonaba» creando dinero. Ahora una
+   fábrica sin caja y sin subvención recorta los salarios a lo que cubren sus ventas y su caja
+   (`f["wage_cut"]`).
+3. **Atesoramiento.** Los depósitos de clases media y alta solo crecían, y el dinero salía de la circulación.
+   `bank_dissaving` devuelve cada mes el 1 % de los depósitos al efectivo (consumo de la riqueza).
+
+Además, las mejoras rurales exigen ahora un precio medio ≥ al base (`min_price_ratio` 1,0): con 0,85
+producían excedentes de bienes primarios.
+
+**Problema que sigue abierto.** El nivel de precios nominal tiende al suelo (×0,25–0,35) pasados unos 70
+años, porque la capacidad productiva crece más deprisa que la demanda (cestas fijas por persona). El
+bienestar real se mantiene (necesidades vitales 0,81–0,85), pero las señales de precio pierden resolución.
+Ver el informe de pruebas M5.5.

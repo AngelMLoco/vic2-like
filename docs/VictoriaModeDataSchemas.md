@@ -385,3 +385,52 @@ postura de cada ideología está en `ideologies.json` → `issues.magic_policy` 
 
 Ids de eventos con espacio de nombres, reforma `magic_regulation`, `magic_stats` y `rivals` por nación, y
 escenario y paquetes en la cabecera. Las partidas v5 se rechazan.
+
+## M5.5 — Economía de largo plazo
+
+### `economy/economy_rules.json`
+
+* `investment` (`VInvestmentSystem`):
+
+  | Grupo | Claves | Uso |
+  |---|---|---|
+  | Capacidad privada | `levels_per_slot`, `capitalists_per_slot`, `capital_per_slot`, `max_private` | Proyectos simultáneos de capitalistas |
+  | Inicios | `slots_per_extra_start` (inicios por mes), `min_starts_year`, `max_growth_year` (techo anual = max(mínimo, niveles × crecimiento)) | Ritmo de nuevos proyectos |
+  | Estado | `gov_levels_per_slot`, `gov_treasury_per_slot`, `max_government` | Capacidad estatal |
+  | Programa industrial | `gov_unemployment_threshold`, `gov_reserve_months`, `gov_reserve_months_crisis` | Respuesta del Estado al paro |
+  | Rural | `provinces_per_rgo_slot`, `max_rgo` | Capacidad de desarrollo rural |
+  | Mano de obra | `states_considered`, `min_labour_pool`, `rural_labour_share`, `literate_rural_share` | Trabajadores disponibles por estado |
+  | Puntuación | `weight_unemployment`, `weight_shortage`, `weight_urbanisation`, `magic_unemployment_bonus` | Pesos del score de inversión |
+  | Subvenciones | `subsidy_reserve_months`, `subsidy_months`, `subsidy_margin_tolerance` | IA de subvenciones temporales |
+
+* `state_factory_slots`: `base`, `per_infrastructure`, `per_urbanisation`, `max`. Plazas de fábrica por
+  partición de estado.
+* `rgo_development`: `size_per_level`, `efficiency_per_level`, `max_base`, `max_per_infrastructure`,
+  `min_rural_unemployment`, `min_profit_ratio`, `min_price_ratio`, `aristocrat_capital_ratio`, `cost_goods`
+  {bien: cantidad por cada `cost_size_unit` de tamaño del RGO}.
+* Retirados: `investment_cooldown_months` y `factories_per_parallel_project`.
+
+### Modificadores nuevos (tecnologías, reformas, eventos)
+
+* `investment_capacity`: multiplica la capacidad privada.
+* `state_factory_slots`: plazas de fábrica adicionales por estado.
+* `rgo_development_max`: niveles adicionales de mejora rural.
+
+Se asignan, entre otras, a molinos de agua, química agrícola, conservación de alimentos, talleres mecánicos,
+química industrial, siderurgia y regulación del mercado.
+
+### Estado nuevo
+
+* `province.rgo_dev`: nivel de mejoras rurales. Se guarda; si falta vale 0.
+* Proyectos: `kind` (`factory` | `rgo`), `prov` (si es rural), `investor` (`capitalists` | `government` |
+  `aristocrats`) y `stalled_months`.
+* Derivados, no guardados: `_inv_capacity`, `_inv_reasons`, `_inv_stats`, `_factory_levels`,
+  `_capital_pool`, `_starts_year` y `si._urban`.
+
+El guardado sigue siendo **v6**: todo lo nuevo tiene valores por defecto compatibles.
+
+### Fábricas y magia
+
+* `arcane_machine_works` (componentes encantados + acero → maquinaria).
+* `alchemical_fertilizer_works` (reactivos + azufre → fertilizante).
+* `magic_rules.mage_model.academy_reagents`: reactivos que consume cada academia al mes.
