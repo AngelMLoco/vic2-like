@@ -259,6 +259,7 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var budget: Dictionary = c["budget"]
 	var bank_c: Dictionary = c["bank"]
 	var deposit_share := float(gs.economy_rules.get("bank_deposit_share", 0.05))
+	var dissave := float(gs.economy_rules.get("bank_dissaving", 0.0))
 	# alias locales de los arrays (referencias: leer/escribir sin búsquedas)
 	var a_type := ps.type_id
 	var a_size := ps.size
@@ -299,6 +300,7 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var drift := 0.03 * float(mods.get("ideology_drift", 1.0))
 	var socialist := 1.0 + float(mods.get("socialist_drift", 0.0))
 	var growth_mod := float(mods.get("pop_growth", 0.0))
+	var demo_transition := float(gs.economy_rules.get("demographic_transition", 0.0))
 	# cansancio bélico → militancia (hook del milestone 3)
 	var war_mil := float(c.get("war_exhaustion", 0.0)) / 100.0 * 0.05
 	# modificadores temporales (eventos): de nación (parte de mods, separada para el diagnóstico) y de provincia
@@ -457,6 +459,13 @@ static func process_province(gs: VGameState, id: int) -> void:
 				a_bank[s] += dep
 				cash -= dep
 				bank_c["deposits"] = float(bank_c["deposits"]) + dep
+			# M5.5: consumo de la riqueza: cada mes se retira una parte de los depósitos al efectivo (que se gasta).
+			# Sin esto los depósitos crecían sin límite, el dinero salía de la circulación y los precios se hundían.
+			if dissave > 0.0 and a_bank[s] > 0.0:
+				var wd := a_bank[s] * dissave
+				a_bank[s] -= wd
+				cash += wd
+				bank_c["deposits"] = maxf(0.0, float(bank_c["deposits"]) - wd)
 		a_cash[s] = cash
 		var lux: float = minf(1.0, s2)
 		a_life[s] = s0
@@ -472,6 +481,10 @@ static func process_province(gs: VGameState, id: int) -> void:
 			a_um[s] = 0
 		if do_slow:
 			var annual: float = 0.012 * clampf((life - 0.45) / 0.55, -1.5, 1.0) + (lr - 25.0) * 0.0004 + growth_mod
+			# M5.5: transición demográfica: una población alfabetizada tiene menos hijos (solo frena el crecimiento
+			# positivo; la mortalidad por pobreza y la realimentación por necesidades vitales no cambian)
+			if annual > 0.0:
+				annual *= 1.0 - demo_transition * a_lit[s]
 			if life < 0.25:
 				annual -= 0.02
 			a_size[s] = maxi(1, int(round(float(a_size[s]) * (1.0 + annual / 6.0))))

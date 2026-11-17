@@ -383,7 +383,7 @@ static func _scale_population(gs: VGameState, tag: String, prov: int, factor: fl
 static func _build_factory(gs: VGameState, tag: String, ftype: String) -> void:
 	var instances := gs.country_state_instances(tag)
 	for si in instances:
-		if si["factories"].size() < 6:
+		if si["factories"].size() < VInvestmentSystem.state_slots(gs, si):
 			var err := VProductionSystem.government_build(gs, tag, si["key"], ftype)
 			if err == "":
 				return

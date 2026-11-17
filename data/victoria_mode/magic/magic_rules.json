@@ -82,7 +82,8 @@
    "jobs_weight": 0.8,
    "practice_share": 0.00012,
    "practice_pay": 0.6,
-   "unemployment_demotion": 0.35
+   "unemployment_demotion": 0.35,
+   "academy_reagents": 3.0
   }
  }
 }

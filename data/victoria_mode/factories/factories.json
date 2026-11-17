@@ -511,6 +511,56 @@
     "glass": 12
    },
    "_prototype": true
+  },
+  {
+   "id": "arcane_machine_works",
+   "name": "Talleres mecánicos arcanos",
+   "inputs": {
+    "enchanted_components": 0.3,
+    "steel": 2.0
+   },
+   "outputs": {
+    "machine_parts": 1.4
+   },
+   "requires_tech": "arcane_engineering",
+   "artisan": false,
+   "workforce": {
+    "craftsmen": 8000,
+    "clerks": 1500,
+    "magi": 800
+   },
+   "build_cost": {
+    "lumber": 40,
+    "cement": 6,
+    "glass": 10
+   },
+   "_prototype": true,
+   "_doc": "M5.5: la magia entra en la industria corriente. Los componentes encantados abaratan la maquinaria (demanda aguas abajo real de la cadena arcana)."
+  },
+  {
+   "id": "alchemical_fertilizer_works",
+   "name": "Fertilizantes alquímicos",
+   "inputs": {
+    "arcane_reagents": 0.25,
+    "sulphur": 0.2
+   },
+   "outputs": {
+    "fertilizer": 1.4
+   },
+   "requires_tech": "alchemical_medicine",
+   "artisan": false,
+   "workforce": {
+    "craftsmen": 8000,
+    "clerks": 1500,
+    "magi": 500
+   },
+   "build_cost": {
+    "lumber": 30,
+    "cement": 8,
+    "glass": 10
+   },
+   "_prototype": true,
+   "_doc": "M5.5: los reactivos arcanos fertilizan el campo; el fertilizante lo piden las mejoras rurales (desarrollo del RGO)."
   }
  ]
 }

@@ -237,7 +237,8 @@
    ],
    "effects": {
     "factory_efficiency": 0.05,
-    "admin_efficiency": 0.1
+    "admin_efficiency": 0.1,
+    "investment_capacity": 0.2
    },
    "unlocks_factories": [],
    "description": ""
@@ -342,7 +343,8 @@
    "prerequisites": [],
    "effects": {
     "factory_efficiency": 0.05,
-    "rgo_efficiency": 0.05
+    "rgo_efficiency": 0.05,
+    "rgo_development_max": 1
    },
    "unlocks_factories": [],
    "description": ""
@@ -357,7 +359,8 @@
     "water_mills"
    ],
    "effects": {
-    "factory_efficiency": 0.05
+    "factory_efficiency": 0.05,
+    "state_factory_slots": 1
    },
    "unlocks_factories": [
     "steel_mill"
@@ -374,7 +377,8 @@
     "steel_making"
    ],
    "effects": {
-    "factory_efficiency": 0.05
+    "factory_efficiency": 0.05,
+    "state_factory_slots": 1
    },
    "unlocks_factories": [
     "cement_factory",
@@ -392,7 +396,8 @@
     "water_mills"
    ],
    "effects": {
-    "rgo_efficiency": 0.05
+    "rgo_efficiency": 0.05,
+    "rgo_development_max": 1
    },
    "unlocks_factories": [
     "canned_food_factory"
@@ -409,7 +414,8 @@
     "industrial_chemistry"
    ],
    "effects": {
-    "rgo_size": 0.1
+    "rgo_size": 0.1,
+    "rgo_development_max": 1
    },
    "unlocks_factories": [
     "fertilizer_factory"
@@ -426,7 +432,9 @@
     "agricultural_chemistry"
    ],
    "effects": {
-    "factory_efficiency": 0.1
+    "factory_efficiency": 0.1,
+    "state_factory_slots": 1,
+    "investment_capacity": 0.2
    },
    "unlocks_factories": [
     "machine_parts_factory"

@@ -377,6 +377,14 @@ static func _state_posts(gs: VGameState, tag: String, c: Dictionary, magi: float
 			+ split["military_wages"] * VBudgetSystem.gov_pay_factor(c, "military")
 			+ split["practice"] * float(r.get("practice_pay", 0.6)))
 	c["_magi_state"] = {"fill": fill, "pay": pay, "split": split, "posts": posts, "practice": prac}
+	# M5.5: las academias consumen reactivos arcanos (laboratorios); lo paga el presupuesto de educación
+	if ac > 0 and VMarketSystem.is_available(gs, "arcane_reagents"):
+		var q := float(ac) * float(r.get("academy_reagents", 3.0))
+		VMarketSystem.add_demand(gs, tag, "arcane_reagents", q)
+		var cost := q * VMarketSystem.fill_buy(gs, tag, "arcane_reagents") * VMarketSystem.buy_price(gs, tag, "arcane_reagents")
+		if cost > 0.0:
+			VMoney.destroyed(gs, cost, "academy_supplies")
+			VBudgetSystem.add_expense(gs, tag, "education", cost)
 	# investigación arcana: magos de las academias efectivamente empleados
 	c["_magi_research"] = minf(edu, remaining) * float(r.get("academy_research", 2.0))
 
