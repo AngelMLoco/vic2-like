@@ -637,11 +637,12 @@ func _build_politics() -> void:
 		if float(mv["support"]) < 0.002 and float(mv["radicalism"]) < 0.01:
 			continue
 		mrows.append([mv["name"], "%.1f%%" % (float(mv["support"]) * 100.0), "%.0f%%" % (float(mv["organisation"]) * 100.0),
-			_colored("%.0f%%" % (float(mv["radicalism"]) * 100.0), float(mv["radicalism"]) < 0.5), "¡Riesgo de rebelión!" if mv.get("rebel_risk", false) else ""])
+			_colored("%.0f%%" % (float(mv["radicalism"]) * 100.0), float(mv["radicalism"]) < 0.5), ["", "Movimiento reformista", "Agitación", "¡Riesgo de rebelión!"][clampi(int(mv.get("level", 3 if mv.get("rebel_risk", false) else 0)), 0, 3)]])
 	if mrows.is_empty():
 		_note("No hay movimientos significativos: la población tiene poca conciencia política o sus demandas ya están satisfechas.")
 	else:
 		_table(["Movimiento", "Apoyo", "Organización", "Radicalismo", ""], mrows, [300, 80, 110, 100, 160])
+	_note("Cauce político %.0f%% (voto, prensa, reunión, partidos): con cauce la presión se canaliza; con represión, el radicalismo crece más deprisa. El riesgo de rebelión exige además partidarios militantes." % (float(_country().get("_political_outlet", 0.0)) * 100.0))
 	_note("Un movimiento reúne a los POPs con conciencia ≥ 1,5 que desean más de una reforma (según sus issues). Si se ignora gana organización y radicalismo, que eleva la militancia de sus partidarios. Conceder la reforma lo desactiva. Las rebeliones armadas llegarán con el milestone militar.")
 	_build_magic_society(tag)
 	_build_decisions(tag)
