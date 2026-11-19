@@ -164,9 +164,33 @@ Pendiente (no es de este milestone):
 * **Pendiente:** deflación nominal tardía (precios hacia el suelo tras unos 70 años) y riesgo rebelde aún en
   un tercio de las naciones a 100 años, ligado a la conciencia y no a la economía.
 
-## Siguiente paso (milestone 6)
+## M5.6 — Demanda, precios y madurez política — completada
 
-* Antes del mundo de fantasía: demanda que crezca con la renta (deflación nominal tardía).
+* **Liquidación de compras:** lo pagado por bienes que no llegaron vuelve a los POPs compradores. Era la
+  causa raíz de la deflación tardía: el dinero se destruía.
+* **Demanda por renta (Engel)** con elasticidad por nivel y saturación.
+* **Utilización del RGO** según el precio relativo y el exceso de oferta mundial.
+* Las fábricas en pérdidas con salarios recortados ya cierran.
+* **Conciencia ≠ revuelta:** niveles presión, agitación y riesgo. El riesgo exige partidarios militantes;
+  el cauce político frena la radicalización.
+* **Empleo estatal funcional:** clero, burócratas, soldados y oficiales según educación, administración y
+  ejército real.
+* **Resultado a 100 años (normal):**
+
+  | Métrica | Antes | Después |
+  |---|---|---|
+  | Mediana de precios | 0,34 | 1,04 |
+  | Bienes en el suelo | 15/43 | 3/43 |
+  | Naciones con riesgo de revuelta | 31 | 2 |
+  | Facciones | 65 | 20 |
+  | Empleo estatal | 108 M | 68 M |
+
+* **Pendiente:**
+  * paro del 14 % (artesanos con un 40 % de paro);
+  * excedentes de bienes militares y mágicos;
+  * topes de reforma por tipo de gobierno, que bloquean el cauce político en los Estados absolutistas.
+
+## Siguiente paso (milestone 6)
 
 * Introducir el lore definitivo en el paquete `fantasy`: mundo, eras, naciones, religiones con su actitud
   mágica y culturas con su tradición.

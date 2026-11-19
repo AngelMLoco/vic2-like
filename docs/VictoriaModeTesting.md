@@ -600,3 +600,84 @@ en paralelo, la media es de 10,6–12,7 s/año; no es una medida limpia.
 
 El balance de 50 años (`VictoriaBalanceTest -- 50`) da 0 problemas: población 925 M, vida 0,85, paro 0,07,
 809 fábricas y mediana de precios 0,77.
+
+## M5.6 — Demanda, precios y madurez política
+
+### `VictoriaDemandPoliticsTest` (21 comprobaciones)
+
+```
+godot --headless --path . res://tests/VictoriaDemandPoliticsTest.tscn
+```
+
+* **Engel:** el lujo crece más que el diario y el diario más que la vida; hay saturación; con el mismo efectivo,
+  el POP de renta alta gasta más.
+* **Oferta:**
+  * con exceso de oferta, la utilización del RGO baja despacio y hay menos plazas;
+  * con escasez no cae;
+  * se recupera;
+  * tiene un mínimo.
+* **Revuelta A/B:** conciencia 7 con militancia 0,5 da presión pero no riesgo. Con partidarios militantes,
+  radicalismo y organización sí hay riesgo.
+* **Cauce político:** con la misma demanda, la represión radicaliza más deprisa que la libertad de prensa,
+  reunión y partidos.
+* **Empleo estatal:**
+  * menos clero con alfabetización alta;
+  * soldados según las brigadas;
+  * burócratas según el presupuesto;
+  * salida gradual del sobrante.
+* **Liquidación:** lo pagado sin recibir vuelve a los POPs y la masa monetaria cuadra.
+
+### Largo plazo (`VictoriaEconomicLongRunTest -- 100`)
+
+Las columnas «antes» son `3a7241d` con los diagnósticos de M5.6 (corrida normal). Los precios son la mediana
+sobre bienes con demanda.
+
+| Año 100 | Antes | Normal | Sin eventos | Sin magia |
+|---|---|---|---|---|
+| Mediana de precios | 0,34 | 1,04 | 1,95 | 0,85 |
+| Bienes en el suelo | 15/43 | 3/43 | 2/39 | 3/39 |
+| Bienes < 0,5 | 29 | 11 | 10 | 14 |
+| Necesidades vitales | 0,81 | 0,85 | 0,89 | 0,85 |
+| Paro | 10,8 % | 13,8 % | 13,7 % | 14,4 % |
+| Militancia | — | 0,55 | 0,38 | 0,89 |
+| Conciencia | — | 1,67 | 1,01 | 1,68 |
+| Movimientos (presión / agitación) | 70 (57 / 31) | 48 (34 / 30) | 29 (21 / 13) | 43 (28 / 20) |
+| Riesgo de revuelta (naciones) | 31 | 2 | 0 | 2 |
+| Facciones (alzadas) | 65 (53) | 20 (16) | 6 (6) | 33 (28) |
+| Empleo estatal | 107,9 M (9,8 %) | 68,5 M (6,0 %) | 63,1 M (5,5 %) | 70,5 M (5,9 %) |
+
+Empleo estatal a los 100 años (normal):
+
+| Empleo | Antes | Después |
+|---|---|---|
+| Clero | 31,9 M | 17,9 M |
+| Burócratas | 12,2 M | 13,0 M |
+| Soldados | 56,8 M (6,8 M en brigadas) | 32,3 M (9,2 M en brigadas) |
+| Oficiales | 6,8 M | 5,1 M |
+| Magos de Estado | 168 k | 159 k |
+
+Corrida normal por puntos de control:
+
+| Año | Vida | Paro | Mediana de precios | En el suelo | Movimientos | Riesgo | Facciones | Empleo estatal |
+|---|---|---|---|---|---|---|---|---|
+| 25 | 0,85 | 4,1 % | 2,05 | 1 | 4 | 0 | 0 | 42,0 M |
+| 50 | 0,94 | 7,3 % | 1,89 | 4 | 12 | 0 | 0 | 52,5 M |
+| 75 | 0,84 | 11,9 % | 0,71 | 10 | 37 | 1 | 3 | 58,5 M |
+| 100 | 0,85 | 13,8 % | 1,04 | 3 | 48 | 2 | 20 | 68,5 M |
+
+Los precios oscilan; ya no se hunden de forma permanente. En los años 70–80 hay un valle, con bienes de lujo
+en el suelo por exceso de oferta del 20 %, y después se recuperan.
+
+### Rendimiento
+
+`VictoriaPerformanceBenchmark -- 10`: 10,24 s/año (antes 9,70). El coste está en las curvas de Engel, la
+señal de precio por bien y el recorrido de los movimientos.
+
+### Suites
+
+Todas con 0 fallos:
+
+* VictoriaDemandPoliticsTest, VictoriaInvestmentTest, VictoriaMagicEconomyTest y VictoriaEventTest;
+* VictoriaMagicTest, VictoriaMageBalanceTest y VictoriaContentTest;
+* VPopStoreTest, VictoriaM3Test y VictoriaSmokeTest;
+* VictoriaBalanceTest a 50 años (0 problemas).

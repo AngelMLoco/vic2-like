@@ -782,3 +782,96 @@ producían excedentes de bienes primarios.
 años, porque la capacidad productiva crece más deprisa que la demanda (cestas fijas por persona). El
 bienestar real se mantiene (necesidades vitales 0,81–0,85), pero las señales de precio pierden resolución.
 Ver el informe de pruebas M5.5.
+
+## M5.6 — Demanda, precios y madurez política
+
+### Demanda por renta (curvas de Engel)
+
+Con renta real por encima del coste de la cesta completa, cada POP compra más de cada nivel. El consumo
+adicional es elasticidad × (1 − e^(−k·(recursos / coste − 1))): la vida crece poco, el diario más y el lujo
+más, y todo satura (`economy_rules.engel`). La renta real se mide como renta del mes / coste de la cesta, así
+que no depende del nivel nominal de precios.
+
+El término de riqueza (`wealth_weight`) existe en los datos pero vale 0, por la liquidación descrita en
+«Deflación tardía».
+
+### Respuesta de la oferta: utilización del RGO
+
+`p["rgo_util"]` (0,6…1; se guarda; si falta vale 1):
+
+* **Baja despacio** cuando el precio *relativo* (precio medio de 12 meses / base, dividido por la mediana de
+  todos los bienes) es bajo y la oferta mundial supera a la demanda.
+* **Sube** con demanda o con precio relativo alto, y nunca cae si la demanda supera a la oferta.
+
+Usar el precio relativo evita que una deflación general haga contratar menos a todos los RGO. La tierra no
+desaparece: solo hay menos plazas.
+
+### Fábricas en pérdidas
+
+Desde M5.5 una fábrica sin caja recorta salarios en vez de crear dinero, así que su caja ya no queda
+negativa y **nunca cerraba**: producía excedentes indefinidamente. Ahora pagar salarios recortados cuenta
+como pérdida; la fábrica despide y, si las pérdidas persisten, cierra.
+
+### Conciencia ≠ revuelta
+
+`_update_movements` acumula en el mismo recorrido de POPs, por movimiento: partidarios, partidarios
+militantes (militancia ≥ `min_supporter_militancy`), su proporción y la militancia media. Los niveles son:
+
+| Nivel | Nombre | Condición |
+|---|---|---|
+| 1 | Presión | Apoyo > 3 % |
+| 2 | Agitación | Radicalismo > 0,5 y organización > 0,3 |
+| 3 | Riesgo de revuelta | Radicalismo y organización en los umbrales de facción, partidarios militantes ≥ `min_militant_share` y ≥ `min_militant_population` |
+
+`rebel_risk` significa ahora nivel 3. La conciencia alta da apoyo y presión, no revuelta.
+
+**Cauce político** (`political_outlet`, 0…1): media de voto, prensa, reunión y partidos.
+
+* Ralentiza el crecimiento del radicalismo (× (1 − 0,7 × cauce)) y acelera su enfriamiento.
+* La represión no lo amplifica por encima del ritmo previo: una primera calibración ×1,6 llevaba el
+  radicalismo al máximo en todos los Estados absolutistas, porque los topes de reforma de su gobierno impiden
+  conceder.
+* No toca la conciencia ni la opinión de los POPs.
+
+**Diagnóstico de reformas denegadas por la IA** (`c._reform_fail`): casi siempre es el tope de reforma del
+tipo de gobierno (`government_cap`), y rara vez la cámara alta.
+
+### Empleo estatal funcional
+
+`VMobilitySystem._vacancies`, con datos en `economy_rules.state_jobs`:
+
+| Empleo | Plazas |
+|---|---|
+| Clero | (base + educación × slider) × (1 − 0,5 × alfabetización) de la población |
+| Burócratas | (base + administración × slider) de la población |
+| Soldados | Brigadas × manpower × 1,25 + reservas pagadas (población × 0,002 + población × 0,02 × slider militar); × 1,3 en guerra |
+| Oficiales | 8 % de los soldados |
+
+El sobrante sale despacio a oficios civiles (`*_excess` en `promotion.json`). Antes los soldados eran el 3 %
+de la población × (slider / 0,5), sin relación con el ejército: 57 M de soldados frente a 7 M en brigadas
+a los 100 años.
+
+### Deflación tardía: causa raíz y liquidación
+
+La auditoría monetaria por años lo muestra:
+
+* Los compradores (POPs, fábricas, Estado, proyectos) pagan durante el mes con el **llenado estimado del mes
+  anterior**.
+* Los productores cobran solo lo que se vende de verdad.
+* Si la demanda crece mes a mes (más población, más renta, Engel), los compradores pagan bienes que no llegan
+  y ese dinero se destruía.
+* En la corrida sin eventos, entre los años 55 y 60, las compras de los POPs superaban a las ventas netas en
+  unos 13 M, y el efectivo de los POPs caía de 18,8 a 6,8 M.
+* Sin otro ancla, el nivel de precios acababa en el suelo: 23–29 de 43 bienes a los 75–100 años.
+
+**Liquidación** (`VMarketSystem.clear_month`, `economy_rules.settle_purchases`):
+
+* Tras casar el mercado, por bien y país, lo pagado (demanda × llenado estimado) se compara con lo comprado de
+  verdad.
+* La diferencia, a precio de comprador, se devuelve a los POPs del país en proporción a su tamaño
+  (`market_refund` en el libro de VMoney).
+* Es una transferencia: ese dinero ya se había destruido en `pop_purchases`, así que la auditoría monetaria
+  cuadra (residuo < 1 %).
+* No se toca el suelo de precios ni se crea dinero.
+
+El término de riqueza de Engel sigue a 0. Tras la liquidación ya no es necesario.

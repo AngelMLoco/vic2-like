@@ -197,6 +197,72 @@ static func snapshot(gs: VGameState) -> Dictionary:
 		urban += float(by_type.get(tn, [0.0])[0])
 	out["urban"] = urban / maxf(1.0, total)
 	out["investment"] = {"reasons": gs.market.get("_inv_reasons", {}).duplicate(), "stats": gs.market.get("_inv_stats", {}).duplicate()}
+	# ---- precios (M5.6): resolución de precios, suelo, oferta/demanda
+	var pmin := float(gs.economy_rules.get("price_min", 0.25))
+	var ratios := []
+	var sd := []
+	var floor_n := 0
+	var below_half := 0
+	var above_two := 0
+	for e in sh:
+		var pr := float(e["price"])
+		ratios.append(pr)
+		sd.append(float(e["supply"]) / maxf(0.001, float(e["demand"])))
+		if pr <= pmin * 1.05:
+			floor_n += 1
+		if pr < 0.5:
+			below_half += 1
+		if pr > 2.0:
+			above_two += 1
+	ratios.sort()
+	sd.sort()
+	out["prices"] = {"goods": ratios.size(), "median": ratios[ratios.size() / 2] if not ratios.is_empty() else 0.0, "at_floor": floor_n,
+		"below_half": below_half, "above_two": above_two, "sd_median": sd[sd.size() / 2] if not sd.is_empty() else 0.0}
+	# ---- política (M5.6): movimientos, presión, riesgo de revuelta, partidarios militantes, motivos de no reformar
+	var pol := {"movements": 0, "pressure": 0, "agitation": 0, "revolt_risk": 0, "factions": gs.rebel_factions.size(), "risen": 0,
+		"militant_supporters": 0.0, "reform_fail": {}}
+	for f in gs.rebel_factions.values():
+		if f.get("risen", false):
+			pol["risen"] += 1
+	for tag in gs.living_countries():
+		var c3: Dictionary = gs.countries[tag]
+		var lvl := 0
+		for rid in c3.get("movements", {}):
+			var mv: Dictionary = c3["movements"][rid]
+			if float(mv.get("support", 0.0)) > 0.03:
+				lvl = maxi(lvl, 1)
+			lvl = maxi(lvl, int(mv.get("level", 0)))
+			if mv.get("rebel_risk", false):
+				lvl = 3
+			pol["militant_supporters"] += float(mv.get("militant_support", 0.0))
+		if lvl >= 1:
+			pol["movements"] += 1
+		if lvl >= 1 and _max_support(c3) > 0.08:
+			pol["pressure"] += 1
+		if lvl >= 2:
+			pol["agitation"] += 1
+		if lvl >= 3:
+			pol["revolt_risk"] += 1
+		for k in c3.get("_reform_fail", {}):
+			pol["reform_fail"][k] = int(pol["reform_fail"].get(k, 0)) + int(c3["_reform_fail"][k])
+	out["politics"] = pol
+	# ---- empleo estatal por tipo (M5.6)
+	var stj := {}
+	var tot_state := 0.0
+	for tn in ["clergy", "bureaucrats", "soldiers", "officers"]:
+		stj[tn] = float(by_type.get(tn, [0.0])[0])
+		tot_state += float(stj[tn])
+	var mstate := 0.0
+	for tag in gs.living_countries():
+		mstate += float(gs.countries[tag].get("_magi_acc", [0.0, 0.0, 0.0])[2]) if gs.countries[tag].get("_magi_acc", []).size() > 2 else 0.0
+	stj["magi_state"] = mstate
+	stj["total"] = tot_state + mstate
+	stj["share"] = (tot_state + mstate) / maxf(1.0, total)
+	var brig := 0
+	for tag in gs.living_countries():
+		brig += int(gs.countries[tag].get("military", {}).get("brigades", 0))
+	stj["soldiers_in_brigades"] = float(brig) * float(gs.unit_manpower)
+	out["state_jobs"] = stj
 	var mig := {"migrated": 0, "emigrated": 0}
 	for tag in gs.living_countries():
 		var m: Dictionary = gs.countries[tag].get("acc_mobility_last", {})
@@ -204,6 +270,13 @@ static func snapshot(gs: VGameState) -> Dictionary:
 		mig["emigrated"] += int(m.get("emigrated", 0))
 	out["migration"] = mig
 	return out
+
+
+static func _max_support(c: Dictionary) -> float:
+	var m := 0.0
+	for rid in c.get("movements", {}):
+		m = maxf(m, float(c["movements"][rid].get("support", 0.0)))
+	return m
 
 
 ## Informe legible de una instantánea (para pruebas de largo plazo).
@@ -266,4 +339,17 @@ static func report(snap: Dictionary, prev: Dictionary = {}, years: float = 1.0) 
 			cl.append("%s %s" % [r["tag"], ("%.0f%%" % (float(r["unemp"]) * 100.0)) if k == "unemployment" else (("%.1f niv/M" % float(r["industry"])) if k == "industry" else ("%.2f" % float(r["life"])))])
 		lines.append("  top %s: %s" % [k, ", ".join(cl)])
 	lines.append("  migración (último mes): interna %d · emigración %d" % [snap["migration"]["migrated"], snap["migration"]["emigrated"]])
+	var P: Dictionary = snap.get("prices", {})
+	if not P.is_empty():
+		lines.append("  precios: mediana %.2f · en el suelo %d de %d · < 0,5 %d · > 2 %d · oferta/demanda mediana %.2f" % [
+			P["median"], P["at_floor"], P["goods"], P["below_half"], P["above_two"], P["sd_median"]])
+	var Q: Dictionary = snap.get("politics", {})
+	if not Q.is_empty():
+		lines.append("  política: con movimientos %d · presión alta %d · agitación %d · riesgo de revuelta %d · facciones %d (alzadas %d) · partidarios militantes %.1f M · reformas denegadas %s" % [
+			Q["movements"], Q["pressure"], Q["agitation"], Q["revolt_risk"], Q["factions"], Q["risen"], float(Q["militant_supporters"]) / 1e6, str(Q["reform_fail"])])
+	var J: Dictionary = snap.get("state_jobs", {})
+	if not J.is_empty():
+		lines.append("  empleo estatal: clero %.1f M · burócratas %.1f M · soldados %.1f M (en brigadas %.1f M) · oficiales %.1f M · magos %.0f · total %.1f M (%.1f%%)" % [
+			float(J["clergy"]) / 1e6, float(J["bureaucrats"]) / 1e6, float(J["soldiers"]) / 1e6, float(J["soldiers_in_brigades"]) / 1e6, float(J["officers"]) / 1e6,
+			float(J["magi_state"]), float(J["total"]) / 1e6, float(J["share"]) * 100.0])
 	return "\n".join(lines)

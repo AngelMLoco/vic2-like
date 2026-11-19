@@ -434,3 +434,34 @@ El guardado sigue siendo **v6**: todo lo nuevo tiene valores por defecto compati
 * `arcane_machine_works` (componentes encantados + acero → maquinaria).
 * `alchemical_fertilizer_works` (reactivos + azufre → fertilizante).
 * `magic_rules.mage_model.academy_reagents`: reactivos que consume cada academia al mes.
+
+## M5.6 — Demanda, precios y madurez política
+
+### `economy/economy_rules.json`
+
+| Clave | Contenido | Uso |
+|---|---|---|
+| `engel` | `life`, `everyday`, `luxury` (elasticidad por nivel), `k` (saturación), `wealth_weight` | Consumo extra = elasticidad × (1 − e^(−k·(recursos/coste − 1))); recursos = renta del mes + `wealth_weight` × (efectivo + depósitos). `wealth_weight` vale 0 |
+| `rgo_utilisation` | `low_price`, `oversupply`, `recover_price`, `down`, `up`, `min` | Utilización del RGO (0,6…1) según precio relativo de 12 meses y oferta/demanda mundial |
+| `political_outlet` | `reforms` {reforma: peso}, `repression_factor`, `outlet_factor`, `outlet_cooling` | Cauce político (0…1): frena el radicalismo y lo enfría |
+| `state_jobs` | `clergy_base`, `clergy_per_education`, `clergy_literacy_saturation`, `admin_base`, `admin_per_slider`, `reserve_ratio`, `base_reserve`, `reserve_share_per_slider`, `war_multiplier`, `officer_ratio`, `excess_tolerance` | Plazas funcionales de clero, burócratas, soldados y oficiales |
+| `settle_purchases` | bool (por defecto `true`) | Liquidación: lo pagado por bienes que no llegaron vuelve a los POPs del país comprador |
+
+### `rebels/rebel_types.json`
+
+* `min_militant_share` (0,15) y `min_militant_population` (30 000): proporción y número mínimos de partidarios
+  militantes para el nivel 3 (riesgo de revuelta). `min_supporter_militancy` no cambia.
+
+### `pops/promotion.json`
+
+* Salida gradual del empleo estatal sobrante: soldados → campesinos (`military_excess`), clero → artesanos
+  (`clergy_excess`) y burócratas → oficinistas (`admin_excess`).
+
+### Estado nuevo
+
+* `province.rgo_util`: utilización del RGO. Se guarda; si falta vale 1.
+* Movimientos: `level` (0–3), `militant_support`, `militant_share`, `avg_militancy`. `rebel_risk` = nivel 3.
+* Derivados, no guardados: `c._reform_fail` (motivos de reformas denegadas por la IA) y
+  `market._good_signal` (caché mensual de precio relativo y oferta/demanda).
+
+El guardado sigue siendo **v6**: todo lo nuevo tiene valores por defecto compatibles.
