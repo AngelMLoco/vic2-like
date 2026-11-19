@@ -1,0 +1,316 @@
+{
+ "_doc": "Bloqueo de ids estables. Lo mantiene tools/fantasy_map/build_fantasy_world.py: versionar y no editar a mano.",
+ "map_version": 1,
+ "geometry_hash": "3f7b5f1e8490f4c9558ce85e165fa8a6f546ca90",
+ "counters": {
+  "S": 7,
+  "K": 1,
+  "L": 26
+ },
+ "provinces": [
+  {
+   "key": "L0001",
+   "kind": "land",
+   "id": 1,
+   "x": 300,
+   "y": 63,
+   "auto": true
+  },
+  {
+   "key": "L0002",
+   "kind": "land",
+   "id": 2,
+   "x": 20,
+   "y": 106,
+   "auto": true
+  },
+  {
+   "key": "L0003",
+   "kind": "land",
+   "id": 3,
+   "x": 76,
+   "y": 130,
+   "auto": true
+  },
+  {
+   "key": "L0004",
+   "kind": "land",
+   "id": 4,
+   "x": 259,
+   "y": 96,
+   "auto": true
+  },
+  {
+   "key": "L0005",
+   "kind": "land",
+   "id": 5,
+   "x": 201,
+   "y": 107,
+   "auto": true
+  },
+  {
+   "key": "L0006",
+   "kind": "land",
+   "id": 6,
+   "x": 42,
+   "y": 55,
+   "auto": true
+  },
+  {
+   "key": "L0007",
+   "kind": "land",
+   "id": 7,
+   "x": 173,
+   "y": 50,
+   "auto": true
+  },
+  {
+   "key": "L0008",
+   "kind": "land",
+   "id": 8,
+   "x": 259,
+   "y": 40,
+   "auto": true
+  },
+  {
+   "key": "L0009",
+   "kind": "land",
+   "id": 9,
+   "x": 82,
+   "y": 25,
+   "auto": true
+  },
+  {
+   "key": "L0010",
+   "kind": "land",
+   "id": 10,
+   "x": 120,
+   "y": 126,
+   "auto": true
+  },
+  {
+   "key": "L0011",
+   "kind": "land",
+   "id": 11,
+   "x": 203,
+   "y": 28,
+   "auto": true
+  },
+  {
+   "key": "L0012",
+   "kind": "land",
+   "id": 12,
+   "x": 60,
+   "y": 94,
+   "auto": true
+  },
+  {
+   "key": "L0013",
+   "kind": "land",
+   "id": 13,
+   "x": 128,
+   "y": 52,
+   "auto": true
+  },
+  {
+   "key": "L0014",
+   "kind": "land",
+   "id": 14,
+   "x": 180,
+   "y": 82,
+   "auto": true
+  },
+  {
+   "key": "L0015",
+   "kind": "land",
+   "id": 15,
+   "x": 228,
+   "y": 93,
+   "auto": true
+  },
+  {
+   "key": "L0016",
+   "kind": "land",
+   "id": 16,
+   "x": 272,
+   "y": 70,
+   "auto": true
+  },
+  {
+   "key": "L0017",
+   "kind": "land",
+   "id": 17,
+   "x": 96,
+   "y": 104,
+   "auto": true
+  },
+  {
+   "key": "L0018",
+   "kind": "land",
+   "id": 18,
+   "x": 245,
+   "y": 72,
+   "auto": true
+  },
+  {
+   "key": "L0019",
+   "kind": "land",
+   "id": 19,
+   "x": 46,
+   "y": 122,
+   "auto": true
+  },
+  {
+   "key": "L0020",
+   "kind": "land",
+   "id": 20,
+   "x": 121,
+   "y": 88,
+   "auto": true
+  },
+  {
+   "key": "L0021",
+   "kind": "land",
+   "id": 21,
+   "x": 233,
+   "y": 38,
+   "auto": true
+  },
+  {
+   "key": "L0022",
+   "kind": "land",
+   "id": 22,
+   "x": 206,
+   "y": 81,
+   "auto": true
+  },
+  {
+   "key": "L0023",
+   "kind": "land",
+   "id": 23,
+   "x": 196,
+   "y": 57,
+   "auto": true
+  },
+  {
+   "key": "L0024",
+   "kind": "land",
+   "id": 24,
+   "x": 35,
+   "y": 83,
+   "auto": true
+  },
+  {
+   "key": "L0025",
+   "kind": "land",
+   "id": 25,
+   "x": 68,
+   "y": 67,
+   "auto": true
+  },
+  {
+   "key": "L0026",
+   "kind": "land",
+   "id": 26,
+   "x": 177,
+   "y": 105,
+   "auto": true
+  },
+  {
+   "key": "strait_west",
+   "kind": "land",
+   "id": 27,
+   "x": 150,
+   "y": 95,
+   "auto": false
+  },
+  {
+   "key": "tfa_capital",
+   "kind": "land",
+   "id": 28,
+   "x": 95,
+   "y": 70,
+   "auto": false
+  },
+  {
+   "key": "tfb_capital",
+   "kind": "land",
+   "id": 29,
+   "x": 220,
+   "y": 60,
+   "auto": false
+  },
+  {
+   "key": "tfc_capital",
+   "kind": "land",
+   "id": 30,
+   "x": 230,
+   "y": 148,
+   "auto": false
+  },
+  {
+   "key": "S0001",
+   "kind": "sea",
+   "id": 31,
+   "x": 286,
+   "y": 110,
+   "auto": true
+  },
+  {
+   "key": "S0002",
+   "kind": "sea",
+   "id": 32,
+   "x": 0,
+   "y": 1,
+   "auto": true
+  },
+  {
+   "key": "S0003",
+   "kind": "sea",
+   "id": 33,
+   "x": 87,
+   "y": 179,
+   "auto": true
+  },
+  {
+   "key": "S0004",
+   "kind": "sea",
+   "id": 34,
+   "x": 163,
+   "y": 4,
+   "auto": true
+  },
+  {
+   "key": "S0005",
+   "kind": "sea",
+   "id": 35,
+   "x": 301,
+   "y": 0,
+   "auto": true
+  },
+  {
+   "key": "S0006",
+   "kind": "sea",
+   "id": 36,
+   "x": 178,
+   "y": 113,
+   "auto": true
+  },
+  {
+   "key": "S0007",
+   "kind": "sea",
+   "id": 37,
+   "x": 8,
+   "y": 106,
+   "auto": true
+  },
+  {
+   "key": "K0001",
+   "kind": "lake",
+   "id": 38,
+   "x": 70,
+   "y": 80,
+   "auto": true
+  }
+ ]
+}

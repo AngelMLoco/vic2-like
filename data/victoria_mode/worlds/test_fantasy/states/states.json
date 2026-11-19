@@ -1,0 +1,12 @@
+[
+{"id":1,"name":"Tierra de prueba Oeste I","provinces":[2,3,19,24],"region":"west"},
+{"id":2,"name":"Tierra de prueba Oeste II","provinces":[6,9,13,25],"region":"west"},
+{"id":3,"name":"Tierra de prueba Oeste III","provinces":[10,17,20,27],"region":"west"},
+{"id":4,"name":"Tierra de prueba Oeste IV","provinces":[12,28],"region":"west"},
+{"id":5,"name":"Tierra de prueba Este I","provinces":[1,8,16,18],"region":"east"},
+{"id":6,"name":"Tierra de prueba Este II","provinces":[4,5,15,22],"region":"east"},
+{"id":7,"name":"Tierra de prueba Este III","provinces":[7,11,14,23],"region":"east"},
+{"id":8,"name":"Tierra de prueba Este IV","provinces":[21,29],"region":"east"},
+{"id":9,"name":"Tierra de prueba Este V","provinces":[26],"region":"east"},
+{"id":10,"name":"Isla de prueba","provinces":[30],"region":"isle"}
+]

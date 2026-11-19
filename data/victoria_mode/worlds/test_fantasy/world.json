@@ -1,0 +1,18 @@
+{
+ "_doc": "TEST ONLY — NOT AETHER LORE. Fixture automático del importador y de la carga multi-mundo. Lo regenera tools/fantasy_map/make_test_fixture.py.",
+ "id": "test_fantasy",
+ "name": "Mundo de prueba",
+ "description": "TEST ONLY — NOT AETHER LORE",
+ "width": 320,
+ "height": 180,
+ "wrap_x": false,
+ "default_scenario": "test_fantasy_1",
+ "enabled": true,
+ "test_only": true,
+ "author": "",
+ "version": "1",
+ "generator": "tools/fantasy_map/build_fantasy_world.py",
+ "forbidden_packs": [
+  "prototype"
+ ]
+}

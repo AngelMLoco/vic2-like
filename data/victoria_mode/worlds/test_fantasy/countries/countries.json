@@ -1,0 +1,107 @@
+{
+ "_doc": "TEST ONLY — NOT AETHER LORE",
+ "countries": [
+  {
+   "tag": "TFA",
+   "name": "País de prueba A",
+   "color": "c0392b",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "c0392b",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "test_culture_a",
+   "accepted_cultures": [],
+   "religion": "test_faith_a",
+   "government": "monarquia_absoluta",
+   "ruling_party": {
+    "name": "Partido de prueba",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 20,
+   "treasury": 3000,
+   "literacy": 0.2,
+   "description": "TEST ONLY — NOT AETHER LORE",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "TFB",
+   "name": "País de prueba B",
+   "color": "2980b9",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "2980b9",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "test_culture_b",
+   "accepted_cultures": [],
+   "religion": "test_faith_b",
+   "government": "republica",
+   "ruling_party": {
+    "name": "Partido de prueba",
+    "ideology": "liberal"
+   },
+   "civilized": true,
+   "prestige": 20,
+   "treasury": 3000,
+   "literacy": 0.2,
+   "description": "TEST ONLY — NOT AETHER LORE",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  },
+  {
+   "tag": "TFC",
+   "name": "País de prueba C",
+   "color": "27ae60",
+   "flag": {
+    "pattern": "bicolor_h",
+    "colors": [
+     "27ae60",
+     "ffffff"
+    ]
+   },
+   "capital": null,
+   "primary_culture": "test_culture_c",
+   "accepted_cultures": [],
+   "religion": "test_faith_a",
+   "government": "monarquia_constitucional",
+   "ruling_party": {
+    "name": "Partido de prueba",
+    "ideology": "conservador"
+   },
+   "civilized": true,
+   "prestige": 20,
+   "treasury": 3000,
+   "literacy": 0.2,
+   "description": "TEST ONLY — NOT AETHER LORE",
+   "technologies": [],
+   "reforms": {},
+   "magic_branches": {
+    "technology": 0,
+    "economy": 0,
+    "military": 0,
+    "politics": 0
+   }
+  }
+ ]
+}

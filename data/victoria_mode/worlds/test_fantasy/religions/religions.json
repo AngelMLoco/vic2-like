@@ -1,0 +1,19 @@
+{
+ "_doc": "TEST ONLY — NOT AETHER LORE",
+ "religions": [
+  {
+   "id": "test_faith_a",
+   "name": "Fe de prueba A",
+   "group": "test",
+   "color": "d4ac0d",
+   "magic_attitude": "accepted"
+  },
+  {
+   "id": "test_faith_b",
+   "name": "Fe de prueba B",
+   "group": "test",
+   "color": "8e44ad",
+   "magic_attitude": "regulated"
+  }
+ ]
+}

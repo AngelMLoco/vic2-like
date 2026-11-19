@@ -1,0 +1,33 @@
+{
+ "_doc": "TEST ONLY — NOT AETHER LORE",
+ "groups": [
+  {
+   "id": "test_group",
+   "name": "Grupo de prueba",
+   "magic_tradition": "common"
+  }
+ ],
+ "cultures": [
+  {
+   "id": "test_culture_a",
+   "name": "Cultura de prueba A",
+   "group": "test_group",
+   "religion": "test_faith_a",
+   "color": "c0392b"
+  },
+  {
+   "id": "test_culture_b",
+   "name": "Cultura de prueba B",
+   "group": "test_group",
+   "religion": "test_faith_b",
+   "color": "2980b9"
+  },
+  {
+   "id": "test_culture_c",
+   "name": "Cultura de prueba C",
+   "group": "test_group",
+   "religion": "test_faith_a",
+   "color": "27ae60"
+  }
+ ]
+}

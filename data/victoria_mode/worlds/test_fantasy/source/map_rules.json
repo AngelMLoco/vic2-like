@@ -1,0 +1,20 @@
+{
+ "_doc": "TEST ONLY — NOT AETHER LORE. Parámetros del importador (ver docs/FantasyMapPipeline.md).",
+ "seed": 136,
+ "width": 320,
+ "height": 180,
+ "mask_colors": {
+  "land": "ffffff",
+  "sea": "1f4e79",
+  "lake": "5b9bd5"
+ },
+ "target_land_provinces": 30,
+ "target_sea_zones": 7,
+ "min_province_px": 120,
+ "max_province_px": 1600,
+ "min_island_px": 6,
+ "max_provinces_per_state": 4,
+ "km2_per_px": 60.0,
+ "border_noise": 0.35,
+ "wrap_x": false
+}

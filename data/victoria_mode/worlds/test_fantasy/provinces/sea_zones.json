@@ -1,0 +1,10 @@
+[
+{"id":31,"kind":"sea","name":"Mar 1","key":"S0001"},
+{"id":32,"kind":"sea","name":"Mar 2","key":"S0002"},
+{"id":33,"kind":"sea","name":"Mar 3","key":"S0003"},
+{"id":34,"kind":"sea","name":"Mar 4","key":"S0004"},
+{"id":35,"kind":"sea","name":"Mar 5","key":"S0005"},
+{"id":36,"kind":"sea","name":"Mar 6","key":"S0006"},
+{"id":37,"kind":"sea","name":"Mar 7","key":"S0007"},
+{"id":38,"kind":"lake","name":"Lago 1","key":"K0001"}
+]

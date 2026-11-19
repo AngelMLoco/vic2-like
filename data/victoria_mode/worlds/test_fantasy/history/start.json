@@ -1,0 +1,34 @@
+{
+ "_doc": "TEST ONLY — NOT AETHER LORE",
+ "start_date": {
+  "year": 1,
+  "month": 1,
+  "day": 1
+ },
+ "countries": {
+  "TFA": {
+   "brigades": 3,
+   "ships": 2,
+   "factory_levels": 1
+  },
+  "TFB": {
+   "brigades": 3,
+   "ships": 2,
+   "factory_levels": 1
+  },
+  "TFC": {
+   "brigades": 1,
+   "ships": 1,
+   "factory_levels": 0
+  }
+ },
+ "alliances": [],
+ "relations": [
+  [
+   "TFA",
+   "TFB",
+   -20
+  ]
+ ],
+ "wars": []
+}

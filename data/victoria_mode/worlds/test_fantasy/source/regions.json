@@ -1,0 +1,32 @@
+{
+ "_doc": "TEST ONLY — NOT AETHER LORE",
+ "regions": [
+  {
+   "key": "west",
+   "name": "Tierra de prueba Oeste",
+   "color": "c0392b",
+   "density": 1.0,
+   "owner": "TFA",
+   "culture": "test_culture_a",
+   "religion": "test_faith_a"
+  },
+  {
+   "key": "east",
+   "name": "Tierra de prueba Este",
+   "color": "2980b9",
+   "density": 1.3,
+   "owner": "TFB",
+   "culture": "test_culture_b",
+   "religion": "test_faith_b"
+  },
+  {
+   "key": "isle",
+   "name": "Isla de prueba",
+   "color": "27ae60",
+   "density": 0.8,
+   "owner": "TFC",
+   "culture": "test_culture_c",
+   "religion": "test_faith_a"
+  }
+ ]
+}
