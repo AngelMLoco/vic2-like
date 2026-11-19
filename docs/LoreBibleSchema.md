@@ -16,6 +16,18 @@ El motor separa tres capas de contenido (`data/victoria_mode/content/`):
 Un escenario elige sus paquetes (`data/victoria_mode/scenarios/scenarios.json` → `content_packs`). El escenario
 definitivo cargará `["core", "fantasy"]` y no cargará `prototype`.
 
+**Mundos (M6).** El mapa, los países, las culturas, las religiones y la historia ya no están en
+`data/victoria_mode/`, sino en el dataset del mundo, `data/victoria_mode/worlds/<id>/`.
+
+* Chronicles of Aether es el mundo `aether`.
+* Está registrado en `worlds/worlds.json`, con su escenario `aether_era1`.
+* Está deshabilitado (`enabled: false`) hasta que el autor aporte sus datos.
+* El mapa se importa desde un dibujo del autor con `tools/fantasy_map/` (ver
+  [FantasyMapPipeline.md](FantasyMapPipeline.md)).
+* Los países, las culturas, las religiones y la historia son JSON del autor en ese mismo mundo.
+* El mundo `aether` prohíbe el paquete `prototype` (`forbidden_packs`).
+* El prototipo terrestre (`prototype_earth`) prohíbe el paquete `fantasy`.
+
 Hay dos tipos de datos de lore:
 
 1. **Datos jugables.** Países, culturas, religiones, mapa, historia inicial, eventos y decisiones. Viven en sus
@@ -79,7 +91,11 @@ y la entrada.
 
 ## Historia inicial (escenario)
 
-El archivo `history` del escenario declara el estado de partida. Todo es opcional:
+El archivo `history` del escenario es una ruta relativa a la carpeta de su mundo (M6), por ejemplo
+`worlds/aether/history/era1.json`. Las provincias se citan por id. En Aether esos ids son **estables**: los
+fija el bloqueo `ids.lock.json` del importador, y las semillas del autor llevan una clave con nombre
+(`province_seeds.json`) para localizarlas. Si una regeneración del mapa cambia ids, el importador lo impide o
+escribe `ids_remap.json` para migrar la historia. Declara el estado de partida; todo es opcional:
 
 ```json
 {
@@ -105,6 +121,6 @@ los personajes.
 
 ## Eras y marcadores
 
-`scenarios.json` lista los escenarios (id, nombre, era, historia y paquetes). Las eras se describen en la
+`scenarios.json` lista los escenarios (id, nombre, mundo, era, historia y paquetes). Las eras se describen en la
 biblia (`era`). Para añadir la Era II basta con crear otro archivo de historia y otra entrada de escenario: el
 motor ya no asume el año 136.

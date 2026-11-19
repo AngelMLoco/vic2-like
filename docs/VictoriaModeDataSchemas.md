@@ -465,3 +465,69 @@ El guardado sigue siendo **v6**: todo lo nuevo tiene valores por defecto compati
   `market._good_signal` (caché mensual de precio relativo y oferta/demanda).
 
 El guardado sigue siendo **v6**: todo lo nuevo tiene valores por defecto compatibles.
+
+## M6.0 — Mundos
+
+### `worlds/worlds.json`
+
+```json
+{"worlds": [{"id": "prototype_earth", "root": "worlds/prototype_earth/"}]}
+```
+
+### `worlds/<id>/world.json`
+
+| Clave | Uso |
+|---|---|
+| `id`, `name`, `description` | Identidad |
+| `width`, `height` | Tamaño del mapa (validado contra `map/map.json` y el PNG). `0` en un mundo sin mapa todavía |
+| `wrap_x` | Mapa cilíndrico (cámara y dibujo) |
+| `map_version` | Versión de la geometría si `map/map.json` no la declara (prototipo terrestre) |
+| `default_scenario` | Escenario propio por defecto |
+| `enabled`, `status` | `false` lo oculta al jugador (p. ej. Aether en desarrollo) |
+| `test_only` | Solo para pruebas automáticas |
+| `forbidden_packs` | Paquetes de contenido que el mundo no admite |
+| `author`, `version`, `generator` | Informativos |
+
+**Archivos obligatorios del mundo** (sin respaldo compartido):
+
+* `map/provinces.png`, `map/map.json`, `map/geometry.json`, `map/adjacencies.json`;
+* `provinces/provinces.json`, `provinces/sea_zones.json`, `states/states.json`;
+* `countries/countries.json`, `cultures/cultures.json`, `religions/religions.json`;
+* la historia de cada escenario (`history/*.json`).
+
+**Sobrescrituras opcionales:** cualquier archivo compartido con la misma ruta relativa, por ejemplo
+`goods/goods.json` o `terrain/terrain.json`.
+
+### `map/map.json` (mundos importados)
+
+Añade `map_version`, que el importador sube cuando cambia la geometría, y `generated` (aviso de no editar).
+
+### `provinces/provinces.json`, `sea_zones.json`, `states.json` (mundos importados)
+
+* Cada entrada lleva además `key`, la clave estable de su semilla.
+* Los estados llevan `region`, la clave de la región del autor.
+* El motor ignora estos campos; sirven para trazar ids.
+
+### `scenarios/scenarios.json`
+
+* Nuevo: `world` (id del mundo; si falta, `prototype_earth`).
+* Nuevo: `enabled` (`false` lo oculta) y `test_only`.
+* `history` es ahora una ruta relativa a la carpeta del mundo.
+
+### Fuente de mapas fantásticos
+
+Ver [FantasyMapPipeline.md](FantasyMapPipeline.md):
+
+* `source/map_rules.json`, `land_mask.png`, `terrain.png`, `regions.png` / `regions.json`,
+  `province_seeds.json`, `province_overrides.json` y `adjacencies.json`;
+* `ids.lock.json` e `ids_remap.json`.
+
+### Guardado v7
+
+* Raíz y cabecera: `world_id`, `map_version` y `scenario`; la cabecera añade `world_name`.
+* Una v6 se migra a `prototype_earth`, mapa v1.
+
+### Rutas movidas
+
+`map/`, `provinces/`, `states/`, `countries/`, `cultures/`, `religions/` e `history/` pasan de
+`data/victoria_mode/` a `data/victoria_mode/worlds/prototype_earth/`, sin cambios de contenido.

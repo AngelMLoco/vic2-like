@@ -190,14 +190,43 @@ Pendiente (no es de este milestone):
   * excedentes de bienes militares y mágicos;
   * topes de reforma por tipo de gobierno, que bloquean el cauce político en los Estados absolutistas.
 
-## Siguiente paso (milestone 6)
+## M6.0 — Arquitectura multi-mundo y pipeline de mapas fantásticos — completada
 
-* Introducir el lore definitivo en el paquete `fantasy`: mundo, eras, naciones, religiones con su actitud
-  mágica y culturas con su tradición.
-* Mapa de fantasía y escenario de la Era I.
-* Primeras cadenas nacionales `country.<tag>.*` y regionales.
-* Generar las 24 ilustraciones del manifiesto.
-* Escuelas de magia sobre `magic_schools.json` y `paths`.
+* **Mundo ≠ escenario.** Los datasets viven en `worlds/<id>/` (registro `worlds/worlds.json`) y el escenario
+  declara su mundo.
+* **Cargador.** Tres raíces (`base_root`, `world_root`, `content_root`) con sobrescrituras por mundo. La
+  geografía nunca tiene respaldo compartido.
+* **Prototipo terrestre** encapsulado como `prototype_earth`: los mismos datos, movidos sin cambios, con
+  huella idéntica.
+* **Chronicles of Aether** registrado (`aether`, `aether_era1` con `core` + `fantasy`) y deshabilitado hasta
+  tener datos.
+* **Selector de escenario** antes de la nación. Solo muestra mundos válidos.
+* **Guardado v7** con `world_id` y `map_version`: rechaza saves de otro mundo o de otra versión del mapa y
+  migra los v6.
+* **`VWorldValidator`** valida los archivos de un mundo.
+* **`tools/fantasy_map/`**: importador de máscara a provincias, mares, lagos y estados, con ids estables
+  (`ids.lock.json`), `map_version` automática y validación de la fuente.
+* **Fixture `test_fantasy`** (TEST ONLY — NOT AETHER LORE).
+* **`wrap_x`** desde los metadatos.
+
+## Siguiente paso (milestone 6.x: datos de Aether)
+
+* El autor aporta el mapa de Aether:
+  * máscara de tierra, mar y lagos;
+  * opcionalmente terreno, regiones y semillas con nombre;
+  * regenerar con `tools/fantasy_map/`.
+* El autor aporta países, culturas, religiones e historia de la Era I. Después se habilitan `aether` y
+  `aether_era1`.
+* Observar la economía de Aether antes de reajustar:
+  * el paro artesano, que ronda el 40 % en la Tierra;
+  * la liquidación del mercado por comprador (deuda registrada);
+  * los topes de reforma por gobierno, que forman parte del diseño.
+* Contenido:
+  * lore definitivo en el paquete `fantasy`;
+  * cadenas nacionales `country.<tag>.*` y regionales;
+  * escuelas de magia sobre `magic_schools.json` y `paths`;
+  * las 24 ilustraciones del manifiesto.
+* Con `wrap_x`, las etiquetas y las unidades todavía no se duplican en las copias laterales del mapa.
 
 ## (histórico) Siguiente paso previsto tras M4 (milestone 5)
 

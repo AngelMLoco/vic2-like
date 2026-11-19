@@ -681,3 +681,75 @@ Todas con 0 fallos:
 * VictoriaMagicTest, VictoriaMageBalanceTest y VictoriaContentTest;
 * VPopStoreTest, VictoriaM3Test y VictoriaSmokeTest;
 * VictoriaBalanceTest a 50 años (0 problemas).
+
+## M6.0 — Arquitectura multi-mundo
+
+### `VictoriaMultiWorldTest` (Godot)
+
+```
+godot --headless --path . res://tests/VictoriaMultiWorldTest.tscn
+```
+
+* **Registro:**
+  * los mundos `prototype_earth`, `aether` y `test_fantasy` están registrados;
+  * escenario → mundo, y un escenario sin `world` es del prototipo;
+  * Aether está registrado pero deshabilitado, usa `core` + `fantasy` y prohíbe `prototype`;
+  * el jugador solo ve `prototype_136`;
+  * el mundo de prueba solo aparece con `include_test`;
+  * los metadatos obligatorios están presentes.
+* **Validador:**
+  * la Tierra y el mundo de prueba validan sin errores;
+  * Aether sin datos no valida;
+  * en una copia rota del mundo de prueba detecta cultura, propietario y RGO inexistentes, ids repetidos y
+    referencias a ids inexistentes.
+* **Aislamiento:**
+  * la Tierra conserva los conteos de M5.6 (3457 provincias, 1060 estados, 89 países) y no tiene errores de
+    datos;
+  * el mundo de prueba tiene otros conteos, otros países y otras culturas, los mismos bienes compartidos y no
+    carga `prototype`;
+  * el mundo de prueba simula 120 días con flotas y zonas marítimas reales;
+  * la Tierra recargada después es idéntica.
+* **Guardado:**
+  * Tierra y mundo de prueba guardan `world_id` y `map_version` (v7) y cargan en su mundo;
+  * se rechaza otra versión del mapa;
+  * se rechaza un save de un mundo cargado con el escenario de otro;
+  * un save v6 migra al prototipo terrestre.
+
+### `tests/tools/test_fantasy_map.py` (Python)
+
+```
+python -m unittest tests/tools/test_fantasy_map.py -v
+```
+
+* Formato de salida:
+  * ids contiguos, rangos tierra / mar / lago;
+  * cada provincia terrestre en un estado;
+  * cada id con píxeles.
+* Determinismo: regenerar da el mismo resultado sin subir `map_version`.
+* **IDs estables:**
+  * al añadir una isla, las provincias existentes conservan su id, las nuevas van al final y `map_version`
+    sube;
+  * las claves del autor sobreviven con su nombre y su dueño.
+* **Ruptura de ids:**
+  * hundir una isla se rechaza sin `--allow-id-break`;
+  * con la opción, sube la versión y escribe `ids_remap.json`.
+* Validación de la fuente: color no declarado, máscara sin tierra, mota de 1 px y dimensiones distintas.
+
+### Prototipo terrestre sin regresión
+
+* La huella del mundo tras moverlo a `worlds/prototype_earth/` es idéntica a la de `7a838af`: conteos, sumas
+  de población, propiedad y vecindad, y 60 días de simulación (población, tesoros y precio del grano).
+* Todas las suites anteriores siguen con 0 fallos: VictoriaDemandPoliticsTest, VictoriaInvestmentTest,
+  VictoriaMagicEconomyTest, VictoriaEventTest, VictoriaMagicTest, VictoriaMageBalanceTest,
+  VictoriaContentTest, VPopStoreTest, VictoriaM3Test, VictoriaSmokeTest y VictoriaPlayerExperienceTest.
+* Balance a 50 años: 0 problemas.
+
+### Rendimiento
+
+| `VictoriaPerformanceBenchmark -- 10`, misma sesión, alternando | M5.6 (`7a838af`) | M6.0 |
+|---|---|---|
+| Primera pasada | 10,47 s/año | 10,45 s/año |
+| Segunda pasada | 10,44 s/año | 10,68 s/año |
+
+No hay regresión: la diferencia entra en el ruido. M5.6 midió 10,24 s/año en otra sesión. El importador
+fantástico tarda unos 38 s con 2048×1024 px y 1.200 provincias.

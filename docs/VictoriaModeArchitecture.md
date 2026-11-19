@@ -875,3 +875,139 @@ La auditoría monetaria por años lo muestra:
 * No se toca el suelo de precios ni se crea dinero.
 
 El término de riqueza de Engel sigue a 0. Tras la liquidación ya no es necesario.
+
+## M6.0 — Arquitectura multi-mundo
+
+### Mundo frente a escenario
+
+```text
+MUNDO     data/victoria_mode/worlds/<id>/   geometría, provincias, estados, zonas marítimas, países,
+                                            culturas, religiones, historia, metadatos (world.json)
+ESCENARIO scenarios/scenarios.json         mundo + fecha + historia + paquetes de contenido + era
+```
+
+`VWorlds` (`core/VWorlds.gd`) separa tres raíces que antes eran una sola constante `ROOT`:
+
+| Raíz | Carpeta | Contenido |
+|---|---|---|
+| `base_root` | `data/victoria_mode/` | Reglas compartidas: economía, POPs, gobiernos, ideologías, bienes, fábricas, tecnologías, ejército, guerra, terreno, rebeldes, diplomacia |
+| `world_root` | `data/victoria_mode/worlds/<id>/` | Datos del mundo |
+| `content_root` | `data/victoria_mode/` | Paquetes `content/<pack>/`, compartidos |
+
+* **Archivos del mundo** (`VWorlds.WORLD_FILES`: mapa, provincias, estados, mares, países, culturas,
+  religiones) salen **solo** del mundo, sin respaldo en `base_root`. Un mundo nunca hereda la geografía de
+  otro.
+* **Archivos compartidos** se buscan primero en el mundo y, si no están, en `base_root`
+  (`VWorlds.data_path`). Así un mundo puede sobrescribir, por ejemplo, `goods/goods.json` sin duplicar el
+  resto.
+* `VGameState` guarda `world_id`, `world` (metadatos), `world_root`, `base_root`, `map_version`, `wrap_x` y
+  `scenario_id`.
+* `VDataLoader.new_game(escenario)` sigue la cadena: escenario → mundo → definiciones → mapa → países →
+  historia del mundo → contenido.
+
+### Registro y disponibilidad
+
+* `worlds/worlds.json` lista los mundos y `worlds/<id>/world.json` declara sus metadatos.
+* `VWorlds.playable_scenarios()` devuelve solo los escenarios que el jugador puede elegir:
+  * habilitados;
+  * con un mundo habilitado y con todos sus archivos;
+  * sin paquetes prohibidos por el mundo;
+  * con historia;
+  * sin marcar como `test_only`.
+* Un mundo roto o en desarrollo no aparece.
+
+| Mundo | Estado |
+|---|---|
+| `prototype_earth` | La Tierra del prototipo, movida tal cual. La huella (conteos, sumas y 60 días de simulación) es idéntica a la de M5.6 |
+| `aether` | Registrado y deshabilitado (`status: development`); escenario `aether_era1` con `core` + `fantasy` |
+| `test_fantasy` | Fixture del importador: TEST ONLY — NOT AETHER LORE |
+
+### Paquetes por mundo
+
+* `world.json → forbidden_packs` impide combinaciones absurdas:
+  * `aether` y `test_fantasy` prohíben `prototype`;
+  * `prototype_earth` prohíbe `fantasy`.
+* El cargador lo registra como error de datos y el selector oculta el escenario.
+
+### Selector de escenario
+
+`MainMenu`: Segunda versión → **Elige escenario** → `VictoriaGame` carga el escenario elegido
+(`App.pending_victoria_scenario`) → selección de nación → JUGAR.
+
+La cabecera de la selección de nación muestra la fecha, el escenario y el mundo; antes estaba fija en «año 136,
+la Tierra».
+
+### Mapa: textura y wrap
+
+* `VWorldMap.load_id_image(ruta)` lee `world_root/map/provinces.png`. El menú principal usa el mundo del
+  escenario por defecto.
+* `world.json → wrap_x` activa el mapa cilíndrico:
+  * la cámara no limita la x y la reduce módulo el ancho;
+  * el sprite se dibuja también a izquierda y derecha;
+  * el picking ya usaba `posmod`.
+* La Tierra declara `wrap_x: false`, que conserva la cámara actual. Su geometría sí trae vecinos a través del
+  antimeridiano.
+
+### Guardado v7
+
+* El save guarda `world_id`, `map_version` y `scenario`, también en la cabecera para la lista de partidas.
+* `VSaveSystem.load_game` sigue el orden save → `check_world` (el escenario existe, usa ese mundo, el mundo
+  está disponible y la versión del mapa coincide) → reconstruye el mundo → aplica el estado.
+* Un save nunca se aplica sobre la geometría de otro mundo ni de otra versión del mapa.
+* Los saves v6 se migran: antes de M6 solo existía el prototipo terrestre (mapa v1).
+
+### Validación
+
+`VWorldValidator.validate(world_id)`, `validate_scenario(id)` y `validate_dir(ruta)` trabajan sobre los
+archivos, sin construir la partida.
+
+**Errores:**
+
+* falta de archivos;
+* dimensiones incoherentes (`world.json`, `map.json`, PNG);
+* ids de geometría con huecos, repetidos o fuera de su rango de tipo;
+* vecinos inexistentes;
+* provincia sin estado, o con estado que no la contiene;
+* propietario, cultura, religión, RGO o terreno inexistentes;
+* mares sin nombre;
+* adyacencias rotas;
+* capitales que no son del país;
+* referencias de historia inexistentes;
+* paquetes prohibidos.
+
+**Avisos:**
+
+* masas de agua desconectadas: la Tierra tiene 5, como el Caspio o el mar Negro sin estrecho declarado;
+* países sin provincias.
+
+### Pipeline de mapas fantásticos
+
+`tools/fantasy_map/build_fantasy_world.py` convierte una máscara de tierra, mar y lagos del autor en el formato
+del motor.
+
+* Usa semillas con clave estable e `ids.lock.json`.
+* Calcula un Voronoi deformado por *jump flooding*.
+* Limpia los fragmentos con componentes conexas por *union-find* vectorizado.
+* Agrupa los estados por región.
+
+El generador terrestre (`tools/map_import/build_world.py`) solo escribe en `worlds/prototype_earth/` y sigue
+dependiendo de Natural Earth. Detalles en [FantasyMapPipeline.md](FantasyMapPipeline.md).
+
+### Cachés estáticas
+
+* `VSupplySystem` guardaba en variables estáticas la organización por unidad y el desgaste por terreno.
+* Ahora se invalidan al cambiar de partida (`get_instance_id`), porque un mundo puede sobrescribir el terreno.
+* No hay otras cachés estáticas dependientes de datos.
+
+### Deuda técnica registrada (no se cambia en M6.0)
+
+* **Liquidación del mercado:**
+  * hoy agrupa por país + bien, y `_refund()` devuelve el sobrepago a los POPs del país;
+  * si se demuestra una distorsión significativa, liquidar por comprador (POP, fábrica, Estado o proyecto).
+* **Paro artesano:**
+  * ronda el 40 % a largo plazo en la Tierra;
+  * no se reajusta hasta observar la economía de Aether, que tendrá otra población, otros RGO y otra
+    industria.
+* **Topes de reforma por tipo de gobierno:**
+  * no son un error: una monarquía absolutista puede acumular presión política sin conceder reformas;
+  * forman parte del diseño político de Aether.
