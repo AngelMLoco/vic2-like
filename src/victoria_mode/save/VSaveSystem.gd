@@ -32,7 +32,7 @@ const COUNTRY_FIELDS := ["prestige", "treasury", "literacy", "infamy", "war_exha
 	"blockade_ratio", "status", "rank", "magic_stats", "rivals"]
 const PROVINCE_FIELDS := ["owner", "controller", "cores", "occupation", "fort", "naval_base", "infrastructure",
 	"life_rating", "rgo", "culture", "religion", "rgo_data", "avg_life", "unemployment", "rgo_free",
-	"occupation_by", "blockaded_by", "rebel_faction", "magic", "rgo_dev"]
+	"occupation_by", "blockaded_by", "rebel_faction", "magic", "rgo_dev", "rgo_util"]
 
 
 static func list_saves() -> Array:

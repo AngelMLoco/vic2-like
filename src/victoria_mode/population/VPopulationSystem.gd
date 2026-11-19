@@ -260,6 +260,11 @@ static func process_province(gs: VGameState, id: int) -> void:
 	var bank_c: Dictionary = c["bank"]
 	var deposit_share := float(gs.economy_rules.get("bank_deposit_share", 0.05))
 	var dissave := float(gs.economy_rules.get("bank_dissaving", 0.0))
+	var eng: Dictionary = gs.economy_rules.get("engel", {})
+	var eng_on := not eng.is_empty()
+	var eng_k := float(eng.get("k", 0.5))
+	var eng_w := float(eng.get("wealth_weight", 0.05))
+	var eng_e: Array[float] = [float(eng.get("life", 0.1)), float(eng.get("everyday", 0.5)), float(eng.get("luxury", 1.0))]
 	# alias locales de los arrays (referencias: leer/escribir sin búsquedas)
 	var a_type := ps.type_id
 	var a_size := ps.size
@@ -442,6 +447,27 @@ static func process_province(gs: VGameState, id: int) -> void:
 				spent_total += paid
 				s2 = a * f2
 		var strata: int = t_strata[t]
+		# M5.6: curvas de Engel. Con renta real por encima del coste de la cesta completa, el POP compra más de
+		# cada nivel según su elasticidad (vida poco, diario más, lujo más), con saturación 1 − e^(−k·x).
+		# Renta real = renta del mes / coste de la cesta completa: no depende del nivel nominal de precios.
+		# recursos = renta del mes + una fracción de la riqueza (efectivo y depósitos): si todos los precios bajan,
+		# el dinero existente compra más y el consumo sube (efecto riqueza: ancla el nivel nominal de precios)
+		var resources := a_income[s] + eng_w * (cash + a_bank[s])
+		if eng_on and s0 >= 0.99 and full_total > 0.0 and resources > full_total:
+			var sat := 1.0 - exp(-eng_k * (resources / full_total - 1.0))
+			var tiers_c: Array[float] = [c0, c1, c2]
+			var tiers_f: Array[float] = [f0, f1, f2]
+			var tiers_s: Array[float] = [s0, s1, s2]
+			for ti in 3:
+				var ct: float = tiers_c[ti] * eng_e[ti] * sat
+				if ct <= 0.0 or spend <= 0.0 or tiers_s[ti] < 0.99:
+					break
+				var kk := minf(1.0, spend / ct)
+				td[tb + ti] += units * eng_e[ti] * sat * kk
+				var paid_e := ct * kk * tiers_f[ti]
+				spend -= paid_e
+				cash -= paid_e
+				spent_total += paid_e
 		# riqueza sobrante: más consumo de lujo (cestas adicionales) y después ahorro bancario
 		var reserve := full_total * 2.0
 		if s2 >= 0.99 and c2 > 0.0 and cash > reserve:

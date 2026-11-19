@@ -379,6 +379,10 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 	for rid in gs.reform_order:
 		cur[rid] = gs.reform_level(tag, rid)
 	var support := {}
+	var raw_sup := {}
+	var mil_sup := {}
+	var mil_sum := {}
+	var min_mil := float(gs.rebel_rules.get("min_supporter_militancy", 4.0))
 	# reformas precompiladas (mismo resultado que desired_level, sin búsquedas por POP):
 	# [rid, issue, nivel actual, nivel máximo, posición → índice, empuje del movimiento]
 	var specs := []
@@ -417,10 +421,24 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 				elif idx > 1:
 					want = sp[3]
 				if want > current:
-					support[sp[0]] = float(support.get(sp[0], 0.0)) + float(ps.size[s]) * minf(1.0, con / 6.0)
+					var sz := float(ps.size[s])
+					support[sp[0]] = float(support.get(sp[0], 0.0)) + sz * minf(1.0, con / 6.0)
+					# M5.6: partidarios y partidarios militantes (en el mismo recorrido)
+					raw_sup[sp[0]] = float(raw_sup.get(sp[0], 0.0)) + sz
+					mil_sum[sp[0]] = float(mil_sum.get(sp[0], 0.0)) + sz * ps.militancy[s]
+					if ps.militancy[s] >= min_mil:
+						mil_sup[sp[0]] = float(mil_sup.get(sp[0], 0.0)) + sz
 					push = maxf(push, sp[5])
 			ps.movement_push[s] = push
 	var names: Dictionary = gs.reform_meta.get("movement_names", {})
+	# M5.6: cauce político (voto, prensa, reunión, partidos): canaliza la presión. Con cauce, el radicalismo crece
+	# despacio y se enfría antes; con represión crece más deprisa. No toca la conciencia ni la opinión de los POPs.
+	var outlet := political_outlet(gs, tag)
+	c["_political_outlet"] = outlet
+	var po: Dictionary = gs.economy_rules.get("political_outlet", {})
+	var rad_mult := float(po.get("repression_factor", 1.6)) - float(po.get("outlet_factor", 1.2)) * outlet
+	var cool := 0.01 + float(po.get("outlet_cooling", 0.01)) * outlet
+	var rr: Dictionary = gs.rebel_rules
 	for rid in gs.reform_order:
 		if not gs.reforms[rid].get("movement", true):
 			continue
@@ -431,17 +449,49 @@ static func _update_movements(gs: VGameState, tag: String) -> void:
 			mv["organisation"] = minf(1.0, float(mv["organisation"]) + 0.05 * share * 10.0)
 			mv["months"] = int(mv["months"]) + 3
 			if share > 0.08 and float(mv["organisation"]) > 0.3:
-				mv["radicalism"] = minf(1.0, float(mv["radicalism"]) + 0.02 * float(mv["organisation"]))
+				mv["radicalism"] = minf(1.0, float(mv["radicalism"]) + 0.02 * float(mv["organisation"]) * maxf(0.1, rad_mult))
 			else:
 				# M3.2: un movimiento que no crece se enfría poco a poco (antes el radicalismo quedaba congelado
 				# con apoyo entre el 3 % y el 8 % y seguía empujando la militancia indefinidamente)
-				mv["radicalism"] = maxf(0.0, float(mv["radicalism"]) - 0.01)
+				mv["radicalism"] = maxf(0.0, float(mv["radicalism"]) - cool)
 		else:
 			mv["organisation"] = maxf(0.0, float(mv["organisation"]) - 0.05)
 			mv["radicalism"] = maxf(0.0, float(mv["radicalism"]) - 0.03)
-		mv["rebel_risk"] = float(mv["radicalism"]) > 0.8
+		# M5.6: niveles. Presión (apoyo) → agitación (radicalismo y organización) → riesgo de revuelta, que exige
+		# además partidarios militantes de verdad (los mismos umbrales que VRebelSystem para formar una facción).
+		var rs := float(raw_sup.get(rid, 0.0))
+		var ms := float(mil_sup.get(rid, 0.0))
+		mv["supporters"] = rs
+		mv["militant_support"] = ms
+		mv["militant_share"] = ms / rs if rs > 0.0 else 0.0
+		mv["avg_militancy"] = float(mil_sum.get(rid, 0.0)) / rs if rs > 0.0 else 0.0
+		var lvl := 0
+		if share > 0.03:
+			lvl = 1
+		if float(mv["radicalism"]) > 0.5 and float(mv["organisation"]) > 0.3:
+			lvl = 2
+		if float(mv["radicalism"]) > float(rr.get("min_radicalism", 0.8)) and float(mv["organisation"]) >= float(rr.get("min_organisation", 0.5)) 				and float(mv["militant_share"]) >= float(rr.get("min_militant_share", 0.15)) and ms >= float(rr.get("min_militant_population", 30000)):
+			lvl = 3
+		mv["level"] = lvl
+		mv["rebel_risk"] = lvl == 3
 		if share > 0.001 or mvs.has(rid):
 			mvs[rid] = mv
+
+
+## Cauce político 0…1: niveles de las reformas que dan voz (voto, prensa, reunión, partidos), según
+## economy_rules.political_outlet.reforms (peso por reforma). Derivado: no se guarda.
+static func political_outlet(gs: VGameState, tag: String) -> float:
+	var w: Dictionary = gs.economy_rules.get("political_outlet", {}).get("reforms", {"voting": 1.0, "press": 1.0, "public_meetings": 1.0, "political_parties": 1.0})
+	var tot := 0.0
+	var acc := 0.0
+	for rid in w:
+		var r: Dictionary = gs.reforms.get(rid, {})
+		var n: int = r.get("levels", []).size()
+		if n <= 1:
+			continue
+		acc += float(w[rid]) * float(gs.reform_level(tag, rid)) / float(n - 1)
+		tot += float(w[rid])
+	return acc / tot if tot > 0.0 else 0.0
 
 
 ## IA: concede reformas reclamadas por movimientos fuertes si la cámara lo permite.
@@ -458,4 +508,13 @@ static func _ai_reforms(gs: VGameState, tag: String) -> void:
 			best_v = v
 			best = rid
 	if best != "":
+		var chk := can_change_reform(gs, tag, best, 1)
+		if not chk["ok"]:
+			# diagnóstico (M5.6): por qué un gobierno con un movimiento fuerte no concede la reforma
+			var why: String = String(chk["reason"])
+			var key := "upper_house" if why.contains("cámara") else ("government_cap" if why.contains("no permite superar") or why.contains("no permite reformas") else ("maximum" if why.contains("más niveles") else ("cooldown" if why.contains("esperar") else "other")))
+			var rf: Dictionary = c.get("_reform_fail", {})
+			rf[key] = int(rf.get(key, 0)) + 1
+			c["_reform_fail"] = rf
+			return
 		change_reform(gs, tag, best, 1)

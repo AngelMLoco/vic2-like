@@ -1,5 +1,5 @@
 {
- "_doc": "Reglas de movilidad social (promoción y democión). Se evalúan cada mes para cada POP del tipo 'from'. rate = fracción mensual máxima del POP que cambia. Condiciones disponibles: min/max_literacy, min/max_life, min/max_everyday, min_luxury, min/max_unemployment, min/max_cash_per_capita, min_consciousness, vacancy (factory_workers | factory_clerks | rgo | admin | clergy | military | officers), reform_min{}, reform_max{}, civilized, min_military_spending.",
+ "_doc": "Reglas de movilidad social (promoción y democión). Se evalúan cada mes para cada POP del tipo 'from'. rate = fracción mensual máxima del POP que cambia. Condiciones disponibles: min/max_literacy, min/max_life, min/max_everyday, min_luxury, min/max_unemployment, min/max_cash_per_capita, min_consciousness, vacancy (factory_workers | factory_clerks | rgo | admin | clergy | military | officers), reform_min{}, reform_max{}, civilized, min_military_spending. M5.6: *_excess = empleo estatal por encima de la necesidad funcional (VMobilitySystem._vacancies): salida gradual a oficios civiles.",
  "rules": [
   {
    "from": "farmers",
@@ -214,6 +214,30 @@
     "reform_min": {
      "slavery": 1
     }
+   }
+  },
+  {
+   "from": "soldiers",
+   "to": "farmers",
+   "rate": 0.003,
+   "conditions": {
+    "vacancy": "military_excess"
+   }
+  },
+  {
+   "from": "clergy",
+   "to": "artisans",
+   "rate": 0.005,
+   "conditions": {
+    "vacancy": "clergy_excess"
+   }
+  },
+  {
+   "from": "bureaucrats",
+   "to": "clerks",
+   "rate": 0.005,
+   "conditions": {
+    "vacancy": "admin_excess"
    }
   }
  ]

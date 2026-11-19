@@ -217,7 +217,10 @@ static func process_province(gs: VGameState, id: int) -> void:
 	# más de productividad, con un límite por infraestructura y tecnología
 	var dev := float(p.get("rgo_dev", 0.0))
 	var size := float(rd["base_size"]) * (float(cx["rgo_size"]) + float(pm.get("rgo_size", 0.0))) * (1.0 + float(cx["dev_size"]) * dev)
-	var max_workers := int(size * UNIT)
+	# M5.6: utilización del RGO (0…1): con exceso de oferta mundial persistente y precio medio muy bajo contrata
+	# menos (la tierra sigue ahí); con demanda vuelve a contratar. Cambia despacio (precio medio de 12 meses).
+	var util := _rgo_utilisation(gs, p, good)
+	var max_workers := int(size * UNIT * util)
 	var employed: int = mini(workers, max_workers)
 	var ratio := float(employed) / float(workers) if workers > 0 else 0.0
 	var eff := float(gs.terrain_types.get(p["terrain"], {}).get("rgo_efficiency", 1.0)) * (float(cx["rgo_eff"]) + float(pm.get("rgo_efficiency", 0.0))) * (1.0 + 0.05 * int(p["infrastructure"])) * (1.0 + float(cx["dev_eff"]) * dev)
@@ -328,6 +331,50 @@ static func process_province(gs: VGameState, id: int) -> void:
 		VBudgetSystem.add_expense(gs, tag, exp_keys[ki], exp_vals[ki])
 	social_spent += health_cost * prov_units * 0.6
 	VBudgetSystem.add_expense(gs, tag, "social", social_spent)
+
+
+## Utilización del RGO de una provincia (ajuste lento hacia arriba o abajo según el mercado mundial del bien).
+static func _rgo_utilisation(gs: VGameState, p: Dictionary, good: String) -> float:
+	var util := float(p.get("rgo_util", 1.0))
+	var r: Dictionary = gs.economy_rules.get("rgo_utilisation", {})
+	if r.is_empty():
+		return util
+	var sig := _good_signal(gs, good)
+	if float(sig[0]) < float(r.get("low_price", 0.55)) and float(sig[1]) > float(r.get("oversupply", 1.1)):
+		util -= float(r.get("down", 0.015))
+	elif float(sig[0]) > float(r.get("recover_price", 0.85)) or float(sig[1]) < 1.0:
+		util += float(r.get("up", 0.02))
+	util = clampf(util, float(r.get("min", 0.35)), 1.0)
+	if util < 1.0 or p.has("rgo_util"):
+		p["rgo_util"] = util
+	return util
+
+
+## [precio medio de 12 meses / precio base, oferta mundial / demanda mundial] de un bien (caché mensual).
+static func _good_signal(gs: VGameState, good: String) -> Array:
+	var cache: Dictionary = gs.market.get("_good_signal", {})
+	if int(cache.get("_month", -1)) != gs.month_index:
+		cache = {"_month": gs.month_index}
+		gs.market["_good_signal"] = cache
+	if cache.has(good):
+		return cache[good]
+	var w: Dictionary = gs.market.get("world", {})
+	var sup := float(w.get("supply", {}).get(good, 0.0))
+	var dem := float(w.get("demand", {}).get(good, 0.0))
+	# precio RELATIVO: frente al nivel general (mediana de los precios medios / base). Con deflación general
+	# todos los bienes están baratos y eso no debe hacer que todos los RGO contraten menos.
+	var level := float(cache.get("_level", -1.0))
+	if level < 0.0:
+		var rs := []
+		for g in gs.goods:
+			if VMarketSystem.is_available(gs, g):
+				rs.append(avg_price(gs, g, 12) / maxf(0.001, float(gs.goods[g]["base_price"])))
+		rs.sort()
+		level = maxf(0.05, float(rs[rs.size() / 2])) if not rs.is_empty() else 1.0
+		cache["_level"] = level
+	var sig := [avg_price(gs, good, 12) / maxf(0.001, float(gs.goods[good]["base_price"])) / level, sup / maxf(0.001, dem) if dem > 0.0 else 1.0]
+	cache[good] = sig
+	return sig
 
 
 ## Contexto de la nación para el bucle de provincia: mercado, sueldos estatales y gasto por tipo de POP,
@@ -642,7 +689,8 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 			hist.remove_at(0)
 		f["profit_hist"] = hist
 		f["staffing"] = staffing
-		if profit >= 0.0:
+		# pagar salarios recortados no es ser rentable: cuenta como pérdida (despidos y, si persiste, cierre)
+		if profit >= 0.0 and float(f.get("wage_cut", 1.0)) >= 0.999:
 			var reinvest := profit * float(rules.get("factory_reinvest_share", 0.3))
 			f["cash"] = float(f["cash"]) + reinvest
 			profit_total += profit - reinvest
@@ -656,6 +704,14 @@ static func process_state_instance(gs: VGameState, si: Dictionary) -> void:
 		else:
 			f["cash"] = float(f["cash"]) + profit
 			f["loss_months"] = int(f["loss_months"]) + 1
+			# M5.6: con el recorte de salarios la caja ya no queda negativa; aun así una fábrica en pérdidas
+			# despide y, si persisten, cierra (antes nunca cerraba y producía excedentes indefinidamente)
+			if float(f["cash"]) >= 0.0 and not (f["subsidized"] and can_subsidize):
+				f["hiring"] = maxf(0.1, float(f["hiring"]) * 0.85)
+				if int(f["loss_months"]) >= int(rules.get("factory_close_months", 6)) and float(f["hiring"]) <= 0.15:
+					f["open"] = false
+					gs.log_event(tag, "Cierra %s en %s por pérdidas" % [ft.get("name", f["type"]), gs.states[si["state"]]["name"]])
+					VEventSystem.notify(gs, "factory_closed", {"tag": tag})
 			if float(f["cash"]) < 0.0:
 				if f["subsidized"] and can_subsidize:
 					VBudgetSystem.add_expense(gs, tag, "subsidies", -float(f["cash"]))

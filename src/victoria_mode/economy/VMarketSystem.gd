@@ -142,6 +142,12 @@ static func clear_month(gs: VGameState) -> void:
 			if not spheres.has(k):
 				spheres[k] = []
 			spheres[k].append(t)
+	# M5.6: liquidación. Los compradores pagan durante el mes con el llenado ESTIMADO del mes anterior; aquí se
+	# conoce lo que de verdad compraron. Lo pagado por bienes que no llegaron se devuelve a los POPs de ese país
+	# (antes se destruía: con demanda creciente era un drenaje de dinero → deflación tardía).
+	var old_fb: Dictionary = m.get("fill_buy", {})
+	var refunds := {}
+	var settle := bool(rules.get("settle_purchases", true))
 	var blockade := {}
 	for t in order:
 		var br := float(gs.countries.get(t, {}).get("blockade_ratio", 0.0))
@@ -193,6 +199,10 @@ static func clear_month(gs: VGameState) -> void:
 				new_fill_sell[t][g] = float(sold[t]) / s
 			if d > 0.0:
 				new_fill_buy[t][g] = float(bought[t]) / d
+				if settle:
+					var paid_q := d * float(old_fb.get(t, {}).get(g, 1.0))
+					if paid_q > float(bought[t]):
+						refunds[t] = float(refunds.get(t, 0.0)) + (paid_q - float(bought[t])) * buy_price(gs, t, g)
 				var imp := float(country_stats[t]["imports"].get(g, 0.0))
 				new_import_share[t][g] = imp / d
 				var tariff := float(gs.countries[t]["budget"].get("tariffs", 0.0)) if gs.countries.has(t) else 0.0
@@ -201,12 +211,27 @@ static func clear_month(gs: VGameState) -> void:
 					acc["tariffs"] = float(acc.get("tariffs", 0.0)) + imp * price(gs, g) * tariff
 		# precio mundial
 		_update_price(gs, g, tot_s, tot_d, rules)
+	for t in refunds:
+		_refund(gs, String(t), float(refunds[t]))
 	m["fill_buy"] = new_fill_buy
 	m["fill_sell"] = new_fill_sell
 	m["import_share"] = new_import_share
 	m["country"] = country_stats
 	m["world"] = {"supply": world_s, "demand": world_d}
 	reset_accumulators(gs)
+
+
+## Devuelve a los POPs de una nación (proporcional a su tamaño) lo pagado por bienes que no recibieron.
+static func _refund(gs: VGameState, tag: String, amount: float) -> void:
+	var c: Dictionary = gs.countries.get(tag, {})
+	if c.is_empty() or amount <= 1.0:
+		return
+	var ps := gs.pops
+	var total := maxf(1.0, float(c.get("population", 0)))
+	for id in c["provinces"]:
+		for s in gs.provinces[id]["pop_slots"]:
+			ps.cash[s] += amount * float(ps.size[s]) / total
+	VMoney.created(gs, amount, "market_refund")
 
 
 ## Intercambia excedentes por necesidades dentro de un grupo de naciones.

@@ -167,18 +167,35 @@ static func _vacancies(gs: VGameState, p: Dictionary, tag: String, c: Dictionary
 			officers += ps.size[s]
 	var country_pop := maxf(1.0, float(c.get("population", 1)))
 	var ct: Dictionary = c.get("type_sizes", {})
-	var mil_target := 0.03 * float(c["budget"].get("military", 0.0)) / 0.5
 	var share := 0.0
 	if not si.is_empty():
 		share = float(p["population"]) / maxf(1.0, float(si.get("_pop", gs.instance_population(si))))
+	# M5.6: empleo estatal por función, no por proporción fija de la población (economy_rules.state_jobs)
+	var sj: Dictionary = gs.economy_rules.get("state_jobs", {})
+	var budget: Dictionary = c["budget"]
+	var lit := float(c.get("literacy", 0.0))
+	var clergy_share := (float(sj.get("clergy_base", 0.008)) + float(sj.get("clergy_per_education", 0.016)) * float(budget.get("education", 0.0))) 		* (1.0 - float(sj.get("clergy_literacy_saturation", 0.5)) * lit)
+	var admin_share := float(sj.get("admin_base", 0.004)) + float(sj.get("admin_per_slider", 0.006)) * float(budget.get("administration", 0.0))
+	var army := float(c.get("military", {}).get("brigades", 0)) * float(gs.unit_manpower) * float(sj.get("reserve_ratio", 1.25))
+	army += country_pop * (float(sj.get("base_reserve", 0.002)) + float(sj.get("reserve_share_per_slider", 0.0)) * float(budget.get("military", 0.0)))
+	if not c.get("wars", []).is_empty():
+		army *= float(sj.get("war_multiplier", 1.3))
+	var prov_k := total / country_pop
+	var mil_t := army * prov_k
+	var adm_t := admin_share * country_pop
+	var excess_k := float(sj.get("excess_tolerance", 1.25))
 	return {
 		"factory_workers": int(float(si.get("vacancy_craftsmen", 0)) * share),
 		"factory_clerks": int(float(si.get("vacancy_clerks", 0)) * share),
 		"rgo": 0,
-		"admin": int(maxf(0.0, 0.008 * country_pop - float(ct.get("bureaucrats", 0))) * total / country_pop),
-		"clergy": int(maxf(0.0, 0.02 * total - float(clergy))),
-		"military": int(maxf(0.0, mil_target * total - float(soldiers))),
-		"officers": int(maxf(0.0, 0.1 * float(soldiers) - float(officers))),
+		"admin": int(maxf(0.0, adm_t - float(ct.get("bureaucrats", 0))) * prov_k),
+		"clergy": int(maxf(0.0, clergy_share * total - float(clergy))),
+		"military": int(maxf(0.0, mil_t - float(soldiers))),
+		"officers": int(maxf(0.0, float(sj.get("officer_ratio", 0.08)) * float(soldiers) - float(officers))),
+		# excedentes (salida gradual hacia oficios civiles)
+		"military_excess": int(maxf(0.0, float(soldiers) - mil_t * excess_k)),
+		"clergy_excess": int(maxf(0.0, float(clergy) - clergy_share * total * excess_k)),
+		"admin_excess": int(maxf(0.0, (float(ct.get("bureaucrats", 0)) - adm_t * excess_k) * prov_k)),
 	}
 
 

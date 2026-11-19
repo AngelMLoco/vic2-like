@@ -15,6 +15,7 @@
  "artisan_switch_rate": 0.15,
  "price_adjust": 0.08,
  "price_min": 0.25,
+ "settle_purchases": true,
  "price_max": 4.0,
  "price_history": 24,
  "tax_efficiency_base": 0.5,
@@ -114,5 +115,48 @@
  "demographic_transition": 0.55,
  "_doc_demographic_transition": "M5.5: el crecimiento positivo de un POP se multiplica por (1 − demographic_transition × alfabetización). Sin esto el equilibrio malthusiano está en necesidades vitales ≈ 0,45: cualquier mejora económica se convierte en más población y paro.",
  "bank_dissaving": 0.01,
- "_doc_bank_dissaving": "M5.5: fracción mensual de los depósitos de clases media y alta que vuelve al efectivo (consumo de la riqueza). Evita el atesoramiento sin límite (deflación a largo plazo)."
+ "_doc_bank_dissaving": "M5.5: fracción mensual de los depósitos de clases media y alta que vuelve al efectivo (consumo de la riqueza). Evita el atesoramiento sin límite (deflación a largo plazo).",
+ "engel": {
+  "_doc": "M5.6 curvas de Engel: consumo adicional de cada nivel = elasticidad × (1 − e^(−k·(recursos/coste_cesta − 1))), recursos = renta del mes + wealth_weight × riqueza. wealth_weight = 0: con la liquidación actual (los POPs pagan con el llenado estimado del mes anterior) un efecto riqueza acelera la destrucción de dinero cuando la demanda crece; ver docs (M5.6).",
+  "life": 0.1,
+  "everyday": 0.5,
+  "luxury": 1.0,
+  "k": 0.5,
+  "wealth_weight": 0.0
+ },
+ "rgo_utilisation": {
+  "_doc": "M5.6: utilización del RGO. Baja 'down' al mes si el precio RELATIVO (precio medio de 12 meses / base, dividido por el nivel general = mediana de los bienes) < low_price y la oferta mundial > oversupply × demanda; sube 'up' si el precio relativo > recover_price o la demanda supera a la oferta.",
+  "low_price": 0.55,
+  "oversupply": 1.1,
+  "recover_price": 0.85,
+  "down": 0.008,
+  "up": 0.02,
+  "min": 0.6
+ },
+ "political_outlet": {
+  "_doc": "M5.6: cauce político 0…1 (media ponderada de niveles de estas reformas). Multiplicador del crecimiento del radicalismo = repression_factor − outlet_factor × cauce; enfriamiento extra = outlet_cooling × cauce.",
+  "reforms": {
+   "voting": 1.0,
+   "press": 1.0,
+   "public_meetings": 1.0,
+   "political_parties": 1.0
+  },
+  "repression_factor": 1.0,
+  "outlet_factor": 0.7,
+  "outlet_cooling": 0.015
+ },
+ "state_jobs": {
+  "_doc": "M5.6: plazas estatales por función (VMobilitySystem._vacancies). Clero = (base + por_educación × slider) × (1 − saturación × alfabetización) de la población; burócratas = (base + por_slider × slider de administración) de la población del país; soldados = brigadas × manpower × reserve_ratio + población × base_reserve (× war_multiplier en guerra); oficiales = officer_ratio × soldados. Por encima de need × excess_tolerance hay salida gradual (promotion.json, vacantes *_excess). Reservas pagadas: población × reserve_share_per_slider × slider militar (además de las brigadas).",
+  "clergy_base": 0.008,
+  "clergy_per_education": 0.016,
+  "clergy_literacy_saturation": 0.5,
+  "admin_base": 0.004,
+  "admin_per_slider": 0.006,
+  "reserve_ratio": 1.25,
+  "base_reserve": 0.002,
+  "war_multiplier": 1.3,
+  "officer_ratio": 0.08,
+  "excess_tolerance": 1.25,
+  "reserve_share_per_slider": 0.02
+ }
 }

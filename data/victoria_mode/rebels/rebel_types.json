@@ -55,5 +55,7 @@
  "spawn_share": 0.03,
  "max_brigades": 12,
  "victory_months": 3,
- "victory_province_share": 0.3
+ "victory_province_share": 0.3,
+ "min_militant_share": 0.15,
+ "min_militant_population": 30000
 }
