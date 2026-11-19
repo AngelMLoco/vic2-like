@@ -45,7 +45,8 @@ func _ready() -> void:
 		gs = VSaveSystem.load_game(App.pending_victoria_save, err)
 		App.pending_victoria_save = ""
 	if gs == null:
-		gs = VDataLoader.new_game()
+		gs = VDataLoader.new_game(App.pending_victoria_scenario)
+		App.pending_victoria_scenario = ""
 	sim = VWorldSimulation.new(gs)
 	clock = VTimeController.new()
 	clock.setup(gs.date)
@@ -82,7 +83,7 @@ func _build_world() -> void:
 	camera = VMapCamera.new()
 	world.add_child(camera)
 	camera.make_current()
-	camera.setup(world_map.map_size())
+	camera.setup(world_map.map_size(), gs.wrap_x)
 	camera.clicked.connect(_on_map_clicked)
 	camera.right_clicked.connect(_on_map_right_clicked)
 	camera.hovered.connect(_on_map_hovered)

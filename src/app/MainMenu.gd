@@ -2,8 +2,6 @@ extends Control
 ## Menú principal: Nuevo juego / Cargar partida / Opciones / Salir,
 ## y selector de modo (Prototipo actual / Segunda versión).
 
-const MAP_TEX := "res://data/victoria_mode/map/provinces.png"
-const MAP_META := "res://data/victoria_mode/map/map.json"
 
 var _pages := {}
 var _load_list: ItemList
@@ -31,13 +29,15 @@ func _build_background() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
-	if not FileAccess.file_exists(MAP_TEX):
+	# fondo: mapa del mundo del escenario por defecto
+	var map_tex := VWorlds.default_map_texture()
+	if not FileAccess.file_exists(map_tex):
 		return
-	var img := VWorldMap.load_id_image()
+	var img := VWorldMap.load_id_image(map_tex)
 	img.resize(img.get_width() / 4, img.get_height() / 4, Image.INTERPOLATE_NEAREST)
 	var tex := ImageTexture.create_from_image(img)
 	var first_sea := 1 << 30
-	var meta := VJson.load_dict(MAP_META)
+	var meta := VJson.load_dict(map_tex.get_base_dir() + "/map.json")
 	if meta.has("first_sea_id"):
 		first_sea = int(meta["first_sea_id"])
 	var tr := TextureRect.new()
@@ -84,6 +84,7 @@ func _build_layout() -> void:
 
 	_pages["main"] = _page_main()
 	_pages["mode"] = _page_mode()
+	_pages["scenario"] = _page_scenario()
 	_pages["load"] = _page_load()
 	_pages["options"] = _page_options()
 	for p in _pages.values():
@@ -117,10 +118,31 @@ func _page_mode() -> Control:
 	var a := _menu_button("PROTOTIPO ACTUAL", App.start_legacy, "Modo A: el prototipo existente, conservado sin cambios funcionales.")
 	v.add_child(a)
 	v.add_child(UiTheme.label("Simulación original de 30 provincias: POPs, mercado, guerras abstractas. Congelado como referencia.", 13, UiTheme.TEXT_DIM))
-	var b := _menu_button("SEGUNDA VERSIÓN", func(): App.start_victoria(""), "Modo B: reconstrucción estilo Victoria II sobre un mapamundi real.")
+	var b := _menu_button("SEGUNDA VERSIÓN", func(): _show_page("scenario"), "Modo B: reconstrucción estilo Victoria II. Elige escenario y después nación.")
 	v.add_child(b)
-	v.add_child(UiTheme.label("Mapamundi de prueba basado en la Tierra · Año 136 · países, estados y provincias.", 13, UiTheme.TEXT_DIM))
+	v.add_child(UiTheme.label("Escenario → nación → jugar. El escenario elige el mundo (mapa, países, culturas, religiones).", 13, UiTheme.TEXT_DIM))
 	v.add_child(UiTheme.button("Volver", func(): _show_page("main")))
+	return v
+
+
+## M6: escenarios jugables (habilitados, con un mundo válido y no reservados a pruebas). Un mundo en
+## desarrollo (p. ej. Chronicles of Aether sin datos) no aparece.
+func _page_scenario() -> Control:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	v.add_child(UiTheme.title_bar("Elige escenario"))
+	var list := VWorlds.playable_scenarios()
+	if list.is_empty():
+		v.add_child(UiTheme.label("No hay escenarios disponibles.", 14, UiTheme.TEXT_DIM))
+	for sc in list:
+		var sid := String(sc["id"])
+		var meta := VWorlds.world_meta(VWorlds.world_of(sc))
+		var b := _menu_button(String(sc.get("name", sid)).to_upper(), func(): App.start_victoria("", sid), String(meta.get("description", "")))
+		v.add_child(b)
+		var d := UiTheme.label("%s · %s" % [String(meta.get("name", "")), String(sc.get("description", ""))], 13, UiTheme.TEXT_DIM)
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(d)
+	v.add_child(UiTheme.button("Volver", func(): _show_page("mode")))
 	return v
 
 
@@ -201,7 +223,7 @@ func _refresh_load_list() -> void:
 	_load_list.clear()
 	_load_paths.clear()
 	for info in VSaveSystem.list_saves():
-		_load_list.add_item("%s   —   %s   (%s)" % [info.get("name", "?"), info.get("country_name", "?"), info.get("date_text", "?")])
+		_load_list.add_item("%s   —   %s   (%s · %s)" % [info.get("name", "?"), info.get("country_name", "?"), info.get("date_text", "?"), info.get("world_name", "Prototipo terrestre")])
 		_load_paths.append(info.get("path", ""))
 	_load_info.text = "No hay partidas guardadas de la Segunda versión." if _load_paths.is_empty() else "Selecciona una partida."
 

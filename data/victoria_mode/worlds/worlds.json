@@ -1,0 +1,8 @@
+{
+ "_doc": "Registro de mundos (M6). Cada mundo es un dataset independiente en worlds/<id>/ con su world.json (metadatos), su mapa, provincias, estados, zonas marítimas, países, culturas, religiones e historia. Las reglas compartidas (economía, POPs, gobiernos, ideologías, bienes, tecnologías, ejército, guerra) siguen en data/victoria_mode/. Un escenario (scenarios/scenarios.json) elige su mundo. Ver docs/VictoriaModeArchitecture.md (M6) y docs/FantasyMapPipeline.md.",
+ "worlds": [
+  {"id": "prototype_earth", "root": "worlds/prototype_earth/"},
+  {"id": "aether", "root": "worlds/aether/"},
+  {"id": "test_fantasy", "root": "worlds/test_fantasy/"}
+ ]
+}

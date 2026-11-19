@@ -1,0 +1,17 @@
+{
+ "_doc": "Prototipo terrestre: geografía de pruebas y regresión (smoke, balance, rendimiento). Generado con tools/map_import/build_world.py a partir de Natural Earth. No es el mundo final.",
+ "id": "prototype_earth",
+ "name": "Prototipo terrestre",
+ "description": "La Tierra como banco de pruebas de la simulación. Naciones ficticias, año 136.",
+ "width": 5632,
+ "height": 2624,
+ "wrap_x": false,
+ "map_version": 1,
+ "default_scenario": "prototype_136",
+ "enabled": true,
+ "test_only": false,
+ "author": "",
+ "version": "1",
+ "generator": "tools/map_import/build_world.py",
+ "forbidden_packs": ["fantasy"]
+}

@@ -4,7 +4,7 @@ extends Node2D
 ## colorea cada provincia a partir de texturas de consulta (LUT). Cambiar de mapmode o de
 ## propietario solo reescribe LUTs pequeñas (256 x N); la geometría nunca se modifica.
 
-const MAP_TEXTURE := "res://data/victoria_mode/map/provinces.png"
+## M6: el mapa de IDs sale del mundo activo (gs.world_root + map/provinces.png).
 const LUT_W := 256
 
 var gs: VGameState
@@ -27,7 +27,7 @@ var _time: float = 0.0
 
 func setup(state: VGameState) -> void:
 	gs = state
-	id_image = load_id_image()
+	id_image = load_id_image(gs.world_root + "map/provinces.png")
 	var tex := ImageTexture.create_from_image(id_image)
 	sprite = Sprite2D.new()
 	sprite.texture = tex
@@ -37,6 +37,16 @@ func setup(state: VGameState) -> void:
 	material_map.shader = load("res://src/victoria_mode/map/world_map.gdshader")
 	sprite.material = material_map
 	add_child(sprite)
+	# M6: mundos con wrap_x (world.json) dibujan copias a izquierda y derecha; el picking ya usa posmod
+	if gs.wrap_x:
+		for dx in [-gs.map_width, gs.map_width]:
+			var copy := Sprite2D.new()
+			copy.texture = tex
+			copy.centered = false
+			copy.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			copy.material = material_map
+			copy.position = Vector2(dx, 0)
+			add_child(copy)
 	_lut_h = int(ceil(float(gs.max_id + 1) / LUT_W))
 	_color_img = Image.create(LUT_W, _lut_h, false, Image.FORMAT_RGBA8)
 	_info_img = Image.create(LUT_W, _lut_h, false, Image.FORMAT_RGBA8)
@@ -55,11 +65,13 @@ func setup(state: VGameState) -> void:
 
 ## El PNG de IDs se importa con "keep" (se exporta sin conversión) y se lee como Image,
 ## para poder hacer picking por píxel en CPU y crear la textura sin pérdidas.
-static func load_id_image() -> Image:
+static func load_id_image(path: String = "") -> Image:
+	if path == "":
+		path = VWorlds.default_map_texture()
 	var img := Image.new()
-	var bytes := FileAccess.get_file_as_bytes(MAP_TEXTURE)
+	var bytes := FileAccess.get_file_as_bytes(path)
 	if bytes.is_empty() or img.load_png_from_buffer(bytes) != OK:
-		push_error("VWorldMap: no se pudo leer %s" % MAP_TEXTURE)
+		push_error("VWorldMap: no se pudo leer %s" % path)
 		img = Image.create(16, 16, false, Image.FORMAT_RGB8)
 	if img.get_format() != Image.FORMAT_RGB8:
 		img.convert(Image.FORMAT_RGB8)

@@ -156,6 +156,14 @@ var event_state := {}
 ## biblia de lore (validada, no simula) y actitudes mágicas de religiones/culturas. Todo de datos, no se guarda
 ## salvo scenario_id y content_packs (para recargar la misma combinación).
 var scenario_id := ""
+## M6: mundo (dataset de geografía, países, culturas y religiones) que usa el escenario. world_root es la
+## carpeta del mundo; base_root, la de las reglas compartidas. Se guarda world_id y map_version.
+var world_id := ""
+var world := {}
+var world_root := ""
+var base_root := ""
+var map_version := 0
+var wrap_x := false
 var scenario := {}
 var content_packs: Array = []
 var chronicle_templates := {}

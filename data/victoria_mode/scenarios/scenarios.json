@@ -1,17 +1,61 @@
 {
- "_doc": "Escenarios / bookmarks. Cada escenario declara su fecha de inicio, su archivo de historia (estado inicial) y los paquetes de contenido que carga. El motor no asume el año 136: lo dice el escenario. Ver docs/VictoriaModeDataSchemas.md (M5).",
+ "_doc": "Escenarios / bookmarks. Cada escenario declara su mundo (worlds/worlds.json), su fecha de inicio, su archivo de historia (ruta relativa a la carpeta del mundo) y los paquetes de contenido que carga. El motor no asume el año 136 ni la Tierra: lo dice el escenario. 'enabled': false lo oculta; 'test_only': true lo reserva a las pruebas. Ver docs/VictoriaModeDataSchemas.md (M5, M6).",
  "default": "prototype_136",
  "scenarios": [
   {
    "id": "prototype_136",
    "name": "Prototipo — Año 136",
+   "world": "prototype_earth",
    "era": "prototype",
    "description": "Geografía de pruebas (Tierra). Sirve para validar la simulación; no es el mundo final.",
    "history": "history/start_136.json",
-   "content_packs": ["core", "prototype"]
+   "content_packs": [
+    "core",
+    "prototype"
+   ]
+  },
+  {
+   "id": "aether_era1",
+   "name": "Chronicles of Aether — Era I",
+   "world": "aether",
+   "era": "era1",
+   "description": "Primer escenario de Chronicles of Aether. Sin datos todavía: lo aporta el autor.",
+   "history": "history/era1.json",
+   "content_packs": [
+    "core",
+    "fantasy"
+   ],
+   "enabled": false
+  },
+  {
+   "id": "test_fantasy_1",
+   "name": "Mundo de prueba (TEST ONLY)",
+   "world": "test_fantasy",
+   "era": "test",
+   "description": "Fixture automático del importador de mapas fantásticos. TEST ONLY — NOT AETHER LORE.",
+   "history": "history/start.json",
+   "content_packs": [
+    "core",
+    "fantasy"
+   ],
+   "test_only": true
   }
  ],
  "eras": [
-  {"id": "prototype", "name": "Prototipo", "note": "PROTOTYPE / replace later. Las eras definitivas (Era I, Era II…) se definen en el lore."}
+  {
+   "id": "prototype",
+   "name": "Prototipo",
+   "note": "PROTOTYPE / replace later. Las eras definitivas (Era I, Era II…) se definen en el lore."
+  },
+  {
+   "id": "era1",
+   "name": "Era I",
+   "note": "Primera era de Chronicles of Aether. Contenido pendiente del autor."
+  },
+  {
+   "id": "test",
+   "name": "Prueba",
+   "note": "Solo pruebas automáticas."
+  }
  ]
 }

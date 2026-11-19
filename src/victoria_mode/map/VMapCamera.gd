@@ -27,10 +27,13 @@ var _moved := false
 var _goto_target := Vector2.ZERO
 var _goto_active := false
 var input_enabled := true
+## M6: mapa cilíndrico (world.json → wrap_x): sin límite horizontal, la posición x da la vuelta.
+var wrap_x := false
 
 
-func setup(size: Vector2) -> void:
+func setup(size: Vector2, wrap: bool = false) -> void:
 	map_size = size
+	wrap_x = wrap
 	position_smoothing_enabled = false
 	_update_min_zoom()
 	target_zoom = max(min_zoom * 1.6, 0.55)
@@ -172,7 +175,13 @@ func _focus_is_text() -> bool:
 
 func _clamp() -> void:
 	var half := get_viewport_rect().size * 0.5 / zoom.x
-	position.x = clamp(position.x, half.x, max(half.x, map_size.x - half.x))
+	if wrap_x:
+		var before := position.x
+		position.x = fposmod(position.x, map_size.x)
+		if _goto_active:
+			_goto_target.x += position.x - before
+	else:
+		position.x = clamp(position.x, half.x, max(half.x, map_size.x - half.x))
 	position.y = clamp(position.y, half.y, max(half.y, map_size.y - half.y))
 
 

@@ -47,7 +47,8 @@ func _build_header() -> void:
 	v.add_theme_constant_override("separation", 0)
 	top.add_child(v)
 	v.add_child(UiTheme.label("ELIGE TU NACIÓN", 24, UiTheme.ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
-	v.add_child(UiTheme.label("1 de enero del año 136 · Escenario de prueba: la Tierra · Haz clic en el mapa o en la lista", 13, UiTheme.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER))
+	var sub := "%s · %s · %s · Haz clic en el mapa o en la lista" % [gs.date.text(), String(gs.scenario.get("name", gs.scenario_id)), String(gs.world.get("name", gs.world_id))]
+	v.add_child(UiTheme.label(sub, 13, UiTheme.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER))
 
 
 func _build_list() -> void:

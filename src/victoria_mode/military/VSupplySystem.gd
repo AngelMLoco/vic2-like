@@ -84,12 +84,18 @@ const EMPTY := []
 static var _max_org := {}
 ## Desgaste por terreno (caché).
 static var _terrain_attr := {}
+## Partida a la que pertenecen las cachés (M6: cada mundo puede sobrescribir terreno y unidades).
+static var _cache_owner := 0
 
 
 ## Tick diario: consumo de la reserva, desgaste, organización y moral de todos los ejércitos.
 ## Cada ejército se procesa cada 3 días (escalonado; en combate, a diario) con paso triple.
 static func daily(gs: VGameState) -> void:
 	var d := gs.date.ordinal()
+	if _cache_owner != gs.get_instance_id():
+		_cache_owner = gs.get_instance_id()
+		_max_org = {}
+		_terrain_attr = {}
 	if _max_org.is_empty() or _max_org.size() != gs.unit_types.size():
 		_max_org = {}
 		for t in gs.unit_types:

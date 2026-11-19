@@ -8,7 +8,11 @@ Uso (desde la raíz del repositorio):
     python tools/map_import/build_world.py            # descarga si falta y genera
     python tools/map_import/build_world.py --offline  # usa solo la caché
 
-Salidas (data/victoria_mode/):
+Solo genera el mundo `prototype_earth` (M6: Natural Earth es exclusivamente la fuente del prototipo; los
+mundos fantásticos usan tools/fantasy_map/). Si una regeneración cambia la geometría, sube "map_version" en
+data/victoria_mode/worlds/prototype_earth/world.json: los saves guardan esa versión.
+
+Salidas (data/victoria_mode/worlds/prototype_earth/):
     map/provinces.png      R,G = id de provincia (16 bits); B = distancia a costa
     map/map.json           metadatos (tamaño, proyección, recuentos, fuentes)
     map/geometry.json      geometría derivada por id: tipo, centroide, bbox, área, vecinos
@@ -38,7 +42,7 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 CACHE = os.path.join(HERE, ".cache")
-DATA = os.path.join(ROOT, "data", "victoria_mode")
+DATA = os.path.join(ROOT, "data", "victoria_mode", "worlds", "prototype_earth")
 NE_BASE = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
 SOURCES = {
     "admin1": "ne_10m_admin_1_states_provinces_lakes.geojson",

@@ -1,9 +1,12 @@
 class_name VDataLoader
 extends RefCounted
-## Carga todos los datos de data/victoria_mode/ y construye un VGameState listo para jugar.
-## Nada del contenido (países, provincias, bienes...) está escrito en código: todo sale de JSON.
+## Carga los datos y construye un VGameState listo para jugar. Nada del contenido (países, provincias,
+## bienes...) está escrito en código: todo sale de JSON.
+## M6: escenario → mundo. Las reglas compartidas salen de base_root, el mapa, los países, las culturas, las
+## religiones y la historia salen del mundo del escenario (world_root). Ver VWorlds.
 
-const ROOT := "res://data/victoria_mode/"
+## Raíz de las reglas compartidas y de los paquetes de contenido (no del mapa: ver VWorlds).
+const ROOT := VWorlds.BASE_ROOT
 
 static var _history_wars: Array = []
 
@@ -16,7 +19,7 @@ static func new_game(scenario_id: String = "") -> VGameState:
 	_load_definitions(gs)
 	_load_map(gs)
 	_load_countries(gs)
-	var hist := VJson.load_dict(ROOT + String(gs.scenario.get("history", "history/start_136.json")))
+	var hist := VJson.load_dict(VWorlds.world_file(gs, String(gs.scenario.get("history", "history/start_136.json"))))
 	_apply_province_history(gs, hist)
 	gs.rebuild_territory()
 	_apply_history(gs, hist)
@@ -38,18 +41,15 @@ static func new_game(scenario_id: String = "") -> VGameState:
 	VNavySystem.setup_new_game(gs)
 	VWarSystem.setup_new_game(gs, _history_wars)
 	VRankingSystem.recalculate(gs)
-	print("[VictoriaMode] mundo cargado en %d ms: %d provincias terrestres, %d estados, %d países" % [
-		Time.get_ticks_msec() - t0, gs.first_sea_id - 1, gs.states.size(), gs.countries.size()])
+	print("[VictoriaMode] mundo «%s» (mapa v%d) cargado en %d ms: %d provincias terrestres, %d estados, %d países" % [
+		gs.world_id, gs.map_version, Time.get_ticks_msec() - t0, gs.first_sea_id - 1, gs.states.size(), gs.countries.size()])
 	return gs
 
 
-## Escenario: fecha, historia y paquetes de contenido (no se asume el año 136).
+## Escenario: mundo, fecha, historia y paquetes de contenido (no se asume el año 136 ni la Tierra).
 static func _load_scenario(gs: VGameState, scenario_id: String) -> void:
-	var d := VJson.load_dict(ROOT + "scenarios/scenarios.json")
-	var want: String = scenario_id if scenario_id != "" else String(d.get("default", ""))
-	for sc in d.get("scenarios", []):
-		if sc.get("id", "") == want:
-			gs.scenario = sc
+	var want: String = scenario_id if scenario_id != "" else VWorlds.default_scenario_id()
+	gs.scenario = VWorlds.scenario(want).duplicate(true)
 	if gs.scenario.is_empty():
 		gs.data_errors.append("scenarios.json: escenario desconocido «%s»" % want)
 		gs.scenario = {"id": want, "history": "history/start_136.json"}
@@ -57,17 +57,28 @@ static func _load_scenario(gs: VGameState, scenario_id: String) -> void:
 	gs.content_packs = []
 	for p in gs.scenario.get("content_packs", []):
 		gs.content_packs.append(String(p))
+	gs.base_root = VWorlds.BASE_ROOT
+	gs.world_id = VWorlds.world_of(gs.scenario)
+	gs.world = VWorlds.world_meta(gs.world_id)
+	if gs.world.is_empty():
+		gs.data_errors.append("escenario «%s»: mundo no registrado «%s»" % [gs.scenario_id, gs.world_id])
+	gs.world_root = String(gs.world.get("root_path", VWorlds.BASE_ROOT + "worlds/%s/" % gs.world_id))
+	gs.wrap_x = bool(gs.world.get("wrap_x", false))
+	for p in gs.content_packs:
+		if String(p) in gs.world.get("forbidden_packs", []):
+			gs.data_errors.append("escenario «%s»: el mundo «%s» no admite el paquete «%s»" % [gs.scenario_id, gs.world_id, p])
 
 
 ## Contenido de los paquetes activos (también al cargar una partida): reglas y ramas mágicas, actitudes de
 ## religiones y culturas, eventos, decisiones, crónica, manifiesto de arte y biblia de lore.
 static func load_content(gs: VGameState) -> void:
-	VContentPacks.validate(gs, ROOT)
-	VMagicSystem.apply_prototype_branches(gs, ROOT)
-	VEventSystem.load_definitions(gs, ROOT)
-	VDecisionSystem.load_definitions(gs, ROOT)
-	VChronicle.load_templates(gs, ROOT)
-	VLoreLoader.load_all(gs, ROOT)
+	var root := VWorlds.CONTENT_ROOT
+	VContentPacks.validate(gs, root)
+	VMagicSystem.apply_prototype_branches(gs, root)
+	VEventSystem.load_definitions(gs, root)
+	VDecisionSystem.load_definitions(gs, root)
+	VChronicle.load_templates(gs, root)
+	VLoreLoader.load_all(gs, root)
 	for e in gs.data_errors:
 		push_error("[datos] " + str(e))
 
@@ -80,64 +91,64 @@ static func _index(arr: Array, key: String = "id") -> Dictionary:
 
 
 static func _load_definitions(gs: VGameState) -> void:
-	var cult := VJson.load_dict(ROOT + "cultures/cultures.json")
+	var cult := VJson.load_dict(VWorlds.world_file(gs, "cultures/cultures.json"))
 	gs.cultures = _index(cult.get("cultures", []))
 	gs.culture_groups = _index(cult.get("groups", []))
 	for id in gs.cultures:
 		var c: Dictionary = gs.cultures[id]
 		c["color_obj"] = Color(c["color"]) if c.has("color") else _hash_color(id)
-	gs.religions = _index(VJson.load_array(ROOT + "religions/religions.json", "religions"))
+	gs.religions = _index(VJson.load_array(VWorlds.world_file(gs, "religions/religions.json"), "religions"))
 	for id in gs.religions:
 		gs.religions[id]["color_obj"] = Color(gs.religions[id].get("color", "888888"))
-	gs.goods = _index(VJson.load_array(ROOT + "goods/goods.json", "goods"))
+	gs.goods = _index(VJson.load_array(VWorlds.data_path(gs, "goods/goods.json"), "goods"))
 	for id in gs.goods:
 		gs.goods[id]["color_obj"] = Color(gs.goods[id].get("color", "888888"))
-	gs.factory_types = _index(VJson.load_array(ROOT + "factories/factories.json", "factories"))
-	gs.terrain_types = _index(VJson.load_array(ROOT + "terrain/terrain.json", "terrain"))
+	gs.factory_types = _index(VJson.load_array(VWorlds.data_path(gs, "factories/factories.json"), "factories"))
+	gs.terrain_types = _index(VJson.load_array(VWorlds.data_path(gs, "terrain/terrain.json"), "terrain"))
 	for id in gs.terrain_types:
 		gs.terrain_types[id]["color_obj"] = Color(gs.terrain_types[id].get("color", "888888"))
-	var pt := VJson.load_dict(ROOT + "pops/pop_types.json")
+	var pt := VJson.load_dict(VWorlds.data_path(gs, "pops/pop_types.json"))
 	gs.pop_types = _index(pt.get("pop_types", []))
 	for id in gs.pop_types:
 		gs.pop_types[id]["color_obj"] = Color(gs.pop_types[id].get("color", "888888"))
 	gs.pop_distribution = pt.get("initial_distribution", {})
-	gs.governments = _index(VJson.load_array(ROOT + "governments/governments.json", "governments"))
-	gs.ideologies = _index(VJson.load_array(ROOT + "ideologies/ideologies.json", "ideologies"))
+	gs.governments = _index(VJson.load_array(VWorlds.data_path(gs, "governments/governments.json"), "governments"))
+	gs.ideologies = _index(VJson.load_array(VWorlds.data_path(gs, "ideologies/ideologies.json"), "ideologies"))
 	for id in gs.ideologies:
 		gs.ideologies[id]["color_obj"] = Color(gs.ideologies[id].get("color", "888888"))
-	gs.economy_rules = VJson.load_dict(ROOT + "economy/economy_rules.json")
-	gs.promotion_rules = VJson.load_array(ROOT + "pops/promotion.json", "rules")
-	var iss := VJson.load_dict(ROOT + "politics/issues.json")
+	gs.economy_rules = VJson.load_dict(VWorlds.data_path(gs, "economy/economy_rules.json"))
+	gs.promotion_rules = VJson.load_array(VWorlds.data_path(gs, "pops/promotion.json"), "rules")
+	var iss := VJson.load_dict(VWorlds.data_path(gs, "politics/issues.json"))
 	gs.issues = _index(iss.get("issues", []))
 	gs.issue_conditionals = iss.get("conditional", [])
-	var ref := VJson.load_dict(ROOT + "politics/reforms.json")
+	var ref := VJson.load_dict(VWorlds.data_path(gs, "politics/reforms.json"))
 	for r in ref.get("reforms", []):
 		gs.reforms[r["id"]] = r
 		gs.reform_order.append(r["id"])
 	gs.reform_meta = {"movement_names": ref.get("movement_names", {}), "cooldown_months": int(ref.get("cooldown_months", 6))}
-	gs.party_templates = VJson.load_array(ROOT + "politics/party_templates.json", "templates")
-	var tech := VJson.load_dict(ROOT + "technologies/technologies.json")
+	gs.party_templates = VJson.load_array(VWorlds.data_path(gs, "politics/party_templates.json"), "templates")
+	var tech := VJson.load_dict(VWorlds.data_path(gs, "technologies/technologies.json"))
 	gs.technologies = _index(tech.get("technologies", []))
 	gs.tech_categories = tech.get("categories", [])
-	gs.tech_categories.append_array(VJson.load_dict(ROOT + "magic/technologies.json").get("categories", []))
-	gs.inventions = _index(VJson.load_array(ROOT + "technologies/inventions.json", "inventions"))
+	gs.tech_categories.append_array(VJson.load_dict(VWorlds.data_path(gs, "magic/technologies.json")).get("categories", []))
+	gs.inventions = _index(VJson.load_array(VWorlds.data_path(gs, "technologies/inventions.json"), "inventions"))
 	# M4: tecnologías e inventos mágicos (data/victoria_mode/magic/technologies.json) en las mismas tablas
-	var mtech := VJson.load_dict(ROOT + "magic/technologies.json")
+	var mtech := VJson.load_dict(VWorlds.data_path(gs, "magic/technologies.json"))
 	for t in mtech.get("technologies", []):
 		gs.technologies[t["id"]] = t
 	for i in mtech.get("inventions", []):
 		gs.inventions[i["id"]] = i
-	var units := VJson.load_dict(ROOT + "military/unit_types.json")
+	var units := VJson.load_dict(VWorlds.data_path(gs, "military/unit_types.json"))
 	gs.unit_types = _index(units.get("units", []))
 	gs.unit_manpower = int(units.get("manpower", 3000))
 	gs.combat_width = int(units.get("base_combat_width", 12))
-	gs.ship_types = _index(VJson.load_array(ROOT + "military/ship_types.json", "ships"))
-	gs.leader_traits = VJson.load_dict(ROOT + "military/leader_traits.json")
-	var cb := VJson.load_dict(ROOT + "war/casus_belli.json")
+	gs.ship_types = _index(VJson.load_array(VWorlds.data_path(gs, "military/ship_types.json"), "ships"))
+	gs.leader_traits = VJson.load_dict(VWorlds.data_path(gs, "military/leader_traits.json"))
+	var cb := VJson.load_dict(VWorlds.data_path(gs, "war/casus_belli.json"))
 	gs.cb_types = _index(cb.get("casus_belli", []))
 	gs.war_rules = cb
-	gs.diplo_rules = VJson.load_dict(ROOT + "diplomacy/diplomacy_rules.json")
-	var reb := VJson.load_dict(ROOT + "rebels/rebel_types.json")
+	gs.diplo_rules = VJson.load_dict(VWorlds.data_path(gs, "diplomacy/diplomacy_rules.json"))
+	var reb := VJson.load_dict(VWorlds.data_path(gs, "rebels/rebel_types.json"))
 	gs.rebel_types = _index(reb.get("types", []))
 	gs.rebel_rules = reb
 
@@ -148,12 +159,14 @@ static func _hash_color(key: String) -> Color:
 
 
 static func _load_map(gs: VGameState) -> void:
-	var meta := VJson.load_dict(ROOT + "map/map.json")
+	var meta := VJson.load_dict(VWorlds.world_file(gs, "map/map.json"))
 	gs.map_width = int(meta["width"])
 	gs.map_height = int(meta["height"])
 	gs.first_sea_id = int(meta["first_sea_id"])
 	gs.first_lake_id = int(meta["first_lake_id"])
-	var geometry := VJson.load_array(ROOT + "map/geometry.json")
+	# versión de la geometría: la escribe el importador en map.json; si falta, la declara world.json
+	gs.map_version = int(meta.get("map_version", gs.world.get("map_version", 1)))
+	var geometry := VJson.load_array(VWorlds.world_file(gs, "map/geometry.json"))
 	gs.max_id = geometry.size()
 	gs.provinces.resize(gs.max_id + 1)
 	gs.provinces[0] = null
@@ -176,7 +189,7 @@ static func _load_map(gs: VGameState) -> void:
 			"owner": "", "controller": "", "state": 0,
 			"population": 0,
 		}
-	for p in VJson.load_array(ROOT + "provinces/provinces.json"):
+	for p in VJson.load_array(VWorlds.world_file(gs, "provinces/provinces.json")):
 		var id := int(p["id"])
 		var prov: Dictionary = gs.provinces[id]
 		prov["name"] = p["name"]
@@ -200,14 +213,14 @@ static func _load_map(gs: VGameState) -> void:
 		for n in prov["neighbors"]:
 			if n >= gs.first_sea_id and n < gs.first_lake_id:
 				prov["coastal"] = true
-	for s in VJson.load_array(ROOT + "provinces/sea_zones.json"):
+	for s in VJson.load_array(VWorlds.world_file(gs, "provinces/sea_zones.json")):
 		gs.provinces[int(s["id"])]["name"] = s["name"]
-	for s in VJson.load_array(ROOT + "states/states.json"):
+	for s in VJson.load_array(VWorlds.world_file(gs, "states/states.json")):
 		var ids: Array = []
 		for p in s["provinces"]:
 			ids.append(int(p))
 		gs.states[int(s["id"])] = {"id": int(s["id"]), "name": s["name"], "provinces": ids, "modern_region": s.get("modern_region", "")}
-	gs.adjacencies = VJson.load_array(ROOT + "map/adjacencies.json")
+	gs.adjacencies = VJson.load_array(VWorlds.world_file(gs, "map/adjacencies.json"))
 	for adj in gs.adjacencies:
 		var a := int(adj["a"])
 		var b := int(adj["b"])
@@ -220,7 +233,7 @@ static func _load_map(gs: VGameState) -> void:
 
 
 static func _load_countries(gs: VGameState) -> void:
-	for c in VJson.load_array(ROOT + "countries/countries.json", "countries"):
+	for c in VJson.load_array(VWorlds.world_file(gs, "countries/countries.json"), "countries"):
 		var tag: String = c["tag"]
 		var d: Dictionary = c.duplicate(true)
 		d["color_obj"] = Color(c["color"])

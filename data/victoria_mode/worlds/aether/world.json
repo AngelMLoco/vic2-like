@@ -1,0 +1,17 @@
+{
+ "_doc": "Chronicles of Aether. ESQUELETO: el mapa, los países, las culturas, las religiones y la historia los aporta el autor. Mientras falten, el mundo está deshabilitado y no aparece en el selector de escenarios. Para poblarlo: docs/FantasyMapPipeline.md (fuente del mapa en source/, importador tools/fantasy_map/) y docs/LoreBibleSchema.md.",
+ "id": "aether",
+ "name": "Chronicles of Aether",
+ "description": "",
+ "width": 0,
+ "height": 0,
+ "wrap_x": false,
+ "default_scenario": "aether_era1",
+ "enabled": false,
+ "status": "development",
+ "test_only": false,
+ "author": "",
+ "version": "0",
+ "generator": "tools/fantasy_map/build_fantasy_world.py",
+ "forbidden_packs": ["prototype"]
+}

@@ -12,6 +12,8 @@ const SETTINGS_PATH := "user://settings.cfg"
 
 ## Partida de la Segunda versión que debe cargarse al abrir el modo (ruta de save o "").
 var pending_victoria_save: String = ""
+## M6: escenario elegido en el selector (vacío = el de por defecto). El escenario elige el mundo.
+var pending_victoria_scenario: String = ""
 
 var settings := {
 	"ui_scale": 1.0,
@@ -35,8 +37,9 @@ func start_legacy() -> void:
 	get_tree().change_scene_to_file(SCENE_LEGACY)
 
 
-func start_victoria(save_path: String = "") -> void:
+func start_victoria(save_path: String = "", scenario_id: String = "") -> void:
 	pending_victoria_save = save_path
+	pending_victoria_scenario = scenario_id
 	get_tree().change_scene_to_file(SCENE_VICTORIA)
 
 
