@@ -14,7 +14,10 @@ const SAVE_DIR := "user://victoria_mode/saves/"
 ## v6 (M5): ids de eventos con espacio de nombres (core.*, magic.*, country.*), reforma magic_regulation,
 ## estadísticas de magos por nación (magic_stats), rivales, escenario y paquetes de contenido. Una v5
 ## referenciaría eventos que ya no existen: se rechaza.
-const SAVE_VERSION := 6
+## v7 (M6): identidad del mundo (world_id) y versión de su geometría (map_version). Al cargar se reconstruye el
+## mundo del escenario guardado y se rechaza si el mundo o la versión del mapa no coinciden: nunca se aplica
+## un save de un mundo sobre la geometría de otro. Una v6 es del prototipo terrestre (mapa v1): se migra.
+const SAVE_VERSION := 7
 const MODE_ID := "victoria_mode"
 
 ## v2 (milestone 2): economía, política y tecnología. Las partidas v1 se rechazan con un mensaje.
@@ -102,9 +105,15 @@ static func save_game(gs: VGameState, save_name: String) -> String:
 			"country_name": gs.country_name(gs.player_tag),
 			"date_text": gs.date.text(),
 			"saved_at": Time.get_datetime_string_from_system(),
+			"scenario": gs.scenario_id,
+			"world_id": gs.world_id,
+			"world_name": String(gs.world.get("name", gs.world_id)),
+			"map_version": gs.map_version,
 		},
 		"date": gs.date.to_dict(),
 		"scenario": gs.scenario_id,
+		"world_id": gs.world_id,
+		"map_version": gs.map_version,
 		"content_packs": gs.content_packs,
 		"player_tag": gs.player_tag,
 		"flags": gs.flags,
@@ -168,7 +177,15 @@ static func load_game(path: String, error_out: Array = []) -> VGameState:
 	if int(data.get("save_version", 0)) != SAVE_VERSION:
 		error_out.append("Versión de guardado %d incompatible (se esperaba %d)." % [int(data.get("save_version", 0)), SAVE_VERSION])
 		return null
+	var problem := check_world(data)
+	if problem != "":
+		error_out.append(problem)
+		return null
 	var gs := VDataLoader.new_game(String(data.get("scenario", "")))
+	if gs.world_id != String(data.get("world_id", "")) or gs.map_version != int(data.get("map_version", -1)):
+		error_out.append("La partida es del mundo «%s» (mapa v%d) y el escenario cargó «%s» (mapa v%d)." % [
+			data.get("world_id", "?"), int(data.get("map_version", -1)), gs.world_id, gs.map_version])
+		return null
 	gs.date = VDate.from_dict(data["date"])
 	gs.player_tag = data.get("player_tag", "")
 	gs.flags = data.get("flags", {})
@@ -262,8 +279,41 @@ static func _fix_pop_numbers(p: Dictionary) -> void:
 
 ## Punto de extensión para migraciones entre versiones de formato.
 static func _migrate(data: Dictionary) -> Dictionary:
-	# Ejemplo futuro: if data.save_version == 1: ...convertir... data.save_version = 2
+	# v6 → v7: antes de M6 solo existía el prototipo terrestre (mapa v1). El resto del formato no cambia.
+	if int(data.get("save_version", 0)) == 6:
+		data["world_id"] = VWorlds.DEFAULT_WORLD
+		data["map_version"] = 1
+		if String(data.get("scenario", "")) == "":
+			data["scenario"] = "prototype_136"
+		data["save_version"] = 7
 	return data
+
+
+## Comprueba, sin construir el mundo, que el escenario del save existe, usa el mismo mundo y que la versión de
+## la geometría coincide. "" = correcto; si no, mensaje legible.
+static func check_world(data: Dictionary) -> String:
+	var sid := String(data.get("scenario", ""))
+	var sc := VWorlds.scenario(sid)
+	if sc.is_empty():
+		return "La partida usa el escenario «%s», que ya no existe." % sid
+	var wid := String(data.get("world_id", ""))
+	if VWorlds.world_of(sc) != wid:
+		return "La partida es del mundo «%s», pero el escenario «%s» usa «%s»." % [wid, sid, VWorlds.world_of(sc)]
+	var meta := VWorlds.world_meta(wid)
+	var wp := VWorlds.world_problem(meta)
+	if wp != "":
+		return "El mundo «%s» de la partida no está disponible: %s." % [wid, wp]
+	var mv := current_map_version(meta)
+	if mv != int(data.get("map_version", -1)):
+		return "La partida se guardó con el mapa v%d de «%s» y el mapa actual es v%d: los ids de provincia pueden haber cambiado." % [
+			int(data.get("map_version", -1)), wid, mv]
+	return ""
+
+
+## Versión de la geometría de un mundo: map/map.json (la escribe el importador) o world.json.
+static func current_map_version(meta: Dictionary) -> int:
+	var m := VJson.load_dict(String(meta.get("root_path", "")) + "map/map.json")
+	return int(m.get("map_version", meta.get("map_version", 1)))
 
 
 ## JSON convierte las claves enteras en texto: restaurarlas.
